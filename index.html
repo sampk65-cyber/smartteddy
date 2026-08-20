@@ -766,7 +766,7 @@
             "anthropic-dangerous-direct-browser-access": "true",
           },
           body: JSON.stringify({
-            model: "claude-3-5-sonnet-latest",
+            model: "claude-sonnet-4-6",
             max_tokens: 4096,
             temperature: 0.7,
             system: getSystemPrompt(),
@@ -811,7 +811,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.deepseek}` },
           body: JSON.stringify({
-            model: "deepseek-chat",
+            model: "deepseek-v4-flash",
             temperature: 0.7,
             messages: [
               { role: "system", content: getSystemPrompt() },
@@ -835,7 +835,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
           body: JSON.stringify({
-            model: "grok-3-latest",
+            model: "grok-4.6",
             temperature: 0.7,
             messages: [
               { role: "system", content: getSystemPrompt() },
