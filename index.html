@@ -435,6 +435,7 @@
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
           <input id="teddyChatInput" type="text" placeholder="例如：算 125*38、放音樂、台北天氣、倒數5分鐘、最新新聞" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
+          <button type="button" id="teddyMicBtn" title="語音輸入" style="background:#1a2220;color:#c8d4ce;border:1px solid #2a3532;border-radius:8px;padding:8px 12px;font-size:15px;cursor:pointer;white-space:nowrap;">🎤</button>
           <button type="button" id="teddyChatSend" style="background:#5eead4;color:#0a0e0d;border:none;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;">送出</button>
         </div>
       </div>
@@ -1297,6 +1298,43 @@
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") teddySend();
     });
+
+    // ===== TEDDY 語音輸入（講話填入輸入框，說完自動送出）=====
+    (function () {
+      const micBtn = document.getElementById("teddyMicBtn");
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR || !micBtn) {
+        if (micBtn) { micBtn.disabled = true; micBtn.title = "此瀏覽器不支援語音輸入（請用 Chrome）"; micBtn.style.opacity = "0.4"; }
+        return;
+      }
+      let teddyRecognition = new SR();
+      let teddyListening = false;
+      teddyRecognition.lang = "zh-TW";
+      teddyRecognition.interimResults = true;
+      teddyRecognition.onresult = (ev) => {
+        let t = "";
+        for (let i = ev.resultIndex; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+        document.getElementById("teddyChatInput").value = t;
+      };
+      teddyRecognition.onend = teddyRecognition.onerror = () => {
+        teddyListening = false;
+        micBtn.classList.remove("recording");
+        micBtn.style.background = "#1a2220";
+        micBtn.textContent = "🎤";
+        const input = document.getElementById("teddyChatInput");
+        if (input.value.trim()) teddySend();
+      };
+      micBtn.onclick = () => {
+        if (teddyListening) { teddyRecognition.stop(); return; }
+        teddyListening = true;
+        micBtn.classList.add("recording");
+        micBtn.style.background = "#3a1a1a";
+        micBtn.textContent = "⏹";
+        document.getElementById("teddyChatInput").value = "";
+        teddyRecognition.start();
+      };
+    })();
+
     (function () {
       const sel = document.getElementById("teddyModelSelect");
       if (sel) {
