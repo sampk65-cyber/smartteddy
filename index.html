@@ -384,6 +384,7 @@
   <!-- Firebase SDK (CDN，純 HTML 用) -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
 
 </head>
@@ -426,7 +427,7 @@
         </div>
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
-          <input id="teddyChatInput" type="text" placeholder="例如：算 125*38、放音樂、下一首、停止" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
+          <input id="teddyChatInput" type="text" placeholder="例如：算 125*38、放音樂、台北天氣、倒數5分鐘、最新新聞" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
           <button type="button" id="teddyChatSend" style="background:#5eead4;color:#0a0e0d;border:none;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;">送出</button>
         </div>
       </div>
@@ -625,19 +626,26 @@
     let teddyMusicUrls = [];
     let teddyMusicIndex = 0;
 
-    async function loadTeddyFromFirebase() {
-      const gallery = document.getElementById("teddyGallery");
-      const musicList = document.getElementById("musicList");
-      const musicStatus = document.getElementById("musicStatus");
-      if (typeof firebase === "undefined") {
-        if (gallery) gallery.innerHTML = '<div style="grid-column:1/-1;font-size:12px;color:#e8a659;text-align:center;">Firebase SDK 未載入</div>';
-        return;
-      }
+    function teddyEnsureFirebase() {
+      if (typeof firebase === "undefined") return false;
       try {
         if (!firebase.apps.length) {
           firebase.initializeApp(firebaseConfig);
           try { firebase.analytics(); } catch (_) {}
         }
+        return true;
+      } catch (_) { return false; }
+    }
+
+    async function loadTeddyFromFirebase() {
+      const gallery = document.getElementById("teddyGallery");
+      const musicList = document.getElementById("musicList");
+      const musicStatus = document.getElementById("musicStatus");
+      if (!teddyEnsureFirebase()) {
+        if (gallery) gallery.innerHTML = '<div style="grid-column:1/-1;font-size:12px;color:#e8a659;text-align:center;">Firebase SDK 未載入</div>';
+        return;
+      }
+      try {
         const storage = firebase.storage();
 
         // 照片
@@ -695,7 +703,7 @@
     const _origTeddyPanelOpen = () => {};
 
     // ===== TEDDY Router：讓 TEDDY 自己判斷該用哪個工具 =====
-    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理。使用者要求算數學、放音樂、暫停音樂、換下一首、或看照片時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算或假裝已經做了動作。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛。";
+    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛。";
 
     const TEDDY_TOOLS = [
       {
@@ -719,9 +727,51 @@
       },
       { name: "stop_music", description: "停止播放目前音樂。", input_schema: { type: "object", properties: {} } },
       { name: "next_music", description: "切換播放下一首音樂。", input_schema: { type: "object", properties: {} } },
+      {
+        name: "get_weather",
+        description: "查詢指定地點目前的天氣狀況與氣溫。使用者問天氣時一定要呼叫這個工具取得真實資料，不要憑印象亂猜。",
+        input_schema: {
+          type: "object",
+          properties: { location: { type: "string", description: "地點名稱，例如「台北」「台中」「東京」" } },
+          required: ["location"]
+        }
+      },
+      {
+        name: "start_timer",
+        description: "設定倒數計時器，時間到會在對話框裡提醒使用者。",
+        input_schema: {
+          type: "object",
+          properties: {
+            seconds: { type: "number", description: "倒數秒數，例如 5 分鐘請填 300" },
+            label: { type: "string", description: "這個計時器的用途標籤，例如「煮麵」，沒有可留空" }
+          },
+          required: ["seconds"]
+        }
+      },
+      {
+        name: "search_news",
+        description: "搜尋最新新聞或即時資訊。使用者問「最新」「現在」「新聞」等需要即時資料的問題時要呼叫這個工具，不要用自己過時的知識回答。",
+        input_schema: {
+          type: "object",
+          properties: { query: { type: "string", description: "搜尋關鍵字" } },
+          required: ["query"]
+        }
+      },
+      {
+        name: "set_reminder",
+        description: "設定提醒事項。注意：這個提醒只在使用者保持這個網頁分頁開著時才會生效，如果分頁被關掉或手機鎖螢幕太久，可能不會準時提醒，要跟使用者說明這個限制。",
+        input_schema: {
+          type: "object",
+          properties: {
+            minutes_from_now: { type: "number", description: "幾分鐘後提醒，例如 30 分鐘後請填 30" },
+            message: { type: "string", description: "要提醒的內容，例如「吃藥」" }
+          },
+          required: ["minutes_from_now", "message"]
+        }
+      },
     ];
 
-    function teddyRunTool(name, input) {
+    async function teddyRunTool(name, input) {
       input = input || {};
       const audio = document.getElementById("teddyAudio");
       const musicStatus = document.getElementById("musicStatus");
@@ -765,32 +815,142 @@
         if (musicStatus) musicStatus.textContent = "播放中：" + teddyMusicUrls[teddyMusicIndex].name;
         return { ok: true, playing: teddyMusicUrls[teddyMusicIndex].name };
       }
+      if (name === "get_weather") {
+        try {
+          const loc = String(input.location || "").trim();
+          if (!loc) return { ok: false, error: "沒有指定地點" };
+          const geoR = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=zh`);
+          const geoD = await geoR.json();
+          const place = geoD.results && geoD.results[0];
+          if (!place) return { ok: false, error: "找不到這個地點：" + loc };
+          const wR = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`);
+          const wD = await wR.json();
+          const c = wD.current || {};
+          return {
+            ok: true,
+            location: place.name,
+            temperature_c: c.temperature_2m,
+            humidity_percent: c.relative_humidity_2m,
+            wind_kmh: c.wind_speed_10m,
+            weather_code: c.weather_code,
+          };
+        } catch (e) { return { ok: false, error: "查詢天氣失敗：" + e.message }; }
+      }
+      if (name === "start_timer") {
+        const secs = Number(input.seconds);
+        if (!secs || secs <= 0) return { ok: false, error: "秒數不正確" };
+        const label = (input.label || "").trim();
+        setTimeout(() => {
+          teddyAppendLog("teddy", `⏰ 時間到囉！${label ? "「" + label + "」" : ""}提醒你一下～`);
+          teddySpeak(`時間到囉！${label || ""}`);
+        }, secs * 1000);
+        return { ok: true, seconds: secs, label: label || null };
+      }
+      if (name === "search_news") {
+        const keys = loadKeys();
+        if (!keys.xai) return { ok: false, error: "搜尋新聞需要先設定 Grok (xAI) 的 API Key" };
+        try {
+          const r = await fetch("https://api.x.ai/v1/responses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
+            body: JSON.stringify({
+              model: "grok-4.6",
+              input: [{ role: "user", content: String(input.query || "") }],
+              tools: [{ type: "web_search" }],
+            }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
+          const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
+          return { ok: true, result: text || "沒有找到相關結果" };
+        } catch (e) { return { ok: false, error: "搜尋失敗：" + e.message }; }
+      }
+      if (name === "set_reminder") {
+        const mins = Number(input.minutes_from_now);
+        const msg = String(input.message || "").trim();
+        if (!mins || mins <= 0 || !msg) return { ok: false, error: "分鐘數或提醒內容不正確" };
+        setTimeout(() => {
+          teddyAppendLog("teddy", `🔔 提醒你：${msg}`);
+          teddySpeak(`提醒你：${msg}`);
+          if (window.Notification && Notification.permission === "granted") {
+            try { new Notification("TEDDY 提醒", { body: msg }); } catch (_) {}
+          }
+        }, mins * 60 * 1000);
+        if (window.Notification && Notification.permission === "default") {
+          try { Notification.requestPermission(); } catch (_) {}
+        }
+        return { ok: true, minutes_from_now: mins, message: msg, note: "此提醒僅在此網頁分頁保持開啟時才會生效" };
+      }
       return { ok: false, error: "未知工具：" + name };
     }
 
-    // ===== TEDDY 對話記憶（存在 localStorage，同一台裝置下次打開還記得）=====
+    // ===== TEDDY 對話記憶（Firestore 雲端同步，localStorage 當本機快取／離線備援）=====
     let teddyHistory = [];
     const TEDDY_HISTORY_KEY = "teddy_chat_history";
-    const TEDDY_HISTORY_MAX = 20; // 最多保留最近 20 則訊息，避免無限增長
+    const TEDDY_HISTORY_MAX = 50; // 最多保留最近 50 則訊息，避免每次對話都要送出過多歷史
 
-    function teddyLoadHistory() {
-      try { teddyHistory = JSON.parse(localStorage.getItem(TEDDY_HISTORY_KEY) || "[]"); }
-      catch (_) { teddyHistory = []; }
+    function teddyGetDeviceId() {
+      let id = localStorage.getItem("teddy_device_id");
+      if (!id) {
+        id = "device_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("teddy_device_id", id);
+      }
+      return id;
+    }
+
+    function teddyRenderHistoryLog() {
       const log = document.getElementById("teddyChatLog");
       if (log) {
         log.innerHTML = "";
         teddyHistory.forEach((h) => teddyAppendLog(h.role === "user" ? "user" : "teddy", h.text));
       }
     }
-    function teddySaveHistory() {
+
+    async function teddyLoadHistory() {
+      // 先讀本機快取，馬上顯示，不用等網路
+      try { teddyHistory = JSON.parse(localStorage.getItem(TEDDY_HISTORY_KEY) || "[]"); }
+      catch (_) { teddyHistory = []; }
+      teddyRenderHistoryLog();
+
+      // 再嘗試從 Firestore 讀取雲端版本（換裝置也能看到同一份記憶）
+      if (!teddyEnsureFirebase()) return;
+      try {
+        const db = firebase.firestore();
+        const doc = await db.collection("teddy_memory").doc(teddyGetDeviceId()).get();
+        if (doc.exists) {
+          const cloudHistory = doc.data().history || [];
+          teddyHistory = cloudHistory;
+          localStorage.setItem(TEDDY_HISTORY_KEY, JSON.stringify(teddyHistory));
+          teddyRenderHistoryLog();
+        }
+      } catch (e) {
+        console.warn("Firestore 記憶讀取失敗，先用本機記憶：", e.message);
+      }
+    }
+
+    async function teddySaveHistory() {
       teddyHistory = teddyHistory.slice(-TEDDY_HISTORY_MAX);
       localStorage.setItem(TEDDY_HISTORY_KEY, JSON.stringify(teddyHistory));
+      if (!teddyEnsureFirebase()) return;
+      try {
+        const db = firebase.firestore();
+        await db.collection("teddy_memory").doc(teddyGetDeviceId()).set({
+          history: teddyHistory,
+          updatedAt: Date.now(),
+        });
+      } catch (e) {
+        console.warn("Firestore 記憶儲存失敗，僅保留本機記憶：", e.message);
+      }
     }
+
     function teddyClearHistory() {
       teddyHistory = [];
       localStorage.removeItem(TEDDY_HISTORY_KEY);
       const log = document.getElementById("teddyChatLog");
       if (log) log.innerHTML = "";
+      if (teddyEnsureFirebase()) {
+        try { firebase.firestore().collection("teddy_memory").doc(teddyGetDeviceId()).delete(); } catch (_) {}
+      }
     }
 
     function teddyAppendLog(role, text) {
@@ -829,11 +989,11 @@
         const textBlocks = (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
         if (!toolUses.length) return textBlocks || "（沒有回覆）";
         messages.push({ role: "assistant", content: d.content });
-        const toolResults = toolUses.map((tu) => ({
+        const toolResults = await Promise.all(toolUses.map(async (tu) => ({
           type: "tool_result",
           tool_use_id: tu.id,
-          content: JSON.stringify(teddyRunTool(tu.name, tu.input)),
-        }));
+          content: JSON.stringify(await teddyRunTool(tu.name, tu.input)),
+        })));
         messages.push({ role: "user", content: toolResults });
       }
       return "工具呼叫太多次了，先停在這裡。";
@@ -857,7 +1017,8 @@
         for (const tc of msg.tool_calls) {
           let args = {};
           try { args = JSON.parse(tc.function.arguments || "{}"); } catch (_) {}
-          messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(teddyRunTool(tc.function.name, args)) });
+          const result = await teddyRunTool(tc.function.name, args);
+          messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
       }
       return "工具呼叫太多次了，先停在這裡。";
