@@ -710,7 +710,7 @@
     const _origTeddyPanelOpen = () => {};
 
     // ===== TEDDY Router：讓 TEDDY 自己判斷該用哪個工具 =====
-    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理。重要：這個網頁有幫你接上記憶系統，會自動把你們最近聊過的內容（最多 50 則）記下來並在每次對話時提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛。";
+    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛。";
 
     const TEDDY_TOOLS = [
       {
@@ -757,10 +757,10 @@
       },
       {
         name: "search_news",
-        description: "搜尋最新新聞或即時資訊。使用者問「最新」「現在」「新聞」等需要即時資料的問題時要呼叫這個工具，不要用自己過時的知識回答。",
+        description: "搜尋最新新聞或即時資訊。使用者問「最新」「現在」「新聞」等需要即時資料的問題時要呼叫這個工具，不要用自己過時的知識回答。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣；當使用者要你「找最酷／最特別／最新的知識或新聞」卻沒指定主題時，從這幾個領域裡挑一個去搜尋，優先找新奇、少見、值得分享的內容，不要找泛泛的一般新聞。query 要寫得具體一點（例如「SpaceX 最新發射」而不是「太空新聞」），這樣搜尋結果比較精準。",
         input_schema: {
           type: "object",
-          properties: { query: { type: "string", description: "搜尋關鍵字" } },
+          properties: { query: { type: "string", description: "搜尋關鍵字，盡量具體" } },
           required: ["query"]
         }
       },
@@ -776,7 +776,36 @@
           required: ["minutes_from_now", "message"]
         }
       },
+      {
+        name: "save_article",
+        description: "當使用者要求你寫一篇文章、日記或短文時使用。你要自己創作一篇符合指定主題、300 個中文字以內的繁體中文短文，放進 content 參數裡，這個工具會把文章存起來，之後可以再次朗讀。寫完文章後也要在對話中把文章內容完整念給使用者聽，不要只說「已經寫好了」。",
+        input_schema: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "文章日期，格式 YYYY-MM-DD，沒有指定就留空（會用今天日期）" },
+            topic: { type: "string", description: "文章主題，例如「節氣」「今天的心情」" },
+            content: { type: "string", description: "你創作的文章全文，必須是繁體中文、300字以內" }
+          },
+          required: ["topic", "content"]
+        }
+      },
+      {
+        name: "read_article",
+        description: "朗讀之前寫過的文章。使用者說「念文章給我聽」「今天寫了什麼」「昨天的文章」時使用。拿到工具回傳的文章內容後，要在回覆裡完整照原文念出來，不要再自己摘要縮短。",
+        input_schema: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "要讀哪一天的文章，格式 YYYY-MM-DD，沒有指定就讀最新一篇" }
+          }
+        }
+      },
     ];
+
+    function teddyTodayStr() {
+      const d = new Date();
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 10);
+    }
 
     async function teddyRunTool(name, input) {
       input = input || {};
@@ -887,6 +916,39 @@
           try { Notification.requestPermission(); } catch (_) {}
         }
         return { ok: true, minutes_from_now: mins, message: msg, note: "此提醒僅在此網頁分頁保持開啟時才會生效" };
+      }
+      if (name === "save_article") {
+        if (!teddyEnsureFirebase()) return { ok: false, error: "Firebase 尚未載入，無法儲存文章" };
+        const date = (input.date || teddyTodayStr()).trim();
+        const topic = String(input.topic || "").trim();
+        const content = String(input.content || "").trim();
+        if (!content) return { ok: false, error: "文章內容是空的" };
+        if (content.length > 320) return { ok: false, error: "文章超過300字限制（目前" + content.length + "字），請縮短後重新呼叫這個工具" };
+        try {
+          const db = firebase.firestore();
+          await db.collection("teddy_memory").doc(teddyGetDeviceId()).collection("articles").doc(date).set({
+            date, topic, content, createdAt: Date.now(),
+          });
+          return { ok: true, date, topic, length: content.length };
+        } catch (e) { return { ok: false, error: "儲存文章失敗：" + e.message }; }
+      }
+      if (name === "read_article") {
+        if (!teddyEnsureFirebase()) return { ok: false, error: "Firebase 尚未載入，無法讀取文章" };
+        try {
+          const db = firebase.firestore();
+          const col = db.collection("teddy_memory").doc(teddyGetDeviceId()).collection("articles");
+          let doc;
+          if (input.date) {
+            doc = await col.doc(String(input.date).trim()).get();
+            if (!doc.exists) return { ok: false, error: "找不到 " + input.date + " 那天的文章" };
+          } else {
+            const snap = await col.orderBy("date", "desc").limit(1).get();
+            if (snap.empty) return { ok: false, error: "目前還沒有寫過任何文章" };
+            doc = snap.docs[0];
+          }
+          const data = doc.data();
+          return { ok: true, date: data.date, topic: data.topic, content: data.content };
+        } catch (e) { return { ok: false, error: "讀取文章失敗：" + e.message }; }
       }
       return { ok: false, error: "未知工具：" + name };
     }
