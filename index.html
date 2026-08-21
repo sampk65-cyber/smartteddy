@@ -420,11 +420,18 @@
       <div class="music-box" style="margin-top:12px;">
         <div class="label" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
           <span>💬 跟 TEDDY 說話（放音樂／算數學／換照片）</span>
-          <div style="display:flex;gap:4px;">
-            <button type="button" id="teddyVoiceToggle" title="開關 TEDDY 語音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+            <select id="teddyModelSelect" title="選擇要呼叫的 AI" style="background:#0a0e0d;border:1px solid #2a3532;color:#c8d4ce;border-radius:6px;padding:2px 6px;font-size:11px;">
+              <option value="auto">自動（優先 Claude）</option>
+              <option value="anthropic">Claude</option>
+              <option value="openai">ChatGPT</option>
+            </select>
+            <button type="button" id="teddyUsageToggle" title="查看用量" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">📊 用量</button>
+            <button type="button" id="teddyVoiceToggle" title="開關 TEDDY 語音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔇</button>
             <button type="button" id="teddyChatClear" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">清除記憶</button>
           </div>
         </div>
+        <div id="teddyUsagePanel" style="display:none;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;font-size:11px;color:#8a9a92;margin-bottom:8px;line-height:1.7;"></div>
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
           <input id="teddyChatInput" type="text" placeholder="例如：算 125*38、放音樂、台北天氣、倒數5分鐘、最新新聞" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
@@ -966,6 +973,7 @@
     async function teddyChatWithClaude(apiKey) {
       const messages = teddyHistory.map((h) => ({ role: h.role, content: h.text }));
       let guard = 0;
+      let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
         const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
@@ -985,9 +993,10 @@
         });
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
+        if (d.usage) { usedInput += d.usage.input_tokens || 0; usedOutput += d.usage.output_tokens || 0; }
         const toolUses = (d.content || []).filter((b) => b.type === "tool_use");
         const textBlocks = (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
-        if (!toolUses.length) return textBlocks || "（沒有回覆）";
+        if (!toolUses.length) return { text: textBlocks || "（沒有回覆）", usage: { input: usedInput, output: usedOutput } };
         messages.push({ role: "assistant", content: d.content });
         const toolResults = await Promise.all(toolUses.map(async (tu) => ({
           type: "tool_result",
@@ -996,13 +1005,14 @@
         })));
         messages.push({ role: "user", content: toolResults });
       }
-      return "工具呼叫太多次了，先停在這裡。";
+      return { text: "工具呼叫太多次了，先停在這裡。", usage: { input: usedInput, output: usedOutput } };
     }
 
     async function teddyChatWithOpenAI(apiKey) {
       const oaTools = TEDDY_TOOLS.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
       const messages = [{ role: "system", content: TEDDY_SYSTEM_PROMPT }, ...teddyHistory.map((h) => ({ role: h.role, content: h.text }))];
       let guard = 0;
+      let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
         const r = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -1011,8 +1021,9 @@
         });
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
+        if (d.usage) { usedInput += d.usage.prompt_tokens || 0; usedOutput += d.usage.completion_tokens || 0; }
         const msg = d.choices[0].message;
-        if (!msg.tool_calls || !msg.tool_calls.length) return msg.content || "（沒有回覆）";
+        if (!msg.tool_calls || !msg.tool_calls.length) return { text: msg.content || "（沒有回覆）", usage: { input: usedInput, output: usedOutput } };
         messages.push(msg);
         for (const tc of msg.tool_calls) {
           let args = {};
@@ -1021,12 +1032,57 @@
           messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
       }
-      return "工具呼叫太多次了，先停在這裡。";
+      return { text: "工具呼叫太多次了，先停在這裡。", usage: { input: usedInput, output: usedOutput } };
     }
 
     // ===== TEDDY 語音（優先用 OpenAI TTS 甜美女聲，沒有 Key 才 fallback 瀏覽器內建語音）=====
-    let teddyVoiceEnabled = true;
+    let teddyVoiceEnabled = false; // 預設靜音，避免在安靜場合突然講話
     let teddyCurrentAudio = null;
+
+    // ===== TEDDY 用量統計（估計值，存在 localStorage）=====
+    const TEDDY_USAGE_KEY = "teddy_usage_stats";
+    function teddyLoadUsage() {
+      try { return JSON.parse(localStorage.getItem(TEDDY_USAGE_KEY) || "{}"); } catch (_) { return {}; }
+    }
+    function teddySaveUsage(u) { localStorage.setItem(TEDDY_USAGE_KEY, JSON.stringify(u)); }
+    function teddyRecordChatUsage(provider, usage) {
+      if (!provider || !usage) return;
+      const u = teddyLoadUsage();
+      if (!u[provider]) u[provider] = { calls: 0, inputTokens: 0, outputTokens: 0 };
+      u[provider].calls += 1;
+      u[provider].inputTokens += usage.input || 0;
+      u[provider].outputTokens += usage.output || 0;
+      teddySaveUsage(u);
+    }
+    function teddyRecordTtsUsage(chars) {
+      const u = teddyLoadUsage();
+      if (!u.tts) u.tts = { calls: 0, chars: 0 };
+      u.tts.calls += 1;
+      u.tts.chars += chars || 0;
+      teddySaveUsage(u);
+    }
+    function teddyRenderUsage() {
+      const panel = document.getElementById("teddyUsagePanel");
+      if (!panel) return;
+      const u = teddyLoadUsage();
+      const c = u.anthropic || { calls: 0, inputTokens: 0, outputTokens: 0 };
+      const o = u.openai || { calls: 0, inputTokens: 0, outputTokens: 0 };
+      const t = u.tts || { calls: 0, chars: 0 };
+      // 估計費率（美金，僅供參考，實際以官方帳單為準，可能已過時）
+      const claudeCost = (c.inputTokens / 1e6) * 3 + (c.outputTokens / 1e6) * 15;
+      const gptCost = (o.inputTokens / 1e6) * 2.5 + (o.outputTokens / 1e6) * 10;
+      const ttsCost = (t.chars / 1e6) * 15;
+      const total = claudeCost + gptCost + ttsCost;
+      panel.innerHTML = `
+        <div>💬 Claude：${c.calls} 次對話，約 $${claudeCost.toFixed(4)}</div>
+        <div>💬 ChatGPT：${o.calls} 次對話，約 $${gptCost.toFixed(4)}</div>
+        <div>🔊 語音：${t.calls} 次，約 $${ttsCost.toFixed(4)}</div>
+        <div style="margin-top:4px;border-top:1px solid #2a3532;padding-top:4px;">累計估計：約 $${total.toFixed(4)} 美金（估算值，僅供參考）</div>
+        <div style="margin-top:6px;"><button type="button" id="teddyUsageReset" style="background:none;border:1px solid #2a3532;color:#8a9a92;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">重設統計</button></div>
+      `;
+      const resetBtn = document.getElementById("teddyUsageReset");
+      if (resetBtn) resetBtn.onclick = () => { localStorage.removeItem(TEDDY_USAGE_KEY); teddyRenderUsage(); };
+    }
 
     async function teddySpeak(text) {
       if (!teddyVoiceEnabled || !text) return;
@@ -1052,6 +1108,7 @@
             const url = URL.createObjectURL(blob);
             teddyCurrentAudio = new Audio(url);
             teddyCurrentAudio.play();
+            teddyRecordTtsUsage(clean.length);
             return;
           }
         } catch (_) { /* 失敗就往下 fallback */ }
@@ -1082,13 +1139,27 @@
       teddyHistory.push({ role: "user", text });
       teddySaveHistory();
       const keys = loadKeys();
+      const modelSelect = document.getElementById("teddyModelSelect");
+      const pref = modelSelect ? modelSelect.value : "auto";
       const btn = document.getElementById("teddyChatSend");
       btn.disabled = true;
       try {
-        let reply;
-        if (keys.anthropic) reply = await teddyChatWithClaude(keys.anthropic);
-        else if (keys.openai) reply = await teddyChatWithOpenAI(keys.openai);
-        else reply = "請先按上面「⚙️ 設定 Key」設定 Claude 或 ChatGPT 的 API Key，TEDDY 才能跟你對話喔。";
+        let reply, provider = null, result = null;
+        if (pref === "anthropic") {
+          if (!keys.anthropic) reply = "尚未設定 Claude 的 API Key，請先到「⚙️ 設定 Key」設定。";
+          else { result = await teddyChatWithClaude(keys.anthropic); provider = "anthropic"; }
+        } else if (pref === "openai") {
+          if (!keys.openai) reply = "尚未設定 ChatGPT 的 API Key，請先到「⚙️ 設定 Key」設定。";
+          else { result = await teddyChatWithOpenAI(keys.openai); provider = "openai"; }
+        } else {
+          if (keys.anthropic) { result = await teddyChatWithClaude(keys.anthropic); provider = "anthropic"; }
+          else if (keys.openai) { result = await teddyChatWithOpenAI(keys.openai); provider = "openai"; }
+          else reply = "請先按上面「⚙️ 設定 Key」設定 Claude 或 ChatGPT 的 API Key，TEDDY 才能跟你對話喔。";
+        }
+        if (result) {
+          reply = result.text;
+          teddyRecordChatUsage(provider, result.usage);
+        }
         teddyAppendLog("teddy", reply);
         teddyHistory.push({ role: "assistant", text: reply });
         teddySaveHistory();
@@ -1103,6 +1174,19 @@
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") teddySend();
     });
+    (function () {
+      const sel = document.getElementById("teddyModelSelect");
+      if (sel) {
+        sel.value = localStorage.getItem("teddy_model_pref") || "auto";
+        sel.addEventListener("change", () => localStorage.setItem("teddy_model_pref", sel.value));
+      }
+    })();
+    document.getElementById("teddyUsageToggle").onclick = () => {
+      const panel = document.getElementById("teddyUsagePanel");
+      const showing = panel.style.display !== "none";
+      panel.style.display = showing ? "none" : "block";
+      if (!showing) teddyRenderUsage();
+    };
     document.getElementById("teddyChatClear").onclick = teddyClearHistory;
     document.getElementById("teddyVoiceToggle").onclick = () => {
       teddyVoiceEnabled = !teddyVoiceEnabled;
