@@ -878,7 +878,13 @@
           const r = await fetch("https://api.openai.com/v1/audio/speech", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
-            body: JSON.stringify({ model: "tts-1", voice: "shimmer", input: clean, speed: 1.05 }),
+            body: JSON.stringify({
+              model: "gpt-4o-mini-tts",
+              voice: "shimmer",
+              input: clean,
+              speed: 1.05,
+              instructions: "說話聲音甜美可愛、語氣輕柔纖細，像一隻活潑親切的小松鼠，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
+            }),
           });
           if (r.ok) {
             const blob = await r.blob();
