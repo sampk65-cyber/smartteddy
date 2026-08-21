@@ -262,6 +262,13 @@
     }
     .icon-btn.recording { background: #3a1a1a; border-color: #e05c5c; }
 
+    .teddy-chip {
+      background: #1a2220; border: 1px solid #2a3532; color: #c8d4ce;
+      border-radius: 16px; padding: 5px 10px; font-size: 11px;
+      cursor: pointer; white-space: nowrap;
+    }
+    .teddy-chip:active { background: #24302c; }
+
     .file-chip {
       display: none; align-items: center; gap: 8px;
       background: #141a18; border: 1px solid #2a3532;
@@ -426,12 +433,30 @@
               <option value="anthropic">Claude</option>
               <option value="openai">ChatGPT</option>
             </select>
+            <select id="teddyVoiceStyleSelect" title="選擇 TEDDY 的語調（自動判斷會依內容自己換語氣）" style="background:#0a0e0d;border:1px solid #2a3532;color:#c8d4ce;border-radius:6px;padding:2px 6px;font-size:11px;">
+              <option value="auto">🤖 自動判斷</option>
+              <option value="sweet">🍬 甜美可愛</option>
+              <option value="gentle">🌙 溫柔哄睡</option>
+              <option value="playful">😄 調皮活潑</option>
+              <option value="storyteller">📖 說書人</option>
+              <option value="excited">✨ 驚喜興奮</option>
+            </select>
             <button type="button" id="teddyUsageToggle" title="查看用量" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">📊 用量</button>
             <button type="button" id="teddyVoiceToggle" title="開關 TEDDY 語音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔇</button>
             <button type="button" id="teddyChatClear" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">清除記憶</button>
           </div>
         </div>
         <div id="teddyUsagePanel" style="display:none;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;font-size:11px;color:#8a9a92;margin-bottom:8px;line-height:1.7;"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button type="button" class="teddy-chip" data-msg="放音樂">🎵 放音樂</button>
+          <button type="button" class="teddy-chip" data-msg="下一首">⏭ 下一首</button>
+          <button type="button" class="teddy-chip" data-msg="停止音樂">⏹ 停止</button>
+          <button type="button" class="teddy-chip" data-msg="現在天氣如何">🌦 天氣</button>
+          <button type="button" class="teddy-chip" data-msg="幫我找一個最酷最特別的新知識或新聞">🔍 找新知</button>
+          <button type="button" class="teddy-chip" data-msg="幫我寫一篇今天的文章">✍️ 寫文章</button>
+          <button type="button" class="teddy-chip" data-msg="念今天寫的文章給我聽">📖 念文章</button>
+          <button type="button" class="teddy-chip" data-msg="倒數5分鐘">⏰ 倒數5分</button>
+        </div>
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
           <input id="teddyChatInput" type="text" placeholder="例如：算 125*38、放音樂、台北天氣、倒數5分鐘、最新新聞" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
@@ -1143,7 +1168,7 @@
         const toolUses = (d.content || []).filter((b) => b.type === "tool_use");
         const textBlocks = (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
         if (!toolUses.length) return { text: textBlocks || "（沒有回覆）", usage: { input: usedInput, output: usedOutput } };
-        if (onStatus) onStatus(toolUses.map((tu) => TEDDY_TOOL_STATUS_LABELS[tu.name] || "🔧 處理中…").join(" "));
+        if (onStatus) onStatus(toolUses.map((tu) => TEDDY_TOOL_STATUS_LABELS[tu.name] || "🔧 處理中…").join(" "), toolUses.map((tu) => tu.name));
         messages.push({ role: "assistant", content: d.content });
         const toolResults = await Promise.all(toolUses.map(async (tu) => ({
           type: "tool_result",
@@ -1171,7 +1196,7 @@
         if (d.usage) { usedInput += d.usage.prompt_tokens || 0; usedOutput += d.usage.completion_tokens || 0; }
         const msg = d.choices[0].message;
         if (!msg.tool_calls || !msg.tool_calls.length) return { text: msg.content || "（沒有回覆）", usage: { input: usedInput, output: usedOutput } };
-        if (onStatus) onStatus(msg.tool_calls.map((tc) => TEDDY_TOOL_STATUS_LABELS[tc.function.name] || "🔧 處理中…").join(" "));
+        if (onStatus) onStatus(msg.tool_calls.map((tc) => TEDDY_TOOL_STATUS_LABELS[tc.function.name] || "🔧 處理中…").join(" "), msg.tool_calls.map((tc) => tc.function.name));
         messages.push(msg);
         for (const tc of msg.tool_calls) {
           let args = {};
@@ -1232,12 +1257,40 @@
       if (resetBtn) resetBtn.onclick = () => { localStorage.removeItem(TEDDY_USAGE_KEY); teddyRenderUsage(); };
     }
 
-    async function teddySpeak(text) {
+    // ===== TEDDY 多種語調（可手動選，預設由內容自動判斷）=====
+    const TEDDY_VOICE_STYLES = {
+      sweet: "說話聲音年輕、明亮、有活力，像十幾歲的小女孩，甜美可愛、語氣輕快纖細，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
+      gentle: "說話聲音放得很輕、很慢，溫柔安撫的語氣，像哄人入睡一樣，音量感覺較低、語尾拉長，給人放鬆平靜的感覺。",
+      playful: "說話帶點調皮惡作劇的語氣，語速稍快、偶爾停頓賣關子，像在跟好朋友開玩笑，但不要太浮誇。",
+      storyteller: "用穩重、有磁性、像在說故事或念書給人聽的語氣，語速適中偏慢，斷句清楚，帶一點戲劇張力，適合朗讀文章內容。",
+      excited: "說話語氣興奮、驚喜，音調上揚、語速稍快，像發現超酷的事情迫不及待要分享，但咬字仍要清楚。",
+    };
+
+    function teddyAutoDetectVoiceStyle(replyText, lastToolNames) {
+      const tools = lastToolNames || [];
+      if (tools.includes("read_article") || tools.includes("save_article")) return "storyteller";
+      if (/晚安|該睡了|放鬆一下|閉上眼睛|好好休息/.test(replyText)) return "gentle";
+      if (/(😂|🤣|哈哈|開玩笑|逗你)/.test(replyText)) return "playful";
+      const exclaimCount = (replyText.match(/！|!/g) || []).length;
+      if (/(🎉|✨|🚀|太酷了|太厲害|驚喜|哇)/.test(replyText) || exclaimCount >= 2) return "excited";
+      return "sweet";
+    }
+
+    function teddyResolveVoiceStyle(autoHint) {
+      const sel = document.getElementById("teddyVoiceStyleSelect");
+      const val = sel ? sel.value : "auto";
+      if (val !== "auto" && TEDDY_VOICE_STYLES[val]) return val;
+      return TEDDY_VOICE_STYLES[autoHint] ? autoHint : "sweet";
+    }
+
+    async function teddySpeak(text, autoStyleHint) {
       if (!teddyVoiceEnabled || !text) return;
       const clean = text.replace(/[*_`#]/g, "").trim();
       if (!clean) return;
       const keys = loadKeys();
       if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
+      const styleKey = teddyResolveVoiceStyle(autoStyleHint);
+      const instructions = TEDDY_VOICE_STYLES[styleKey];
       if (keys.openai) {
         try {
           const r = await fetch("https://api.openai.com/v1/audio/speech", {
@@ -1247,8 +1300,8 @@
               model: "gpt-4o-mini-tts",
               voice: "nova",
               input: clean,
-              speed: 1.05,
-              instructions: "說話聲音年輕、明亮、有活力，像十幾歲的小女孩，甜美可愛、語氣輕快纖細，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
+              speed: styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05,
+              instructions,
             }),
           });
           if (r.ok) {
@@ -1266,8 +1319,8 @@
           window.speechSynthesis.cancel();
           const utter = new SpeechSynthesisUtterance(clean);
           utter.lang = "zh-TW";
-          utter.pitch = 1.3;
-          utter.rate = 1.05;
+          utter.pitch = styleKey === "gentle" || styleKey === "storyteller" ? 1.05 : 1.3;
+          utter.rate = styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05;
           const voices = window.speechSynthesis.getVoices();
           const femaleVoice =
             voices.find((v) => /zh/i.test(v.lang) && /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao/i.test(v.name)) ||
@@ -1287,7 +1340,11 @@
       teddyHistory.push({ role: "user", text });
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", "🐿️ 想一下…");
-      const onStatus = (msg) => teddyUpdateLogDiv(thinkingDiv, msg);
+      let lastToolNames = [];
+      const onStatus = (msg, toolNames) => {
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        if (toolNames) lastToolNames = toolNames;
+      };
       const keys = loadKeys();
       const modelSelect = document.getElementById("teddyModelSelect");
       const pref = modelSelect ? modelSelect.value : "auto";
@@ -1313,7 +1370,7 @@
         teddyUpdateLogDiv(thinkingDiv, reply);
         teddyHistory.push({ role: "assistant", text: reply });
         teddySaveHistory();
-        teddySpeak(reply);
+        teddySpeak(reply, teddyAutoDetectVoiceStyle(reply, lastToolNames));
       } catch (e) {
         teddyUpdateLogDiv(thinkingDiv, "出錯了：" + e.message);
       }
@@ -1323,6 +1380,12 @@
     document.getElementById("teddyChatSend").onclick = teddySend;
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") teddySend();
+    });
+    document.querySelectorAll(".teddy-chip").forEach((btn) => {
+      btn.onclick = () => {
+        document.getElementById("teddyChatInput").value = btn.getAttribute("data-msg") || "";
+        teddySend();
+      };
     });
 
     // ===== TEDDY 語音輸入（講話填入輸入框，說完自動送出）=====
