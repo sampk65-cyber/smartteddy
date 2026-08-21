@@ -880,10 +880,10 @@
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({
               model: "gpt-4o-mini-tts",
-              voice: "shimmer",
+              voice: "nova",
               input: clean,
               speed: 1.05,
-              instructions: "說話聲音甜美可愛、語氣輕柔纖細，像一隻活潑親切的小松鼠，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
+              instructions: "說話聲音年輕、明亮、有活力，像十幾歲的小女孩，甜美可愛、語氣輕快纖細，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
             }),
           });
           if (r.ok) {
