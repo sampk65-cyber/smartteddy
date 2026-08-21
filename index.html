@@ -417,9 +417,12 @@
         <audio id="teddyAudio" preload="none"></audio>
       </div>
       <div class="music-box" style="margin-top:12px;">
-        <div class="label" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="label" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
           <span>💬 跟 TEDDY 說話（放音樂／算數學／換照片）</span>
-          <button type="button" id="teddyChatClear" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">清除記憶</button>
+          <div style="display:flex;gap:4px;">
+            <button type="button" id="teddyVoiceToggle" title="開關 TEDDY 語音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
+            <button type="button" id="teddyChatClear" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">清除記憶</button>
+          </div>
         </div>
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
@@ -860,6 +863,49 @@
       return "工具呼叫太多次了，先停在這裡。";
     }
 
+    // ===== TEDDY 語音（優先用 OpenAI TTS 甜美女聲，沒有 Key 才 fallback 瀏覽器內建語音）=====
+    let teddyVoiceEnabled = true;
+    let teddyCurrentAudio = null;
+
+    async function teddySpeak(text) {
+      if (!teddyVoiceEnabled || !text) return;
+      const clean = text.replace(/[*_`#]/g, "").trim();
+      if (!clean) return;
+      const keys = loadKeys();
+      if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
+      if (keys.openai) {
+        try {
+          const r = await fetch("https://api.openai.com/v1/audio/speech", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
+            body: JSON.stringify({ model: "tts-1", voice: "shimmer", input: clean, speed: 1.05 }),
+          });
+          if (r.ok) {
+            const blob = await r.blob();
+            const url = URL.createObjectURL(blob);
+            teddyCurrentAudio = new Audio(url);
+            teddyCurrentAudio.play();
+            return;
+          }
+        } catch (_) { /* 失敗就往下 fallback */ }
+      }
+      if (window.speechSynthesis) {
+        try {
+          window.speechSynthesis.cancel();
+          const utter = new SpeechSynthesisUtterance(clean);
+          utter.lang = "zh-TW";
+          utter.pitch = 1.3;
+          utter.rate = 1.05;
+          const voices = window.speechSynthesis.getVoices();
+          const femaleVoice =
+            voices.find((v) => /zh/i.test(v.lang) && /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao/i.test(v.name)) ||
+            voices.find((v) => /zh/i.test(v.lang));
+          if (femaleVoice) utter.voice = femaleVoice;
+          window.speechSynthesis.speak(utter);
+        } catch (_) {}
+      }
+    }
+
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       const text = input.value.trim();
@@ -879,6 +925,7 @@
         teddyAppendLog("teddy", reply);
         teddyHistory.push({ role: "assistant", text: reply });
         teddySaveHistory();
+        teddySpeak(reply);
       } catch (e) {
         teddyAppendLog("teddy", "出錯了：" + e.message);
       }
@@ -890,6 +937,14 @@
       if (e.key === "Enter") teddySend();
     });
     document.getElementById("teddyChatClear").onclick = teddyClearHistory;
+    document.getElementById("teddyVoiceToggle").onclick = () => {
+      teddyVoiceEnabled = !teddyVoiceEnabled;
+      document.getElementById("teddyVoiceToggle").textContent = teddyVoiceEnabled ? "🔊" : "🔇";
+      if (!teddyVoiceEnabled) {
+        if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      }
+    };
 
     function loadKeys() {
       try { return JSON.parse(localStorage.getItem("ai_obs_keys") || "{}"); } catch { return {}; }
