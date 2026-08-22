@@ -776,7 +776,7 @@
         prompt: `你現在同時啟用「TEDDY 投資分析 Skill」。你的任務不是鼓吹買賣，而是幫使用者建立可驗證的投資判斷。
 分析個股、ETF、黃金、債券、匯率、產業或總體市場時，依問題需要使用這個框架：
 1. 先辨識標的、時間尺度與問題核心。
-2. 涉及「現在、今天、最新、目前股價、近期市場、財報、利率、政策、新聞」時，必須先呼叫 search_news 取得即時資訊，再做分析；不可只靠模型記憶。
+2. 涉及現在狀態或可能變動的市場事實（包含：現在、今天、最新、近期、股價、ETF 成分、IPO/上市狀態、財報、利率、政策、新聞、公司事件）時，程式會先執行 Fresh Data Gate。只有收到【即時資料驗證】內容後才可分析；若驗證失敗，禁止用模型記憶補答或猜測。
 3. 區分「已知事實 / 推論 / 假設」，不要把推論說成事實。
 4. 個股優先看：營收與獲利趨勢、現金流、負債、競爭優勢、估值、催化劑與風險。
 5. 宏觀優先看：利率、通膨、美元、債券殖利率、資金環境、政策與地緣風險。
@@ -793,7 +793,7 @@
       const investmentWords = [
         "投資", "股票", "股價", "台股", "美股", "etf", "基金", "黃金", "債券", "殖利率", "利率",
         "美元", "匯率", "財報", "營收", "eps", "本益比", "估值", "fed", "聯準會", "降息", "升息",
-        "nasdaq", "s&p", "道瓊", "加權指數", "半導體", "nvidia", "tsmc", "台積電", "買進", "賣出", "持有"
+        "nasdaq", "s&p", "道瓊", "加權指數", "半導體", "nvidia", "tsmc", "台積電", "spacex", "ipo", "上市", "成分股", "買進", "賣出", "持有"
       ];
       return investmentWords.some((w) => t.includes(w)) ? "investment" : "general";
     }
@@ -801,6 +801,29 @@
     let teddyActiveSkill = "general";
     function teddySkillLabel(skill) {
       return skill === "investment" ? "📈 投資分析" : "🐿️ 一般助理";
+    }
+
+    // ===== Fresh Data Gate：投資時效問題先驗證、失敗就禁止舊知識補答 =====
+    let teddyFreshContext = "";
+    let teddyFreshStatus = null;
+
+    function teddyNeedsFreshData(text, skill) {
+      if (skill !== "investment") return false;
+      const t = String(text || "").toLowerCase();
+      const freshnessWords = [
+        "現在", "今天", "今日", "目前", "最新", "近期", "最近", "本週", "本月", "今年",
+        "股價", "市值", "漲", "跌", "漲幅", "跌幅", "成交", "盤前", "盤後",
+        "ipo", "上市", "掛牌", "成分股", "納入", "剔除", "配息", "除息",
+        "財報", "營收", "eps", "法說", "guidance", "展望",
+        "fed", "聯準會", "利率", "降息", "升息", "殖利率", "匯率", "美元",
+        "新聞", "政策", "關稅", "制裁", "併購", "收購", "分拆", "spacex"
+      ];
+      return freshnessWords.some((w) => t.includes(w));
+    }
+
+    function teddyFreshQuery(text) {
+      const today = teddyTodayStr();
+      return `今天日期 ${today}。請先驗證以下投資問題涉及的最新事實，再提供可供後續分析的資料：${String(text || "").trim()}。請優先確認事件是否已發生、日期、最新狀態、相關 ETF/公司資訊；不要使用過時資料。`;
     }
 
     const TEDDY_TOOLS = [
@@ -848,7 +871,7 @@
       },
       {
         name: "search_news",
-        description: "搜尋最新新聞或即時資訊。使用者問「最新」「現在」「新聞」等需要即時資料的問題時要呼叫這個工具，不要用自己過時的知識回答。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣；當使用者要你「找最酷／最特別／最新的知識或新聞」卻沒指定主題時，從這幾個領域裡挑一個去搜尋，優先找新奇、少見、值得分享的內容，不要找泛泛的一般新聞。query 要寫得具體一點（例如「SpaceX 最新發射」而不是「太空新聞」），這樣搜尋結果比較精準。",
+        description: "搜尋最新新聞或即時資訊。凡涉及會隨時間改變的投資事實（股價、IPO/上市狀態、ETF 成分、財報、利率、政策、公司事件、最新新聞）都必須使用。搜尋失敗時禁止用模型舊知識補答。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣；當使用者要你「找最酷／最特別／最新的知識或新聞」卻沒指定主題時，從這幾個領域裡挑一個去搜尋，優先找新奇、少見、值得分享的內容，不要找泛泛的一般新聞。query 要寫得具體一點（例如「SpaceX 最新發射」而不是「太空新聞」），這樣搜尋結果比較精準。",
         input_schema: {
           type: "object",
           properties: { query: { type: "string", description: "搜尋關鍵字，盡量具體" } },
@@ -975,22 +998,33 @@
       }
       if (name === "search_news") {
         const keys = loadKeys();
-        if (!keys.xai) return { ok: false, error: "搜尋新聞需要先設定 Grok (xAI) 的 API Key" };
+        if (!keys.xai) return { ok: false, freshness_verified: false, error: "即時搜尋需要先設定 Grok (xAI) API Key" };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 18000);
         try {
+          const query = String(input.query || "").trim();
           const r = await fetch("https://api.x.ai/v1/responses", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
+            signal: controller.signal,
             body: JSON.stringify({
               model: "grok-4.6",
-              input: [{ role: "user", content: String(input.query || "") }],
+              input: [{ role: "user", content: query }],
               tools: [{ type: "web_search" }],
             }),
           });
-          const d = await r.json();
+          let d = {};
+          try { d = await r.json(); } catch (_) {}
           if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
           const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
-          return { ok: true, result: text || "沒有找到相關結果" };
-        } catch (e) { return { ok: false, error: "搜尋失敗：" + e.message }; }
+          if (!text || !text.trim()) return { ok: false, freshness_verified: false, error: "即時搜尋沒有取得可驗證內容" };
+          return { ok: true, freshness_verified: true, checked_at: new Date().toISOString(), query, result: text.trim() };
+        } catch (e) {
+          const why = e && e.name === "AbortError" ? "搜尋逾時" : (e?.message || "未知錯誤");
+          return { ok: false, freshness_verified: false, error: "即時搜尋失敗：" + why };
+        } finally {
+          clearTimeout(timeoutId);
+        }
       }
       if (name === "set_reminder") {
         const mins = Number(input.minutes_from_now);
@@ -1072,6 +1106,10 @@
     function teddyBuildSystemPrompt() {
       const skill = TEDDY_SKILLS[teddyActiveSkill] || TEDDY_SKILLS.general;
       let prompt = TEDDY_SYSTEM_PROMPT + "\n\n【目前啟用 Skill：" + skill.name + "】\n" + skill.prompt;
+      prompt += "\n\n【系統日期】" + teddyTodayStr() + "。凡涉及現在狀態，不得把訓練資料中的舊狀態當成今天事實。";
+      if (teddyFreshContext) {
+        prompt += "\n\n【即時資料驗證｜Fresh Data Gate 已通過】\n" + teddyFreshContext + "\n請以這份即時資料為優先依據，並在回答最後加上『資料檢查：" + teddyTodayStr() + "』。若即時資料與既有知識衝突，以即時資料為準並說明差異。";
+      }
       if (teddySummary) {
         prompt += "\n\n以下是你和這位使用者更早以前聊過的長期記憶摘要，可以自然地參考裡面提到的個人資訊、偏好或事件，不用逐字複誦：\n" + teddySummary;
       }
@@ -1420,7 +1458,28 @@
       const pref = modelSelect ? modelSelect.value : "auto";
       const btn = document.getElementById("teddyChatSend");
       btn.disabled = true;
+      teddyFreshContext = "";
+      teddyFreshStatus = null;
       try {
+        // P0：投資時效問題不再交給模型自行決定要不要查；程式先強制查。
+        if (teddyNeedsFreshData(text, teddyActiveSkill)) {
+          teddyUpdateLogDiv(thinkingDiv, "📡 先驗證最新市場資料…");
+          const fresh = await teddyRunTool("search_news", { query: teddyFreshQuery(text) });
+          teddyFreshStatus = fresh;
+          lastToolNames = ["search_news"];
+          if (!fresh || !fresh.ok || !fresh.freshness_verified) {
+            const reason = fresh?.error || "無法確認即時資料";
+            const blockedReply = `⚠️ 這題需要最新市場資料，但我目前無法完成即時驗證（${reason}）。為避免拿舊資料誤導你，我先不猜。請檢查 Grok/xAI API Key 或網路連線後再問一次。`;
+            teddyUpdateLogDiv(thinkingDiv, blockedReply);
+            teddyHistory.push({ role: "assistant", text: blockedReply });
+            teddySaveHistory();
+            teddySpeak(blockedReply, "gentle");
+            return;
+          }
+          teddyFreshContext = `查詢：${fresh.query || text}\n檢查時間：${fresh.checked_at || new Date().toISOString()}\n結果：\n${fresh.result}`;
+          teddyUpdateLogDiv(thinkingDiv, "✅ 最新資料已取得，開始分析…");
+        }
+
         let reply, provider = null, result = null;
         if (pref === "anthropic") {
           if (!keys.anthropic) reply = "尚未設定 Claude 的 API Key，請先到「⚙️ 設定 Key」設定。";
@@ -1443,8 +1502,10 @@
         teddySpeak(reply, teddyAutoDetectVoiceStyle(reply, lastToolNames));
       } catch (e) {
         teddyUpdateLogDiv(thinkingDiv, "出錯了：" + e.message);
+      } finally {
+        btn.disabled = false;
+        teddyFreshContext = "";
       }
-      btn.disabled = false;
     }
 
     const teddySkillSelect = document.getElementById("teddySkillSelect");
