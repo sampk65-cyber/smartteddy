@@ -386,6 +386,12 @@
     }
     .cap-chip:active { border-color: #f5c542; }
     .cap-note { font-size: 11px; color: #6b7a74; line-height: 1.45; margin: 0; }
+  
+    .dual-mode-wrap{display:flex;gap:8px;margin:10px 0 12px;padding:5px;background:#0d1311;border:1px solid #26342e;border-radius:12px;}
+    .dual-mode-btn{flex:1;min-height:42px;border-radius:9px;border:1px solid #314038;background:#151c19;color:#9ba9a2;font-size:13px;font-weight:800;cursor:pointer;}
+    .dual-mode-btn.active{background:#19342c;border-color:#5eead4;color:#d9fff2;}
+    .dual-mode-status{margin:-6px 0 10px;text-align:center;font-size:11px;color:#74827c;}
+
   </style>
 
   <!-- Firebase SDK (CDN，純 HTML 用) -->
@@ -397,7 +403,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 restored + isolated V5.1 greenhouse</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 memory-preserved explicit dual mode</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -442,16 +448,17 @@
       <div class="music-box" style="margin-top:12px;">
         <div class="label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>💬 跟 TEDDY 說話</span>
-          <button type="button" id="btnGreenhouseEntry"
-            style="background:#183129;border:1px solid #3e725f;color:#baf7df;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;">
-            🌱 溫室管理
-          </button>
-
           <div style="display:flex;gap:4px;">
             <button type="button" id="teddyMoreToggle" title="更多快捷指令" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⋯ 更多</button>
             <button type="button" id="teddySettingsToggle" title="設定" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⚙️</button>
           </div>
         </div>
+        <div class="dual-mode-wrap" id="dualModeWrap">
+          <button type="button" id="btnPongchiMode" class="dual-mode-btn active">🐿 Pongchi 一般模式</button>
+          <button type="button" id="btnGreenhouseMode" class="dual-mode-btn">🌱 溫室管理 V5.1</button>
+        </div>
+        <div class="dual-mode-status" id="dualModeStatus">🐿 一般模式 · 使用原 Teddy 3.5 記憶</div>
+
 
         <div id="teddySettingsPanel" style="display:none;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:10px;margin-bottom:8px;">
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
@@ -2275,19 +2282,20 @@ ${parts}
     updateKeyStatus();
     renderCards(null);
   
-    // ===== Isolated V5.1 greenhouse module; Teddy 3.5 memory/chat code is untouched =====
+    // ===== Explicit dual mode; original Teddy 3.5 memory/chat code untouched =====
     const GH_MAIN={apiKey:"AIzaSyDJXF_9jyibl5GsbJHEuPVBIOqQ2Eovjw4",projectId:"figapi-d24dc"};
-    const GH_YIELD={apiKey:"AIzaSyBoHlZFS3fuhuS6MjYH8cPE3djbA--lJLY",authDomain:"figdata-d2737.firebaseapp.com",projectId:"figdata-d2737",appId:"1:46163670891:web:c496942014d47ea19c7e2e"};
-    const GH_YIELD_COLLECTION="fbrfA_data";
-    const GH_ZONES=[
-      {id:"p1",name:"一期溫室",yield:"一期",aliases:["一期","p1"]},
-      {id:"p2",name:"二期溫室",yield:"二期",aliases:["二期","p2"]},
-      {id:"zone3",name:"三期溫室",yield:"三期",aliases:["三期","zone3"]},
-      {id:"north4",name:"四北溫室",yield:"四北",aliases:["四北","north4"]},
-      {id:"south4",name:"四南溫室",yield:"四南",aliases:["四南","south4"]},
-      {id:"zone5",name:"五期溫室",yield:"五期",aliases:["五期","zone5"]}
-    ];
-    let ghKeyCache={ts:0,keys:[]};
+
+    function setUiMode(mode){
+      const farm=mode==="greenhouse";
+      const p=document.getElementById("btnPongchiMode");
+      const g=document.getElementById("btnGreenhouseMode");
+      const s=document.getElementById("dualModeStatus");
+      const panel=document.getElementById("greenhousePanel");
+      if(p)p.classList.toggle("active",!farm);
+      if(g)g.classList.toggle("active",farm);
+      if(s)s.textContent=farm?"🌱 溫室管理 · V5.1 獨立入口":"🐿 一般模式 · 使用原 Teddy 3.5 記憶";
+      if(panel)panel.style.display=farm?"flex":"none";
+    }
 
     function ghLog(role,text){
       const box=document.getElementById("greenhouseLog"); if(!box)return;
@@ -2297,6 +2305,7 @@ ${parts}
       d.textContent=(role==="user"?"你：":"Pongchi：")+text;
       box.appendChild(d); box.scrollTop=box.scrollHeight;
     }
+
     function ghDecode(v){
       if(!v||typeof v!=="object")return null;
       if("stringValue"in v)return v.stringValue;
@@ -2309,143 +2318,90 @@ ${parts}
       if("mapValue"in v){const o={},f=v.mapValue.fields||{};Object.keys(f).forEach(k=>o[k]=ghDecode(f[k]));return o;}
       return null;
     }
+
     async function ghFetchJson(url,opts={}){
       const r=await fetch(url,opts);let d=null;try{d=await r.json();}catch(_){}
       if(!r.ok)throw new Error(d?.error?.message||`HTTP ${r.status}`);return d;
     }
+
     function ghDocDecode(doc){
       const f=doc?.fields||{};
       return{key:ghDecode(f.key)||decodeURIComponent((doc?.name||"").split("/").pop()||""),value:ghDecode(f.value),updatedAt:ghDecode(f.updatedAt)};
     }
-    async function ghMainList(){
-      if(Date.now()-ghKeyCache.ts<60000&&ghKeyCache.keys.length)return ghKeyCache.keys;
+
+    async function ghQueryV51(q){
       const db=`projects/${GH_MAIN.projectId}/databases/(default)`;
       const url=`https://firestore.googleapis.com/v1/${db}/documents:runQuery?key=${encodeURIComponent(GH_MAIN.apiKey)}`;
-      const rows=await ghFetchJson(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:{from:[{collectionId:"kv"}],select:{fields:[{fieldPath:"key"}]},limit:1000}})});
-      const keys=(rows||[]).filter(x=>x.document).map(x=>ghDocDecode(x.document).key).filter(Boolean).sort();
-      ghKeyCache={ts:Date.now(),keys};return keys;
-    }
-    async function ghMainGet(key){
-      const db=`projects/${GH_MAIN.projectId}/databases/(default)`;
-      const url=`https://firestore.googleapis.com/v1/${db}/documents/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(GH_MAIN.apiKey)}`;
-      try{
-        const d=await ghFetchJson(url),row=ghDocDecode(d);let val=row.value;
-        if(typeof val==="string"){try{val=JSON.parse(val);}catch(_){}}
-        return{key,data:val,updatedAt:row.updatedAt};
-      }catch(e){if(/404|NOT_FOUND/i.test(e.message))return null;throw e;}
-    }
-    function ghZone(q){
-      const s=String(q||"").toLowerCase();
-      return GH_ZONES.find(z=>z.aliases.some(a=>s.includes(a.toLowerCase())))||null;
-    }
-    function ghRange(q){
-      const now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1;let y=null,m=null;
-      let x=String(q||"").match(/(20\d{2})\s*年\s*(\d{1,2})\s*月/);
-      if(x){y=+x[1];m=+x[2];}else if(/去年/.test(q))y=cy-1;else if(/前年/.test(q))y=cy-2;else if(/今年/.test(q))y=cy;
-      if(!m&&/上個月|上月/.test(q)){const d=new Date(cy,cm-2,1);y=d.getFullYear();m=d.getMonth()+1;}
-      if(!m&&/本月|這個月/.test(q)){y=cy;m=cm;}
-      const months=[];if(y&&m)months.push({y,m});else if(y)for(let mm=1;mm<=12;mm++)months.push({y,m:mm});else for(let i=0;i<3;i++){const d=new Date(cy,cm-1-i,1);months.push({y:d.getFullYear(),m:d.getMonth()+1});}
-      return{months,label:y?(m?`${y}年${m}月`:`${y}年`):"最近3個月"};
-    }
-    function ghSelectKeys(keys,q){
-      const zone=ghZone(q),range=ghRange(q),yms=new Set(range.months.map(x=>`${x.y}-${String(x.m).padStart(2,"0")}`));
-      let prefixes=[];
-      if(/出勤|打卡|請假/.test(q))prefixes=["attendance:"];
-      else if(/行事曆|年度計畫|產季/.test(q))prefixes=["calendar:"];
-      else if(/噴藥|農藥|消毒/.test(q))prefixes=["spraylog:"];
-      else if(/工作|工項|修剪|剪枝|除草|打芽/.test(q))prefixes=["workmonth:","worklog:","zonework:"];
-      else prefixes=["zonework:","workmonth:","spraylog:"];
-      return keys.filter(k=>{
-        if(!prefixes.some(p=>k.startsWith(p)))return false;
-        if(zone&&/^(zonework|workmonth|worklog|spraylog):/.test(k)&&!k.startsWith(k.split(":")[0]+":"+zone.id+":"))return false;
-        if(/\d{4}-\d{2}/.test(k)&&![...yms].some(ym=>k.includes(ym)))return false;
-        return true;
+      const rows=await ghFetchJson(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:{from:[{collectionId:"kv"}],limit:250}})});
+      const docs=(rows||[]).filter(x=>x.document).map(x=>{
+        const d=ghDocDecode(x.document);let val=d.value;try{if(typeof val==="string")val=JSON.parse(val);}catch(_){}
+        return{key:d.key,data:val};
+      });
+      const zoneMap=[["四北","north4"],["四南","south4"],["一期","p1"],["二期","p2"],["三期","zone3"],["五期","zone5"]];
+      const z=zoneMap.find(([name,id])=>q.includes(name)||q.includes(id));
+      const filtered=docs.filter(x=>{
+        if(z&&x.key.includes(":")&&!x.key.includes(":"+z[1]+":"))return false;
+        if(/米糠/.test(q)&&!JSON.stringify(x).includes("米糠"))return false;
+        return /^(zonework|workmonth|worklog|spraylog|attendance|calendar):/.test(x.key);
       }).slice(0,120);
+      return filtered;
     }
-    let ghYieldApp=null;
-    async function ghYieldDb(){
-      if(!ghYieldApp){try{ghYieldApp=firebase.app("gh-yield");}catch(_){ghYieldApp=firebase.initializeApp(GH_YIELD,"gh-yield");}}
-      const auth=ghYieldApp.auth();if(!auth.currentUser)await auth.signInAnonymously();return ghYieldApp.firestore();
-    }
-    async function ghYieldContext(q){
-      const range=ghRange(q),zone=ghZone(q),zones=zone?[zone]:GH_ZONES,db=await ghYieldDb(),rows=[];
-      for(const z of zones)for(const p of range.months){
-        const ym=`${p.y}-${String(p.m).padStart(2,"0")}`;
-        if(`${ym}-01`<"2026-08-01"){
-          const id=`fbrfA_priv__yieldArchive:${z.yield}:${p.y}`,doc=await db.collection(GH_YIELD_COLLECTION).doc(id).get();
-          if(doc.exists){let v=doc.data()?.value;try{if(typeof v==="string")v=JSON.parse(v);}catch(_){}
-            const md={};Object.keys(v||{}).filter(d=>d.startsWith(ym)).forEach(d=>md[d]=v[d]);if(Object.keys(md).length)rows.push({zone:z.name,month:ym,data:md});}
-        }else{
-          const prefix=`fbrfA_priv__yield:${z.yield}:${ym}`;
-          const snap=await db.collection(GH_YIELD_COLLECTION).where(firebase.firestore.FieldPath.documentId(),">=",prefix).where(firebase.firestore.FieldPath.documentId(),"<",prefix+"\uf8ff").get();
-          snap.forEach(doc=>{let v=doc.data()?.value;try{if(typeof v==="string")v=JSON.parse(v);}catch(_){}rows.push({zone:z.name,key:doc.id,data:v});});
-        }
-      }
-      return{range,rows};
-    }
-    function ghCompact(obj){let s=JSON.stringify(obj,null,2);if(s.length>90000)s=s.slice(0,90000)+"\n...[資料截斷]";return s;}
-    async function ghBuildContext(q){
-      if(/產能|產量|採收量|收成|生產量/.test(q)){const y=await ghYieldContext(q);return{type:"yield",query:q,timeRange:y.range,records:y.rows};}
-      const keys=await ghMainList(),selected=ghSelectKeys(keys,q),rows=[];
-      for(const k of selected){const r=await ghMainGet(k);if(r)rows.push(r);}
-      return{type:"farm",query:q,timeRange:ghRange(q),zone:ghZone(q),records:rows};
-    }
-    async function ghAskAI(q,ctx){
-      const keys=loadKeys(),system=`你是農場溫室管理助理。以下 JSON 來自完全體 V5.1 即時資料。只能依資料回答農場事實；沒查到就明確說沒查到，不可說無法存取 V5.1。回答繁體中文、自然精簡。`,content=`問題：${q}\n\nV5.1資料：\n${ghCompact(ctx)}`;
+
+    async function ghAskAI(q,records){
+      const keys=loadKeys();
+      const system="你是農場溫室管理助理。以下 JSON 來自完全體 V5.1。只能依資料回答；沒查到就說沒查到。回答繁體中文、自然精簡。";
+      const content=`問題：${q}\n\nV5.1資料：\n${JSON.stringify(records,null,2).slice(0,90000)}`;
       const select=document.getElementById("teddyModelSelect"),pref=select?select.value:"auto";
       if((pref==="anthropic"||pref==="auto")&&keys.anthropic){
         const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":keys.anthropic,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,system,messages:[{role:"user",content}]})});
-        const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Claude HTTP ${r.status}`);return(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("")||"沒有回覆。";
+        const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Claude HTTP ${r.status}`);
+        return(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("")||"沒有回覆。";
       }
       if(keys.openai){
         const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},body:JSON.stringify({model:"gpt-4o",messages:[{role:"system",content:system},{role:"user",content}],max_tokens:900})});
-        const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);return d.choices?.[0]?.message?.content||"沒有回覆。";
+        const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);
+        return d.choices?.[0]?.message?.content||"沒有回覆。";
       }
-      return`V5.1 已讀到 ${ctx.records?.length||0} 筆相關資料，但目前沒有可用 AI Key 做自然語言整理。`;
+      return`V5.1 已讀到 ${records.length} 筆相關資料，但目前沒有可用 AI Key 做自然語言整理。`;
     }
-    async function ghWriteRoundTrip(){
-      const key="teddybridge:writecheck",token=`ok-${Date.now()}`,db=`projects/${GH_MAIN.projectId}/databases/(default)`,url=`https://firestore.googleapis.com/v1/${db}/documents/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(GH_MAIN.apiKey)}`,payload=JSON.stringify({type:"greenhouse-write-check",token,at:new Date().toISOString()});
-      await ghFetchJson(url,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:{key:{stringValue:key},value:{stringValue:payload},updatedAt:{integerValue:String(Date.now())}}})});
-      const read=await ghMainGet(key),ok=JSON.stringify(read?.data||"").includes(token);await fetch(url,{method:"DELETE"});return ok;
-    }
+
     async function ghSend(){
       const input=document.getElementById("greenhouseInput"),btn=document.getElementById("btnGreenhouseSend"),q=input.value.trim();if(!q)return;
       input.value="";ghLog("user",q);btn.disabled=true;document.getElementById("greenhouseStatus").textContent="正在讀取 V5.1…";
       try{
-        if(/^V5\.?1\s*寫入測試$/i.test(q)){ghLog("assistant","會寫入專用測試 key、讀回後立即刪除。請輸入「確認 V5.1 寫入測試」。");return;}
-        if(/^確認\s*V5\.?1\s*寫入測試$/i.test(q)){const ok=await ghWriteRoundTrip();ghLog("assistant",ok?"V5.1 寫入驗證成功：寫入、讀回、刪除都正常。":"V5.1 寫入驗證失敗。");return;}
-        const ctx=await ghBuildContext(q);document.getElementById("greenhouseStatus").textContent=`V5.1 已讀取 ${ctx.records?.length||0} 筆資料，正在整理…`;ghLog("assistant",await ghAskAI(q,ctx));
+        const rows=await ghQueryV51(q);
+        document.getElementById("greenhouseStatus").textContent=`V5.1 已讀取 ${rows.length} 筆資料，正在整理…`;
+        ghLog("assistant",await ghAskAI(q,rows));
       }catch(e){ghLog("assistant","查詢失敗："+e.message);}
-      finally{btn.disabled=false;document.getElementById("greenhouseStatus").textContent="獨立工作入口 · 不影響 Teddy 3.5 記憶";}
+      finally{btn.disabled=false;document.getElementById("greenhouseStatus").textContent="獨立入口 · 不改 Pongchi 記憶";}
     }
+
     document.addEventListener("DOMContentLoaded",()=>{
-      const open=document.getElementById("btnGreenhouseEntry"),panel=document.getElementById("greenhousePanel"),close=document.getElementById("btnGreenhouseClose"),send=document.getElementById("btnGreenhouseSend"),input=document.getElementById("greenhouseInput");
-      if(open)open.onclick=()=>{panel.style.display="flex";if(!document.getElementById("greenhouseLog").children.length)ghLog("assistant","這裡是 V5.1 溫室管理。Teddy 3.5 原本記憶與聊天完全保留。");};
-      if(close)close.onclick=()=>panel.style.display="none";if(send)send.onclick=ghSend;if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter")ghSend();});
-      document.querySelectorAll(".greenhouseQuick").forEach(b=>b.onclick=()=>{input.value=b.dataset.q||"";ghSend();});
+      const p=document.getElementById("btnPongchiMode"),g=document.getElementById("btnGreenhouseMode"),close=document.getElementById("btnGreenhouseClose"),send=document.getElementById("btnGreenhouseSend"),input=document.getElementById("greenhouseInput");
+      if(p)p.onclick=()=>setUiMode("pongchi");
+      if(g)g.onclick=()=>{setUiMode("greenhouse");if(!document.getElementById("greenhouseLog").children.length)ghLog("assistant","這裡是 V5.1 溫室管理。一般模式仍是原始 Teddy 3.5。");};
+      if(close)close.onclick=()=>setUiMode("pongchi");
+      if(send)send.onclick=ghSend;
+      if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter")ghSend();});
+      setUiMode("pongchi");
     });
 
 </script>
 
-  <div id="greenhousePanel" style="display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);padding:16px;align-items:flex-end;justify-content:center;">
+  <div id="greenhousePanel" style="display:none;position:fixed;inset:0;z-index:1600;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);padding:16px;align-items:flex-end;justify-content:center;">
     <div style="width:100%;max-width:430px;max-height:88vh;overflow:auto;background:#121916;border:1px solid #2d463d;border-radius:20px;padding:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div>
           <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
-          <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">獨立工作入口 · 不影響 Teddy 3.5 記憶</div>
+          <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">獨立入口 · 不改 Pongchi 記憶</div>
         </div>
-        <button type="button" id="btnGreenhouseClose" style="width:32px;height:32px;border-radius:50%;border:1px solid #355248;background:#18231f;color:#cde6dc;cursor:pointer;">×</button>
+        <button type="button" id="btnGreenhouseClose" style="border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px;cursor:pointer;">🐿 回一般模式</button>
       </div>
       <div id="greenhouseLog" style="min-height:180px;max-height:46vh;overflow:auto;background:#0b110f;border:1px solid #263a33;border-radius:12px;padding:10px;margin-bottom:10px;font-size:13px;line-height:1.55;white-space:pre-wrap;"></div>
-      <div style="display:flex;gap:7px;margin-bottom:8px;">
+      <div style="display:flex;gap:7px;">
         <input id="greenhouseInput" type="text" placeholder="例如：四北最近用了多少米糠？"
           style="flex:1;background:#0b110f;border:1px solid #30483f;border-radius:10px;padding:10px;color:#e9f4ef;font-size:14px;outline:none;" />
         <button type="button" id="btnGreenhouseSend" style="border:none;border-radius:10px;background:#5eead4;color:#0b110f;font-weight:800;padding:0 14px;cursor:pointer;">查詢</button>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button type="button" class="greenhouseQuick" data-q="六個溫室最近施肥和澆水狀況" style="background:#17231f;border:1px solid #30483f;color:#b9cec5;border-radius:999px;padding:5px 9px;font-size:11px;cursor:pointer;">最近工作</button>
-        <button type="button" class="greenhouseQuick" data-q="今年各溫室產量如何" style="background:#17231f;border:1px solid #30483f;color:#b9cec5;border-radius:999px;padding:5px 9px;font-size:11px;cursor:pointer;">今年產量</button>
-        <button type="button" class="greenhouseQuick" data-q="V5.1 寫入測試" style="background:#17231f;border:1px solid #30483f;color:#b9cec5;border-radius:999px;padding:5px 9px;font-size:11px;cursor:pointer;">寫入測試</button>
       </div>
     </div>
   </div>
