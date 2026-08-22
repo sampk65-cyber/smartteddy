@@ -426,7 +426,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Index V3.7 preserve-all dual-mode</div>
+  <div id="deployStamp" style="display:none;">deploy: Index V3.7 dual-mode panel-fix</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -476,6 +476,12 @@
             <button type="button" id="teddySettingsToggle" title="設定" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⚙️</button>
           </div>
         </div>
+        <div class="pongchi37-switch" id="pongchi37Switch" style="margin-top:10px;">
+          <button type="button" id="pongchi37Normal" class="active">🐿 Pongchi</button>
+          <button type="button" id="pongchi37Farm">🌱 溫室管理</button>
+        </div>
+        <div class="pongchi37-mode-note" id="pongchi37ModeNote">陪伴模式 · V5.1 關閉</div>
+
 
         <div id="teddySettingsPanel" style="display:none;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:10px;margin-bottom:8px;">
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
@@ -514,7 +520,7 @@
 
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
-          <input id="teddyChatInput" type="text" placeholder="跟 TEDDY 說話…" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
+          <input id="teddyChatInput" type="text" placeholder="Pongchi 陪伴模式…" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
           <button type="button" id="teddyMicBtn" title="語音輸入" style="background:#1a2220;color:#c8d4ce;border:1px solid #2a3532;border-radius:8px;padding:8px 12px;font-size:15px;cursor:pointer;white-space:nowrap;">🎤</button>
           <button type="button" id="teddyChatSend" style="background:#5eead4;color:#0a0e0d;border:none;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;">送出</button>
         </div>
@@ -558,14 +564,7 @@
       <button type="button" class="icon-btn" id="btnMic" title="語音">🎤</button>
       <button type="button" class="mode-btn" id="btnCapMode" title="產能分析模式">📊 產能模式</button>
     </div>
-
-    <div class="pongchi37-switch" id="pongchi37Switch">
-      <button type="button" id="pongchi37Normal" class="active">🐿 Pongchi</button>
-      <button type="button" id="pongchi37Farm">🌱 溫室管理</button>
-    </div>
-    <div class="pongchi37-mode-note" id="pongchi37ModeNote">陪伴模式 · V5.1 關閉</div>
-
-    <div class="cap-bar hidden" id="capBar">
+<div class="cap-bar hidden" id="capBar">
       <div class="cap-title">產能分析模式 · 五家並行 + 總結對比</div>
       <div class="cap-hints">
         <button type="button" class="cap-chip" data-q="請依資料找出產能瓶頸與異常月份，並說明可能原因">找瓶頸</button>
@@ -3333,6 +3332,10 @@ ${teddyFarm51DataContext}`;
       if(note) note.textContent = farm
         ? "溫室管理模式 · V5.1 開啟"
         : "陪伴模式 · V5.1 關閉";
+      const chatInput=document.getElementById("teddyChatInput");
+      if(chatInput) chatInput.placeholder = farm
+        ? "詢問溫室管理／V5.1 資料…"
+        : "Pongchi 陪伴模式…";
 
       if(announce){
         const msg = farm ? "好，現在進入溫室管理。" : "好，回到 Pongchi 陪伴模式。";
