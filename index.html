@@ -397,7 +397,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-complete-bridge</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-actual-schema-bridge</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -1263,8 +1263,8 @@
 
     function teddyFarm51Intent(message) {
       const q = String(message || "");
-      const farmWords = /(農場|田區|分區|溫室|無花果|工項|工作紀錄|施肥|肥料|噴藥|農藥|藥品|打卡|出勤|行事曆|年度計畫|採收|澆水|灌溉)/i;
-      const writeWords = /(記一下|記錄|登記|新增|存起來|寫進|上傳|更新|改成|刪除)/i;
+      const farmWords = /(農場|田區|分區|溫室|無花果|工項|工作紀錄|工作月表|施肥|肥料|噴藥|農藥|藥品|打卡|出勤|行事曆|年度計畫|採收|澆水|灌溉|補水|產能|產量|生產量|採收量|收成|品質|A級|B級|D級|NG|六個溫室|一期|二期|三期|四南|四北|五期|V5\.?1|完全體)/i;
+      const writeWords = /(記一下|記錄|登記|新增|存起來|寫進|上傳|更新|改成|刪除|幫我記|幫我存)/i;
       return { farm: farmWords.test(q), wantsWrite: writeWords.test(q) };
     }
 
@@ -1988,6 +1988,103 @@
       }).slice(0,80);
     }
 
+
+    function teddyFarm51RecentYms(count=3) {
+      const out=[];
+      const now=new Date();
+      for(let i=0;i<count;i++){
+        const d=new Date(now.getFullYear(), now.getMonth()-i, 1);
+        out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+      }
+      return out;
+    }
+
+    async function teddyFarm51FetchZoneWorkRecent(message, dateReq, limitMonths=3) {
+      const zone=teddyFarm51ZoneFromText(message);
+      const yms=dateReq.ym ? [dateReq.ym] : teddyFarm51RecentYms(limitMonths);
+      const rows=[];
+      for(const ym of yms){
+        const keys=(await teddyFarm51GetCatalog()).filter(k=>{
+          if(!k.startsWith("zonework:")) return false;
+          if(!k.endsWith(":"+ym)) return false;
+          return !zone || k.startsWith(`zonework:${zone.id}:`);
+        });
+        rows.push(...await teddyFarm51FetchMainKeys(keys, 30));
+      }
+      return rows;
+    }
+
+    function teddyFarm51SummarizeZoneWorkRows(rows) {
+      const result=[];
+      for(const r of rows){
+        const m=String(r.key||"").match(/^zonework:([^:]+):(\d{4}-\d{2})$/);
+        if(!m) continue;
+        const zone=TEDDY_FARM51_ZONES.find(z=>z.id===m[1]);
+        const d=r.data||{};
+        const checks=d.checks||{};
+        const extra=d.extra||{};
+        const totals=d.confirmedTotals||{};
+        const history=Array.isArray(d.confirmHistory)?d.confirmHistory:[];
+        result.push({
+          zoneId:m[1],
+          zone:zone?zone.name:m[1],
+          month:m[2],
+          current:{
+            water:checks[6] ? {method:checks[6], amount:extra[6]||{}} : null,
+            fertilizer:checks[7] ? {material:checks[7], amount:extra[7]||{}} : null,
+            otherMaterials:Array.isArray(d.multi8Main) ? d.multi8Main.map(name=>({name,amount:(d.extra8||{})[name]})) : []
+          },
+          confirmedTotals:totals,
+          recentConfirmHistory:history.slice(-20)
+        });
+      }
+      return result;
+    }
+
+    async function teddyFarm51CommitZoneShared(draft) {
+      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
+      if(!zone) throw new Error("找不到分區");
+      const d=new Date(draft.date+"T12:00:00");
+      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      const key=`zonework:${zone.id}:${ym}`;
+      const existing=await teddyFarm51ReadKey(key) || {
+        checks:{}, extra:{}, multi8Main:[], extra8:{}, pending:{}, timestamps:{},
+        progress:{}, confirmedBy:{}, confirmedTotals:{}, confirmHistory:[]
+      };
+
+      const amountNum=parseFloat(draft.amount);
+      const stamp=new Date().toLocaleString("zh-TW",{hour12:false});
+      const task=draft.task||"";
+      const material=draft.material||"";
+
+      if(/澆水|灌溉|溝灌|噴灌|補水/.test(task)){
+        const method=/噴灌/.test(task)?"噴灌":"溝灌";
+        existing.checks={...(existing.checks||{}),6:method};
+        const field=method==="噴灌"?"minutes":"tons";
+        existing.extra={...(existing.extra||{}),6:{...((existing.extra||{})[6]||{}),[field]:Number.isFinite(amountNum)?amountNum:(draft.amount||"")}};
+        existing.pending={...(existing.pending||{}),6:true};
+        existing.timestamps={...(existing.timestamps||{}),6:{...((existing.timestamps||{})[6]||{}),changedAt:stamp}};
+      } else if(/施肥|米糠|金旺/.test(task) || /米糠|金旺/.test(material)){
+        const mat=/金旺/.test(material+" "+task)?"金旺":"米糠";
+        existing.checks={...(existing.checks||{}),7:mat};
+        existing.extra={...(existing.extra||{}),7:{...((existing.extra||{})[7]||{}),bags:Number.isFinite(amountNum)?amountNum:(draft.amount||"")}};
+        existing.pending={...(existing.pending||{}),7:true};
+        existing.timestamps={...(existing.timestamps||{}),7:{...((existing.timestamps||{})[7]||{}),changedAt:stamp}};
+      } else {
+        const mat=material || task;
+        if(!mat) throw new Error("其他資材寫入需要資材名稱");
+        const arr=Array.isArray(existing.multi8Main)?[...existing.multi8Main]:[];
+        if(!arr.includes(mat)) arr.push(mat);
+        existing.multi8Main=arr;
+        existing.extra8={...(existing.extra8||{}),[mat]:Number.isFinite(amountNum)?amountNum:(draft.amount||"")};
+        existing.pending={...(existing.pending||{}),8:true};
+        existing.timestamps={...(existing.timestamps||{}),8:{...((existing.timestamps||{})[8]||{}),changedAt:stamp}};
+      }
+
+      await teddyFarm51WriteKey(key, existing);
+      return {key,entry:existing};
+    }
+
     async function teddyFarm51BuildReadContext(message) {
       const farmIntent = teddyFarm51Intent(message);
       if (!farmIntent.farm) {
@@ -1997,8 +2094,7 @@
 
       const kinds=teddyFarm51QueryKinds(message);
       const dateReq=teddyFarm51ParseDateRequest(message);
-      const ym=dateReq.ym;
-      const monthFilter = k => !ym || k.includes(ym);
+      const zone=teddyFarm51ZoneFromText(message);
       let rows=[];
 
       try {
@@ -2006,39 +2102,51 @@
 
         if (kinds.yield) {
           if (dateReq.year && dateReq.month) rows.push(...await teddyFarm51FetchYieldMonth(dateReq.year,dateReq.month));
-          else rows.push(...await teddyFarm51FetchYieldRecent());
+          else rows.push(...await teddyFarm51FetchYieldRecent(90));
         }
-        if (kinds.fertilizer || kinds.spray) {
-          rows.push(...await teddyFarm51FetchPrefix("spraylog:",monthFilter,120));
-          rows.push(...await teddyFarm51FetchPrefix("fertilizerList",null,5));
+
+        // IMPORTANT: V5.1 items 6/7/8 are NOT spraylog/workmonth.
+        // They live in zonework:{zoneId}:{YYYY-MM}.
+        // 6=補水(溝灌/噴灌), 7=施肥(米糠/金旺), 8=其他資材.
+        if (kinds.water || kinds.fertilizer || /米糠|金旺|其他資材|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素|黃豆|水果/i.test(message)) {
+          rows.push(...await teddyFarm51FetchZoneWorkRecent(message,dateReq,3));
+        }
+
+        // spraylog remains for the separate spray/fertilizer calendar records.
+        if (kinds.spray) {
+          const yms=dateReq.ym?[dateReq.ym]:teddyFarm51RecentYms(3);
+          for(const ym of yms){
+            rows.push(...await teddyFarm51FetchPrefix("spraylog:", k=>k.includes(ym) && (!zone || k.startsWith(`spraylog:${zone.id}:`)), 100));
+          }
           rows.push(...await teddyFarm51FetchPrefix("sprayDrugList",null,5));
         }
-        if (kinds.water || kinds.work) {
-          rows.push(...await teddyFarm51FetchPrefix("workmonth:",monthFilter,140));
-          rows.push(...await teddyFarm51FetchPrefix("worklog:",monthFilter,160));
-          rows.push(...await teddyFarm51FetchPrefix("zonework:",monthFilter,100));
-          rows.push(...await teddyFarm51FetchPrefix("monthlyWorkItemsList",null,5));
+
+        if (kinds.work) {
+          const yms=dateReq.ym?[dateReq.ym]:teddyFarm51RecentYms(3);
+          for(const ym of yms){
+            rows.push(...await teddyFarm51FetchPrefix("workmonth:", k=>k.includes(ym) && (!zone || k.startsWith(`workmonth:${zone.id}:`)), 100));
+            rows.push(...await teddyFarm51FetchPrefix("worklog:", k=>k.includes(ym) && (!zone || k.startsWith(`worklog:${zone.id}:`)), 140));
+            rows.push(...await teddyFarm51FetchPrefix("zonework:", k=>k.includes(ym) && (!zone || k.startsWith(`zonework:${zone.id}:`)), 40));
+          }
         }
+
         if (kinds.attendance) {
           rows.push(...await teddyFarm51FetchPrefix("attendance:",null,180));
           rows.push(...await teddyFarm51FetchPrefix("attendancePref:",null,80));
           rows.push(...await teddyFarm51FetchPrefix("attendanceLeaveTypes",null,5));
         }
         if (kinds.people) rows.push(...await teddyFarm51FetchPrefix("person:",null,150));
-        if (kinds.calendar) rows.push(...await teddyFarm51FetchPrefix("calendar:",monthFilter,160));
+        if (kinds.calendar) rows.push(...await teddyFarm51FetchPrefix("calendar:",null,160));
         if (kinds.notice) rows.push(...await teddyFarm51FetchPrefix("zonenotice:",null,100));
 
-        // Unknown fields/questions: use real key catalog rather than asking the user where data lives.
         const matched=teddyFarm51RelevantCatalogKeys(message,dateReq);
-        if (matched.length) rows.push(...await teddyFarm51FetchMainKeys(matched,80));
+        if(matched.length) rows.push(...await teddyFarm51FetchMainKeys(matched,80));
 
-        // General farm question: show the core recent operational tables.
-        if (!rows.length) {
-          rows.push(...await teddyFarm51FetchPrefix("workmonth:",monthFilter,120));
-          rows.push(...await teddyFarm51FetchPrefix("spraylog:",monthFilter,120));
+        if(!rows.length){
+          rows.push(...await teddyFarm51FetchZoneWorkRecent(message,dateReq,3));
+          if(!rows.length) rows.push(...await teddyFarm51FetchPrefix("workmonth:",null,100));
         }
 
-        // Deduplicate by source+key.
         const seen=new Set();
         rows=rows.filter(r=>{
           const k=(r.source||"")+"|"+(r.key||"");
@@ -2046,18 +2154,27 @@
           seen.add(k); return true;
         });
 
+        const zoneWorkSummary=teddyFarm51SummarizeZoneWorkRows(rows.filter(r=>String(r.key||"").startsWith("zonework:")));
+
         teddyFarm51DataContext=JSON.stringify({
           query:String(message),
           requestedPeriod:dateReq,
+          requestedZone:zone||null,
           zones:TEDDY_FARM51_ZONES,
           schema:TEDDY_FARM51_SCHEMA,
-          availableMainKeys:teddyFarm51CatalogCache.keys.slice(0,600),
+          zoneWorkMeaning:{
+            item6:"補水：checks[6]=溝灌/噴灌；extra[6].tons 或 minutes",
+            item7:"施肥：checks[7]=米糠/金旺；extra[7].bags",
+            item8:"其他資材：multi8Main + extra8",
+            confirmed:"已確認用量會累積在 confirmedTotals，歷史在 confirmHistory"
+          },
+          zoneWorkSummary,
           recordCount:rows.length,
           records:rows
         },null,2);
 
         if(teddyFarm51DataContext.length>110000){
-          teddyFarm51DataContext=teddyFarm51DataContext.slice(0,110000)+"\n...[資料量過大，已截斷]";
+          teddyFarm51DataContext=teddyFarm51DataContext.slice(0,110000)+"\\n...[資料量過大，已截斷]";
         }
         return {ok:true,required:true,count:rows.length};
       } catch(e) {
@@ -2069,9 +2186,12 @@
     function teddyFarm51ContextPrompt() {
       if(!teddyFarm51DataContext) return "";
       return `\n\n【完全體 V5.1 即時資料｜資料庫直讀】
-以下 JSON 是剛從 V5.1 真實資料庫讀出的資料與欄位。必須以這些資料回答，不要要求使用者重新提供 V5.1 已存在的資料。
+以下 JSON 是剛從 V5.1 真實資料庫讀出的資料與欄位。必須以這些資料回答，不要要求使用者重新提供 V5.1 已存在的資料。 若 recordCount > 0，先直接整理答案；不得以「請提供資料／我看不到資料」作為回覆。
 若某期間沒有紀錄，只能說「沒有查到紀錄」，不能推論成「沒有做」。
 六個溫室：一期、二期、三期、四南、四北、五期。
+V5.1 真實規則：補水/施肥/其他資材在 zonework:{zoneId}:{YYYY-MM}，不是 spraylog。
+其中 checks[6] 是溝灌/噴灌，extra[6] 是噸數或分鐘；checks[7] 是米糠/金旺，extra[7].bags 是目前指令包數；已確認過的累計量在 confirmedTotals，歷史在 confirmHistory。
+使用者問「最近」時，優先看最新月份，再往前比較最近三個月；若最新月份無資料，不可因此說完全沒有資料。
 產能 A/B/D/NG 為品質分類；每筆秤重常見 gross、baskets、net、ts。
 ${teddyFarm51DataContext}`;
     }
@@ -2122,10 +2242,10 @@ ${teddyFarm51DataContext}`;
     }
 
     function teddyFarm51WriteType(draft) {
-      const task=draft.task;
-      if(/施肥|米糠/.test(task)) return "fertilizer";
-      if(/噴藥|打藥|消毒/.test(task)) return "spray";
-      if(/採收/.test(task) && draft.quality && draft.amount) return "yield";
+      const q=(draft.task||"")+" "+(draft.material||"");
+      if(/採收/.test(q) && draft.quality && draft.amount) return "yield";
+      if(/澆水|灌溉|補水|溝灌|噴灌|施肥|米糠|金旺|其他資材|黃豆|水果|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素/.test(q)) return "zonework";
+      if(/噴藥|打藥|消毒/.test(q)) return "spray";
       return "workmonth";
     }
 
@@ -2279,7 +2399,8 @@ ${teddyFarm51DataContext}`;
 
       const type=teddyFarm51WriteType(draft);
       let result;
-      if(type==="fertilizer"||type==="spray") result=await teddyFarm51CommitSprayLog(draft,type);
+      if(type==="zonework") result=await teddyFarm51CommitZoneShared(draft);
+      else if(type==="spray") result=await teddyFarm51CommitSprayLog(draft,type);
       else if(type==="yield") result=await teddyFarm51CommitYield(draft);
       else result=await teddyFarm51CommitWorkMonth(draft);
 
@@ -2337,6 +2458,51 @@ ${teddyFarm51DataContext}`;
     }
 
 
+
+    async function teddyFarm51BridgeDiagnostic() {
+      try {
+        const main = await teddyFarm51EnsureMainStorage();
+        const catalog = await main.list("");
+        const mainKeys = catalog?.keys || [];
+
+        let yieldStatus = { ok:false, count:0, sample:[] };
+        try {
+          const ys = await teddyFarm51EnsureYieldStorage();
+          const yr = await ys.list("", false);
+          yieldStatus = {
+            ok:true,
+            count:(yr?.keys || []).length,
+            sample:(yr?.keys || []).slice(0,8)
+          };
+        } catch (e) {
+          yieldStatus = { ok:false, error:e.message, count:0, sample:[] };
+        }
+
+        const prefixes = {};
+        ["worklog:","workmonth:","zonework:","spraylog:","calendar:","attendance:","person:","zonenotice:"].forEach(p => {
+          prefixes[p] = mainKeys.filter(k => k.startsWith(p)).length;
+        });
+
+        return {
+          ok:true,
+          mainProject: TEDDY_FARM51_MAIN_CONFIG.projectId,
+          mainKeyCount: mainKeys.length,
+          prefixes,
+          mainSample: mainKeys.slice(0,12),
+          zoneworkSample: mainKeys.filter(k=>k.startsWith("zonework:")).slice(-12),
+          yieldProject: TEDDY_FARM51_YIELD_CONFIG.projectId,
+          yield: yieldStatus
+        };
+      } catch (e) {
+        return { ok:false, error:e.message };
+      }
+    }
+
+    function teddyFarm51IsDiagnostic(message) {
+      return /(測試.*V5\.?1|V5\.?1.*測試|橋接測試|測試橋接|檢查.*V5\.?1|V5\.?1.*連線|完全體.*連線)/i.test(String(message || ""));
+    }
+
+
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       const text = input.value.trim();
@@ -2347,6 +2513,25 @@ ${teddyFarm51DataContext}`;
       teddyHistory.push({ role: "user", text });
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
+
+      // Direct V5.1 bridge diagnostic, independent of Claude/GPT.
+      if (teddyFarm51IsDiagnostic(text)) {
+        const d = await teddyFarm51BridgeDiagnostic();
+        let msg;
+        if (!d.ok) {
+          msg = "V5.1 橋接失敗：" + d.error;
+        } else {
+          msg = `V5.1 橋接正常。主資料庫 ${d.mainProject} 讀到 ${d.mainKeyCount} 個 key；` +
+                `worklog ${d.prefixes["worklog:"] || 0}、workmonth ${d.prefixes["workmonth:"] || 0}、` +
+                `zonework ${d.prefixes["zonework:"] || 0}、spraylog ${d.prefixes["spraylog:"] || 0}。` +
+                `產能資料庫 ${d.yieldProject}：${d.yield.ok ? "可連線，讀到 " + d.yield.count + " 個 key" : "連線失敗：" + d.yield.error}。`;
+        }
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        teddyHistory.push({ role:"assistant", text:msg });
+        teddySaveHistory();
+        teddySpeak(msg, "sweet");
+        return;
+      }
 
       // Farm V5.1 bridge: natural-language write requests are staged locally first.
       const farmBridgeReply = await teddyFarm51HandleNaturalWrite(text);
@@ -2381,16 +2566,21 @@ ${teddyFarm51DataContext}`;
       }
       if (farmRead.required) teddyUpdateLogDiv(thinkingDiv, "🌱 已讀取完全體 V5.1，正在整理…");
 
-      // Hard Fresh Data Gate：需要時效資料的專業問題，先查到資料才讓模型分析。
-      const freshCheck = await teddyFreshDataPreflight(text);
-      if (!freshCheck.ok) {
-        teddyUpdateLogDiv(thinkingDiv, freshCheck.error);
-        teddyHistory.push({ role: "assistant", text: freshCheck.error });
-        teddySaveHistory();
-        teddySpeak(freshCheck.error, "gentle");
-        return;
+      // Freshness routing:
+      // V5.1 is the authoritative fresh source for the user's own farm data.
+      // Only non-farm/current-public questions need web freshness verification.
+      let freshCheck = { ok:true, required:false };
+      if (!farmRead.required) {
+        freshCheck = await teddyFreshDataPreflight(text);
+        if (!freshCheck.ok) {
+          teddyUpdateLogDiv(thinkingDiv, freshCheck.error);
+          teddyHistory.push({ role: "assistant", text: freshCheck.error });
+          teddySaveHistory();
+          teddySpeak(freshCheck.error, "gentle");
+          return;
+        }
+        if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
       }
-      if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
 
       let lastToolNames = [];
       const onStatus = (msg, toolNames) => {
