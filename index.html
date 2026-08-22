@@ -387,12 +387,12 @@
     .cap-chip:active { border-color: #f5c542; }
     .cap-note { font-size: 11px; color: #6b7a74; line-height: 1.45; margin: 0; }
   
-.dual-mode-wrap{display:flex;gap:8px;margin:10px 0 12px;padding:5px;background:#0d1311;border:1px solid #26342e;border-radius:12px}
-.dual-mode-btn{flex:1;min-height:42px;border-radius:9px;border:1px solid #314038;background:#151c19;color:#9ba9a2;font-size:13px;font-weight:800;cursor:pointer}
-.dual-mode-btn.active{background:#19342c;border-color:#5eead4;color:#d9fff2}
-.dual-mode-status{margin:-6px 0 10px;text-align:center;font-size:11px;color:#74827c}
+    .dual-mode-wrap{display:flex;gap:8px;margin:10px 0 12px;padding:5px;background:#0d1311;border:1px solid #26342e;border-radius:12px;}
+    .dual-mode-btn{flex:1;min-height:42px;border-radius:9px;border:1px solid #314038;background:#151c19;color:#9ba9a2;font-size:13px;font-weight:800;cursor:pointer;}
+    .dual-mode-btn.active{background:#19342c;border-color:#5eead4;color:#d9fff2;}
+    .dual-mode-status{margin:-6px 0 10px;text-align:center;font-size:11px;color:#74827c;}
 
-</style>
+  </style>
 
   <!-- Firebase SDK (CDN，純 HTML 用) -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -403,7 +403,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-full-decode-writecheck</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 memory-preserved explicit dual mode</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -453,11 +453,11 @@
             <button type="button" id="teddySettingsToggle" title="設定" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⚙️</button>
           </div>
         </div>
-<div class="dual-mode-wrap" id="dualModeWrap">
-<button type="button" id="btnPongchiMode" class="dual-mode-btn active">🐿 Pongchi 一般模式</button>
-<button type="button" id="btnGreenhouseMode" class="dual-mode-btn">🌱 溫室管理 V5.1</button>
-</div>
-<div class="dual-mode-status" id="dualModeStatus">🐿 一般模式 · Teddy 3.5 記憶 / 日常 / 農業知識</div>
+        <div class="dual-mode-wrap" id="dualModeWrap">
+          <button type="button" id="btnPongchiMode" class="dual-mode-btn active">🐿 Pongchi 一般模式</button>
+          <button type="button" id="btnGreenhouseMode" class="dual-mode-btn">🌱 溫室管理 V5.1</button>
+        </div>
+        <div class="dual-mode-status" id="dualModeStatus">🐿 一般模式 · 使用原 Teddy 3.5 記憶</div>
 
 
         <div id="teddySettingsPanel" style="display:none;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:10px;margin-bottom:8px;">
@@ -467,9 +467,13 @@
               <option value="anthropic">Claude</option>
               <option value="openai">ChatGPT</option>
             </select>
-            <select id="teddyVoiceStyleSelect" title="TEDDY 聲音" style="background:#141a18;border:1px solid #2a3532;color:#d7e0dc;border-radius:6px;padding:3px 6px;font-size:11px;">
+            <select id="teddyVoiceStyleSelect" title="TEDDY 聲音（自動判斷會依內容自己換語氣）" style="background:#141a18;border:1px solid #2a3532;color:#d7e0dc;border-radius:6px;padding:3px 6px;font-size:11px;">
+              <option value="auto">🤖 自動判斷</option>
               <option value="sweet">🍬 甜美可愛</option>
               <option value="playful">😄 年輕調皮</option>
+              <option value="gentle">🌙 溫柔哄睡</option>
+              <option value="storyteller">📖 說書人</option>
+              <option value="excited">✨ 驚喜興奮</option>
             </select>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -535,7 +539,7 @@
     </div>
 
     <div class="toolbar">
-      <button type="button" class="teddy-chip" title="Smart Teddy V3：財務＋農業＋即時資料優先">V3 🧠</button>
+      <span title="Smart Teddy V3：財務＋農業＋即時資料優先" style="display:inline-flex;align-items:center;background:#1a2220;border:1px solid #2a3532;color:#8a9a92;border-radius:16px;padding:5px 10px;font-size:11px;white-space:nowrap;cursor:default;">V3 🧠</span>
       <input type="file" id="fileInput" accept="image/*,.txt,.md,.csv,.json,.xlsx,.xls" style="display:none" />
       <button type="button" class="icon-btn" id="btnFile" title="上傳">📎</button>
       <button type="button" class="icon-btn" id="btnMic" title="語音">🎤</button>
@@ -769,7 +773,7 @@
     const _origTeddyPanelOpen = () => {};
 
     // ===== TEDDY Router：讓 TEDDY 自己判斷該用哪個工具 =====
-    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。  【完全體 V5.1 農場系統】 你知道使用者另有一套「完全體 V5.1」農場資訊管理系統。它目前使用 Firebase Firestore，透過 window.storage 的 get/set/delete/list 介面，把 key/value 資料存到 kv collection。 已確認的重要資料類型包括： - person: 人員與帳號 - attendance: 出勤／打卡 - attendancePref: 出勤偏好 - attendanceLeaveTypes: 假別 - worklog: 分區／格位工項紀錄 - zonework: 分區月份工項 - zonenotice: 分區提示 - calendar: 工項行事曆／年度計畫 - sprayDrugList: 藥品清單 - fertilizerList: 肥料清單 - monthlyWorkItemsList: 月份工項清單 - printlog: 列印紀錄  Teddy 的定位不是維護完全體程式碼，而是「農場秘書／自然語言操作入口」： 1. 使用者用口語說農場紀錄時，先整理成清楚的結構化草稿：日期、分區/格位、工項、材料/肥料/藥品、用量、備註。 2. 已建立安全寫入橋接。任何新增紀錄都必須先顯示草稿，使用者確認後才可寫入完全體 V5.1。 3. 不直接猜 Firestore key 或覆寫資料。 4. 未來若有專用 bridge/API，必須先讀取、驗證目標資料，再要求確認後才寫入；刪除與覆寫尤其要二次確認。 5. 使用者若要修改完全體程式本身，提醒可交給主要 ChatGPT 工程協助處理；Teddy 日常以資料整理與農業判斷為主。  【Teddy 3.5 執行順序】 你是陪伴型私人助理。你不需要炫耀模型或能力。 處理順序固定： 1. 日常聊天與陪伴：直接自然回答。 2. 使用者自己的農場工作：先讀完全體 V5.1；V5.1 是農場事實的唯一權威來源。 3. V5.1 已有資料時，不可回答「我看不到 V5.1」或要求使用者重新提供資料。 4. V5.1 原生 parser 能回答，就直接回答，不呼叫其他 AI。 5. 只有需要進一步專業解讀、推理、外部最新資訊時，才使用 Claude / ChatGPT / 搜尋工具。 6. 投資問題：依需要查最新市場資料再分析。 7. V5.1 寫入：永遠先顯示草稿，使用者確認後才寫。  【V5.1 工作階段】 只有使用者主動進入 V5.1 農場工作階段後，才把後續問題視為 V5.1 查詢。 工作階段中，V5.1 是農場事實唯一來源。若已有 V5.1 context，必須依資料回答，不得說看不到 V5.1。 若 V5.1 parser 已能回答，就直接回答；只有需要進一步推理時才呼叫 Claude/ChatGPT。 離開工作階段後，回一般陪伴助理。  【V5.1 完整解讀】在 V5.1 工作階段中，每一個追問都必須依該句中的時間範圍重新查詢 V5.1；例如「去年呢」代表重新查去年全年，不得沿用本月資料。若 V5.1 context 已存在，必須以其 records / parsedZonework / confirmedFacts 作為事實來源。";
+    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。 ";
 
     // ===== TEDDY v2 Skills：專業能力模組 + 自動路由 =====
     const TEDDY_SKILLS = {
@@ -812,10 +816,8 @@
     function teddyDetectSkill(text) {
       const manual = "auto";
       const t = String(text || "").toLowerCase();
-      const agricultureWords = ["農業","農作","作物","栽培","種植","施肥","肥料","灌溉","土壤","病蟲害","農藥","修剪","嫁接","果樹","無花果","溫室","採收","葉片","根系","ec值","ph值"];
       const codingWords = ["程式","程式碼","javascript","html","css","firebase","api","console","bug","錯誤","部署","vercel","netlify","cors"];
       const investmentWords = ["投資","股票","股價","台股","美股","etf","ipo","spacex","基金","黃金","債券","殖利率","利率","美元","匯率","財報","營收","eps","本益比","估值","fed","聯準會","降息","升息","nasdaq","s&p","道瓊","台積電","nvidia"];
-      if (agricultureWords.some(w => t.includes(w))) return "agriculture";
       if (codingWords.some(w => t.includes(w))) return "coding";
       if (investmentWords.some(w => t.includes(w))) return "investment";
       return "general";
@@ -850,6 +852,20 @@
     }
 
 
+    // ===== 帶逾時保護的 fetch，避免網路卡住時畫面永遠停在「處理中」=====
+    async function teddyFetch(url, options, timeoutMs) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs || 25000);
+      try {
+        return await fetch(url, { ...(options || {}), signal: controller.signal });
+      } catch (e) {
+        if (e.name === "AbortError") throw new Error("回應太久沒反應（逾時），請稍後再試一次");
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     // ===== V3.1 CORE ASSISTANT ROUTER =====
     // Basic assistant abilities are routed before specialist skills.
     function teddyV31CoreIntent(message) {
@@ -881,26 +897,24 @@
 
 
     // Skill Router: keep routing deterministic and fast; no extra model call.
+    // 一般聊天不再對農業/溫室關鍵字敏感——那個專業程度留給獨立的「溫室管理」視窗處理。
     function teddyV3RouteSkill(message) {
       const q = String(message || "").toLowerCase();
       const finance = /(股票|股價|台股|美股|etf|ipo|spacex|財報|營收|eps|本益比|殖利率|fed|聯準會|利率|債券|黃金|美元|匯率|投資|資產配置|基金|期貨|選擇權|加密|bitcoin|nvidia|台積電)/i;
-      const agriculture = /(農業|農作|作物|栽培|種植|施肥|肥料|灌溉|土壤|病蟲害|農藥|修剪|嫁接|果樹|無花果|溫室|採收|葉片|根系|氮|磷|鉀|ec值|ph值)/i;
       const coding = /(程式|javascript|html|css|firebase|api|console|bug|錯誤|部署|netlify|程式碼)/i;
       if (finance.test(q)) return "finance";
-      if (agriculture.test(q)) return "agriculture";
       if (coding.test(q)) return "coding";
       return "general";
     }
 
-    // Fresh Data Gate: finance and time-sensitive agriculture must verify changing facts first.
+    // Fresh Data Gate: 只有財務相關話題才需要先查證即時資料；一般聊天保持自然、不做搜尋驗證。
     function teddyV3NeedsFreshData(message, skill) {
       const q = String(message || "");
       const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|政策|公告|法規|疫情|病蟲害警報|現況|行情)/i;
       const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息)/i;
       if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q);
-      if (skill === "agriculture") return timeSensitive.test(q);
       if (skill === "presentation") return timeSensitive.test(q) || marketEvent.test(q);
-      return timeSensitive.test(q);
+      return false;
     }
 
     function teddyV3SkillPrompt(message) {
@@ -910,8 +924,6 @@
       let p = `\n\n【Smart Teddy V3 路由】\n目前 Skill：${skill}。`;
       if (skill === "finance") {
         p += `\n你現在是「財務與投資分析 Skill」。先區分已驗證事實、推論與情境，不把猜測寫成事實。分析優先順序：最新資料→基本面/估值→總經與產業→樂觀/基準/悲觀情境→主要風險→簡短結論。涉及個別標的時避免保證報酬。`;
-      } else if (skill === "agriculture") {
-        p += `\n你現在是「農業 Skill」。優先考慮作物種類、生育期、氣候、土壤/介質、水分、肥培、病蟲害與田間症狀；資訊不足時指出還缺什麼。把「一般原理」和「需要依現場確認的判斷」分開。涉及農藥、肥料濃度或食安時不要猜測。`;
       } else if (skill === "coding") {
         p += `\n你現在是「工程 Skill」。先定位錯誤，再給最小修改；避免無必要重構，保留現有功能。`;
       } else {
@@ -1104,11 +1116,11 @@
         try {
           const loc = String(input.location || "").trim();
           if (!loc) return { ok: false, error: "沒有指定地點" };
-          const geoR = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=zh`);
+          const geoR = await teddyFetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=zh`, {}, 12000);
           const geoD = await geoR.json();
           const place = geoD.results && geoD.results[0];
           if (!place) return { ok: false, error: "找不到這個地點：" + loc };
-          const wR = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`);
+          const wR = await teddyFetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`, {}, 12000);
           const wD = await wR.json();
           const c = wD.current || {};
           return {
@@ -1135,7 +1147,7 @@
         const keys = loadKeys();
         if (!keys.xai) return { ok: false, error: "搜尋新聞需要先設定 Grok (xAI) 的 API Key" };
         try {
-          const r = await fetch("https://api.x.ai/v1/responses", {
+          const r = await teddyFetch("https://api.x.ai/v1/responses", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
             body: JSON.stringify({
@@ -1143,7 +1155,7 @@
               input: [{ role: "user", content: String(input.query || "") }],
               tools: [{ type: "web_search" }],
             }),
-          });
+          }, 25000);
           const d = await r.json();
           if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
           const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
@@ -1272,25 +1284,6 @@
     }
 
 
-
-    function teddyFarm51Intent(message) {
-      const q = String(message || "");
-      const farmWords = /(農場|田區|分區|溫室|無花果|工項|工作紀錄|工作月表|施肥|肥料|米糠|金旺|其他資材|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素|黃豆|水果|噴藥|農藥|藥品|打卡|出勤|行事曆|年度計畫|採收|澆水|灌溉|補水|產能|產量|生產量|採收量|收成|品質|A級|B級|D級|NG|六個溫室|一期|二期|三期|四南|四北|五期|V5\.?1|完全體)/i;
-      const writeWords = /(記一下|記錄|登記|新增|存起來|寫進|上傳|更新|改成|刪除|幫我記|幫我存)/i;
-      return { farm: farmWords.test(q), wantsWrite: writeWords.test(q) };
-    }
-
-    function teddyFarm51Prompt(message) {
-      const x = teddyFarm51Intent(message);
-      if (!x.farm) return "";
-      let p = "\n\n【完全體 V5.1 農場秘書模式】\n這是農場日常資訊。先用農業專業理解內容，再整理成完全體 V5.1 可用的紀錄草稿。";
-      if (x.wantsWrite) {
-        p += "\nTeddy 3.5 已有完全體 V5.1 安全寫入橋接。先整理成待寫入草稿並顯示確認；只有使用者按下「確認寫入」後才真正寫入。缺少分區或工項時不得寫入。";
-      }
-      return p;
-    }
-
-
     function teddyBuildSystemPrompt() {
       const skill = TEDDY_SKILLS[teddyActiveSkill] || TEDDY_SKILLS.general;
       const lastUser = [...teddyHistory].reverse().find((h) => h.role === "user");
@@ -1300,8 +1293,6 @@
       let prompt = TEDDY_SYSTEM_PROMPT + "\n\n【目前啟用 Skill：" + skill.name + "】\n" + skill.prompt;
       prompt += teddyV31CorePrompt(currentMessage);
       prompt += teddyV3SkillPrompt(currentMessage);
-      prompt += teddyFarm51Prompt(currentMessage);
-      prompt += teddyFarm51ContextPrompt();
       prompt += `\n\n【Teddy 即時自我狀態】
 應用版本：${state.version}
 介面目前模型：${state.modelPreference}
@@ -1350,7 +1341,7 @@
       const prompt = "請把以下這段對話濃縮成 3-5 句重點摘要，保留使用者提到的重要個人資訊、偏好、正在做的事情，用繁體中文寫成一小段文字（不要條列、不要加任何前言），如果既有摘要存在，請把新內容自然融合進去：\n\n【既有摘要】\n" + (teddySummary || "（無）") + "\n\n【新的對話內容】\n" + transcript;
       try {
         if (keys.anthropic) {
-          const r = await fetch("https://api.anthropic.com/v1/messages", {
+          const r = await teddyFetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1359,15 +1350,15 @@
               "anthropic-dangerous-direct-browser-access": "true",
             },
             body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
-          });
+          }, 20000);
           const d = await r.json();
           if (r.ok) return (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
         } else if (keys.openai) {
-          const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({ model: "gpt-4o", max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
-          });
+          }, 20000);
           const d = await r.json();
           if (r.ok) return d.choices[0].message.content.trim();
         }
@@ -1457,7 +1448,7 @@
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
+        const r = await teddyFetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1472,7 +1463,7 @@
             tools: TEDDY_TOOLS,
             messages,
           }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         if (d.usage) { usedInput += d.usage.input_tokens || 0; usedOutput += d.usage.output_tokens || 0; }
@@ -1497,11 +1488,11 @@
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
           body: JSON.stringify({ model: "gpt-4o", messages, tools: oaTools, tool_choice: "auto" }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         if (d.usage) { usedInput += d.usage.prompt_tokens || 0; usedOutput += d.usage.completion_tokens || 0; }
@@ -1571,12 +1562,18 @@
     // ===== TEDDY 多種語調（可手動選，預設由內容自動判斷）=====
     const TEDDY_VOICE_STYLES = {
       sweet: "自然、甜美、親切、清楚。聲音柔亮但不要娃娃音；有自然停頓與語氣，像熟悉的年輕助理，避免刻意裝可愛。",
-      playful: "年輕、自然、活潑、有一點調皮。語速微快、反應俐落、有自然停頓和情緒起伏，但不要浮誇、不要尖銳。"
+      playful: "年輕、自然、活潑、有一點調皮。語速微快、反應俐落、有自然停頓和情緒起伏，但不要浮誇、不要尖銳。",
+      gentle: "說話放得很輕、很慢，溫柔安撫的語氣，像哄人入睡一樣，音量感覺較低、語尾拉長，給人放鬆平靜的感覺。",
+      storyteller: "用穩重、有磁性、像在說故事或念書給人聽的語氣，語速適中偏慢，斷句清楚，帶一點戲劇張力，適合朗讀文章內容。",
+      excited: "說話語氣興奮、驚喜，音調上揚、語速稍快，像發現超酷的事情迫不及待要分享，但咬字仍要清楚。"
     };
 
     const TEDDY_VOICE_PROFILES = {
-      sweet:   { voice: "nova",    speed: 1.02, pitch: 1.18, rate: 1.02 },
-      playful: { voice: "shimmer", speed: 1.08, pitch: 1.24, rate: 1.08 }
+      sweet:       { voice: "nova",    speed: 1.02, pitch: 1.18, rate: 1.02 },
+      playful:     { voice: "shimmer", speed: 1.08, pitch: 1.24, rate: 1.08 },
+      gentle:      { voice: "nova",    speed: 0.92, pitch: 1.05, rate: 0.92 },
+      storyteller: { voice: "nova",    speed: 0.95, pitch: 1.0,  rate: 0.95 },
+      excited:     { voice: "shimmer", speed: 1.1,  pitch: 1.3,  rate: 1.1  }
     };
 
     function teddyAutoDetectVoiceStyle(replyText, lastToolNames) {
@@ -1621,7 +1618,7 @@
 
       if (keys.openai) {
         const requestVoice = async (voiceName) => {
-          const r = await fetch("https://api.openai.com/v1/audio/speech", {
+          const r = await teddyFetch("https://api.openai.com/v1/audio/speech", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({
@@ -1631,7 +1628,7 @@
               speed: profile.speed,
               instructions
             })
-          });
+          }, 20000);
           if (!r.ok) throw new Error("TTS HTTP " + r.status);
           return await r.blob();
         };
@@ -1686,7 +1683,6 @@
         "新聞／即時資訊搜尋",
         "財務與投資分析",
         "農業分析",
-        "完全體 V5.1 農場紀錄整理（安全橋接前採確認制）",
         "程式協助",
         "文章寫作與朗讀",
         "語音輸入與 TTS 語音"
@@ -1745,1546 +1741,6 @@
     }
 
 
-
-
-
-    // ===== Teddy 3.5 ↔ 完全體 V5.1 COMPLETE BRIDGE =====
-    const TEDDY_FARM51_MAIN_CONFIG = {"apiKey": "AIzaSyDJXF_9jyibl5GsbJHEuPVBIOqQ2Eovjw4", "authDomain": "figapi-d24dc.firebaseapp.com", "projectId": "figapi-d24dc", "storageBucket": "figapi-d24dc.firebasestorage.app", "messagingSenderId": "334799549554", "appId": "1:334799549554:web:d197425c2c629ee53dbeeb", "measurementId": "G-T1ZZQ2K4Y8"};
-    const TEDDY_FARM51_YIELD_CONFIG = {"apiKey": "AIzaSyBoHlZFS3fuhuS6MjYH8cPE3djbA--lJLY", "authDomain": "figdata-d2737.firebaseapp.com", "projectId": "figdata-d2737", "storageBucket": "figdata-d2737.firebasestorage.app", "messagingSenderId": "46163670891", "appId": "1:46163670891:web:c496942014d47ea19c7e2e"};
-    const TEDDY_FARM51_YIELD_COLLECTION = "fbrfA_data";
-    const TEDDY_FARM51_PENDING_KEY = "teddy_farm51_pending_write_v2";
-
-    const TEDDY_FARM51_ZONES = [
-      { id:"p1", name:"一期溫室", aliases:["一期","一期溫室","p1"] },
-      { id:"p2", name:"二期溫室", aliases:["二期","二期溫室","總公司","p2"] },
-      { id:"zone3", name:"三期溫室", aliases:["三期","三期溫室","zone3"] },
-      { id:"north4", name:"四北溫室", aliases:["四北","四北溫室","north4"] },
-      { id:"south4", name:"四南溫室", aliases:["四南","四南溫室","south4"] },
-      { id:"zone5", name:"五期溫室", aliases:["五期","五期溫室","zone5"] }
-    ];
-    const TEDDY_FARM51_YIELD_ZONES = ["一期","二期","三期","四南","四北","五期"];
-
-    const TEDDY_FARM51_SCHEMA = {
-      "person:": "人員/帳號資料",
-      "attendance:": "出勤與打卡資料，key = attendance:{personId}:{YYYY-MM-DD}",
-      "attendancePref:": "個人出勤偏好",
-      "attendanceLeaveTypes": "全場共用假別清單",
-      "worklog:": "分區格位工作紀錄與完成等級",
-      "zonework:": "分區共用工項紀錄",
-      "workmonth:": "工作月表，value = {day:{items:[code],note}}",
-      "monthlyWorkItemsList": "工作月表工項代號清單",
-      "spraylog:": "施肥/噴藥月曆，value = {day:[{code,name,dosage,qty,type}]}",
-      "sprayDrugList": "全場共用藥品清單",
-      "fertilizerList": "全場共用肥料清單",
-      "calendar:": "行事曆/年度計畫",
-      "zonenotice:": "分區通知/留言",
-      "printlog": "列印紀錄",
-      "yield:": "產能逐日紀錄（新資料）",
-      "yieldArchive:": "產能年度封存（2026-08-01 前）"
-    };
-
-    let teddyFarm51MainStorage = null;
-    let teddyFarm51YieldStorage = null;
-    let teddyFarm51DataContext = "";
-    let teddyFarm51Pending = null;
-    let teddyFarm51CatalogCache = { ts:0, keys:[] };
-
-    function teddyFarm51SafeJson(value) {
-      if (value === null || value === undefined) return value;
-      if (typeof value !== "string") return value;
-      try { return JSON.parse(value); } catch (_) { return value; }
-    }
-
-    function teddyFarm51Today() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    }
-
-    function teddyFarm51ZoneFromText(text) {
-      const q = String(text || "").toLowerCase();
-      for (const z of TEDDY_FARM51_ZONES) {
-        if (z.aliases.some(a => q.includes(String(a).toLowerCase()))) return z;
-      }
-      return null;
-    }
-
-    async function teddyFarm51EnsureMainStorage() {
-      if (teddyFarm51MainStorage) return teddyFarm51MainStorage;
-
-      const cfg = TEDDY_FARM51_MAIN_CONFIG;
-      const project = cfg.projectId;
-      const apiKey = cfg.apiKey;
-      const dbPath = `projects/${project}/databases/(default)`;
-      const base = `https://firestore.googleapis.com/v1/${dbPath}/documents`;
-      const runQueryUrl = `https://firestore.googleapis.com/v1/${dbPath}/documents:runQuery?key=${encodeURIComponent(apiKey)}`;
-
-      function decodeValue(v) {
-        if (!v || typeof v !== "object") return null;
-        if ("stringValue" in v) return v.stringValue;
-        if ("integerValue" in v) return Number(v.integerValue);
-        if ("doubleValue" in v) return Number(v.doubleValue);
-        if ("booleanValue" in v) return !!v.booleanValue;
-        if ("nullValue" in v) return null;
-        if ("timestampValue" in v) return v.timestampValue;
-        if ("arrayValue" in v) return (v.arrayValue.values || []).map(decodeValue);
-        if ("mapValue" in v) {
-          const o={};
-          const fields=v.mapValue.fields||{};
-          Object.keys(fields).forEach(k=>o[k]=decodeValue(fields[k]));
-          return o;
-        }
-        return null;
-      }
-
-      function decodeDoc(doc) {
-        if (!doc) return null;
-        const f = doc.fields || {};
-        const id = decodeURIComponent(String(doc.name || "").split("/").pop() || "");
-        return {
-          key: decodeValue(f.key) || id,
-          value: decodeValue(f.value),
-          updatedAt: decodeValue(f.updatedAt)
-        };
-      }
-
-      async function restJson(url, options={}) {
-        const r = await fetch(url, options);
-        let d=null;
-        try { d=await r.json(); } catch (_) {}
-        if (!r.ok) {
-          const msg=d?.error?.message || `Firestore REST HTTP ${r.status}`;
-          throw new Error(msg);
-        }
-        return d;
-      }
-
-      async function restGet(key) {
-        const url = `${base}/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(apiKey)}`;
-        try {
-          const doc = await restJson(url);
-          return decodeDoc(doc);
-        } catch (e) {
-          if (/NOT_FOUND|404/i.test(e.message)) return null;
-          throw e;
-        }
-      }
-
-      async function restSet(key, value) {
-        const url = `${base}/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(apiKey)}`;
-        const body = {
-          fields: {
-            key: { stringValue: key },
-            value: { stringValue: String(value) },
-            updatedAt: { integerValue: String(Date.now()) }
-          }
-        };
-        await restJson(url, {
-          method:"PATCH",
-          headers:{ "Content-Type":"application/json" },
-          body:JSON.stringify(body)
-        });
-        return { key, value };
-      }
-
-      async function restDelete(key) {
-        const url = `${base}/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(apiKey)}`;
-        const r = await fetch(url, { method:"DELETE" });
-        if (!r.ok && r.status !== 404) {
-          let d=null; try { d=await r.json(); } catch (_) {}
-          throw new Error(d?.error?.message || `Firestore REST HTTP ${r.status}`);
-        }
-        return { key, deleted:true };
-      }
-
-      async function restList(prefix="") {
-        const filters = [];
-        if (prefix) {
-          filters.push({
-            fieldFilter:{
-              field:{ fieldPath:"key" },
-              op:"GREATER_THAN_OR_EQUAL",
-              value:{ stringValue:prefix }
-            }
-          });
-          filters.push({
-            fieldFilter:{
-              field:{ fieldPath:"key" },
-              op:"LESS_THAN",
-              value:{ stringValue:prefix + "\uf8ff" }
-            }
-          });
-        }
-
-        const structuredQuery = {
-          from:[{ collectionId:"kv" }],
-          select:{ fields:[{fieldPath:"key"}] },
-          limit:500
-        };
-        if (filters.length === 1) structuredQuery.where = filters[0];
-        else if (filters.length > 1) structuredQuery.where = {
-          compositeFilter:{ op:"AND", filters }
-        };
-
-        const rows = await restJson(runQueryUrl, {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body:JSON.stringify({ structuredQuery })
-        });
-        const keys=[];
-        for (const row of (rows || [])) {
-          if (!row.document) continue;
-          const d=decodeDoc(row.document);
-          if (d?.key) keys.push(d.key);
-        }
-        keys.sort();
-        return { keys, prefix };
-      }
-
-      teddyFarm51MainStorage = {
-        get:restGet,
-        set:restSet,
-        delete:restDelete,
-        list:restList,
-        mode:"firestore-rest",
-        projectId:project
-      };
-      return teddyFarm51MainStorage;
-    }
-
-    async function teddyFarm51EnsureYieldStorage() {
-      if (teddyFarm51YieldStorage) return teddyFarm51YieldStorage;
-      let app;
-      try { app = firebase.app("farm51-yield"); }
-      catch (_) { app = firebase.initializeApp(TEDDY_FARM51_YIELD_CONFIG, "farm51-yield"); }
-
-      if (app.auth) {
-        try {
-          if (!app.auth().currentUser) await app.auth().signInAnonymously();
-        } catch (e) {
-          throw new Error("產能資料庫匿名登入失敗：" + e.message);
-        }
-      }
-
-      const db = app.firestore();
-      const C = TEDDY_FARM51_YIELD_COLLECTION;
-      const ROOT = "fbrfA_";
-      const marker = shared => ROOT + (shared ? "shared__" : "priv__");
-
-      teddyFarm51YieldStorage = {
-        async get(key, shared=false) {
-          const doc = await db.collection(C).doc(marker(shared) + key).get();
-          if (!doc.exists) return null;
-          const d = doc.data() || {};
-          return { key, value:d.value, updatedAt:d.updatedAt || null, shared };
-        },
-        async set(key, value, shared=false) {
-          await db.collection(C).doc(marker(shared) + key).set({ value, updatedAt:Date.now() });
-          return { key, value, shared };
-        },
-        async list(prefix="", shared=false) {
-          const fp = marker(shared) + prefix;
-          const snap = await db.collection(C)
-            .where(firebase.firestore.FieldPath.documentId(), ">=", fp)
-            .where(firebase.firestore.FieldPath.documentId(), "<", fp + "\uf8ff")
-            .get();
-          return { keys:snap.docs.map(d => d.id.slice(marker(shared).length)), prefix, shared };
-        }
-      };
-      return teddyFarm51YieldStorage;
-    }
-
-    async function teddyFarm51GetCatalog(force=false) {
-      if (!force && Date.now() - teddyFarm51CatalogCache.ts < 60000 && teddyFarm51CatalogCache.keys.length) {
-        return teddyFarm51CatalogCache.keys;
-      }
-      const s = await teddyFarm51EnsureMainStorage();
-      const r = await s.list("");
-      const keys = r?.keys || [];
-      teddyFarm51CatalogCache = { ts:Date.now(), keys };
-      return keys;
-    }
-
-    function teddyFarm51ParseDateRequest(message) {
-      const q = String(message || "");
-      const now = new Date();
-      let year=null, month=null, day=null;
-      let m = q.match(/(20\d{2})\s*年\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*日)?/);
-      if (m) { year=+m[1]; month=+m[2]; day=m[3]?+m[3]:null; }
-      else {
-        m = q.match(/(20\d{2})[\/-](\d{1,2})(?:[\/-](\d{1,2}))?/);
-        if (m) { year=+m[1]; month=+m[2]; day=m[3]?+m[3]:null; }
-        else if (/上個月|上月/.test(q)) {
-          const d = new Date(now.getFullYear(), now.getMonth()-1, 1);
-          year=d.getFullYear(); month=d.getMonth()+1;
-        } else if (/本月|這個月|目前|最近|近期/.test(q)) {
-          year=now.getFullYear(); month=now.getMonth()+1;
-        }
-      }
-      return {
-        year, month, day,
-        ym:year&&month ? `${year}-${String(month).padStart(2,"0")}` : null,
-        ymd:year&&month&&day ? `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}` : null
-      };
-    }
-
-    function teddyFarm51QueryKinds(message) {
-      const q = String(message || "").toLowerCase();
-      return {
-        yield: /(產能|產量|生產量|採收量|收成|a級|b級|d級|ng|公斤數)/i.test(q),
-        water: /(澆水|灌溉|補水|溝灌|噴灌|水分)/i.test(q),
-        fertilizer: /(施肥|肥料|米糠|金旺|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂|微量元素)/i.test(q),
-        spray: /(噴藥|消毒|農藥|藥品|病蟲害)/i.test(q),
-        work: /(工項|工作|修剪|剪葉|打芽|除草|覆蓋|資材|巡田)/i.test(q),
-        attendance: /(出勤|打卡|上班|下班|請假|假別)/i.test(q),
-        people: /(人員|員工|帳號|權限)/i.test(q),
-        calendar: /(行事曆|產季|剪枝|座果|度冬|年度計畫)/i.test(q),
-        notice: /(通知|公告|未讀|留言)/i.test(q)
-      };
-    }
-
-    async function teddyFarm51FetchMainKeys(keys, limit=180) {
-      const s = await teddyFarm51EnsureMainStorage();
-      const rows=[];
-      for (const key of keys.slice(0,limit)) {
-        try {
-          const r = await s.get(key);
-          if (r) rows.push({source:"V5.1-main", key, updatedAt:r.updatedAt, data:teddyFarm51SafeJson(r.value)});
-        } catch (_) {}
-      }
-      return rows;
-    }
-
-    async function teddyFarm51FetchPrefix(prefix, filterFn=null, limit=160) {
-      const keys = (await teddyFarm51GetCatalog()).filter(k => k.startsWith(prefix));
-      const selected = filterFn ? keys.filter(filterFn) : keys;
-      return await teddyFarm51FetchMainKeys(selected, limit);
-    }
-
-    async function teddyFarm51FetchYieldMonth(year, month) {
-      const s = await teddyFarm51EnsureYieldStorage();
-      const ym = `${year}-${String(month).padStart(2,"0")}`;
-      const rows=[];
-
-      for (const zone of TEDDY_FARM51_YIELD_ZONES) {
-        if (`${ym}-01` < "2026-08-01") {
-          const r = await s.get(`yieldArchive:${zone}:${year}`, false);
-          if (!r) continue;
-          const archive = teddyFarm51SafeJson(r.value) || {};
-          const data={};
-          Object.keys(archive).filter(d => d.startsWith(ym)).sort().forEach(d => data[d]=archive[d]);
-          if (Object.keys(data).length) rows.push({source:"V5.1-yield", zone, key:`yieldArchive:${zone}:${year}`, month:ym, data});
-        } else {
-          const listed = await s.list(`yield:${zone}:${ym}`, false);
-          for (const key of listed?.keys || []) {
-            const r = await s.get(key,false);
-            if (r) rows.push({source:"V5.1-yield", zone, key, data:teddyFarm51SafeJson(r.value)});
-          }
-        }
-      }
-      return rows;
-    }
-
-    async function teddyFarm51FetchYieldRecent(days=45) {
-      const now=new Date();
-      const months=new Set();
-      for(let i=0;i<days;i+=15){
-        const d=new Date(now); d.setDate(now.getDate()-i);
-        months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
-      }
-      const rows=[];
-      for(const ym of months){
-        const [y,m]=ym.split("-").map(Number);
-        rows.push(...await teddyFarm51FetchYieldMonth(y,m));
-      }
-      return rows;
-    }
-
-    function teddyFarm51RelevantCatalogKeys(message, dateReq) {
-      const q=String(message||"").toLowerCase();
-      const tokens=q.replace(/[，。,.!?！？：:；;\s]+/g," ").split(" ").filter(x=>x.length>=2);
-      const ym=dateReq.ym;
-      return teddyFarm51CatalogCache.keys.filter(key => {
-        const kl=key.toLowerCase();
-        if (ym && kl.includes(ym)) return true;
-        return tokens.some(tok => kl.includes(tok));
-      }).slice(0,80);
-    }
-
-
-    function teddyFarm51RecentYms(count=3) {
-      const out=[];
-      const now=new Date();
-      for(let i=0;i<count;i++){
-        const d=new Date(now.getFullYear(), now.getMonth()-i, 1);
-        out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
-      }
-      return out;
-    }
-
-    async function teddyFarm51FetchZoneWorkRecent(message, dateReq, limitMonths=3) {
-      const zone=teddyFarm51ZoneFromText(message);
-      const yms=dateReq.ym ? [dateReq.ym] : teddyFarm51RecentYms(limitMonths);
-      const rows=[];
-      for(const ym of yms){
-        const keys=(await teddyFarm51GetCatalog()).filter(k=>{
-          if(!k.startsWith("zonework:")) return false;
-          if(!k.endsWith(":"+ym)) return false;
-          return !zone || k.startsWith(`zonework:${zone.id}:`);
-        });
-        rows.push(...await teddyFarm51FetchMainKeys(keys, 30));
-      }
-      return rows;
-    }
-
-
-    function teddyFarm51ParseV51Zonework(key, raw) {
-      const m=String(key||"").match(/^zonework:([^:]+):(\d{4}-\d{2})$/);
-      if(!m) return null;
-      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===m[1]);
-      const d=raw&&typeof raw==="object"?raw:{};
-      const history=(Array.isArray(d.confirmHistory)?d.confirmHistory:[])
-        .filter(h=>h && h.rowKey && Number.isFinite(parseFloat(h.qty)) && parseFloat(h.qty)>0 && h.at)
-        .map(h=>({
-          itemId:Number(h.itemId)||null,
-          itemName:h.itemName||"",
-          rowKey:String(h.rowKey),
-          qty:parseFloat(h.qty),
-          personId:h.personId||"",
-          personName:h.personName||h.personId||"",
-          at:String(h.at)
-        }));
-      return {
-        key,
-        zoneId:m[1],
-        zone:zone?zone.name:m[1],
-        month:m[2],
-        currentInstruction:{
-          irrigation:(d.checks||{})[6] ? {
-            method:(d.checks||{})[6],
-            tons:((d.extra||{})[6]||{}).tons ?? null,
-            minutes:((d.extra||{})[6]||{}).minutes ?? null,
-            pending:!!((d.pending||{})[6])
-          } : null,
-          fertilizer:(d.checks||{})[7] ? {
-            material:(d.checks||{})[7],
-            bags:((d.extra||{})[7]||{}).bags ?? null,
-            pending:!!((d.pending||{})[7])
-          } : null,
-          otherMaterials:(Array.isArray(d.multi8Main)?d.multi8Main:[]).map(name=>({
-            material:name,
-            qty:(d.extra8||{})[name] ?? null
-          }))
-        },
-        confirmedTotals:d.confirmedTotals||{},
-        confirmHistory:history
-      };
-    }
-
-    function teddyFarm51V51MaterialFacts(parsedRows, material=null) {
-      const facts=[];
-      for(const z of parsedRows.filter(Boolean)){
-        for(const h of z.confirmHistory||[]){
-          if(material && h.rowKey!==material) continue;
-          facts.push({...h,zone:z.zone,zoneId:z.zoneId,month:z.month,key:z.key});
-        }
-      }
-      facts.sort((a,b)=>{
-        const da=Date.parse(String(a.at).replace(/\//g,"-"))||0;
-        const db=Date.parse(String(b.at).replace(/\//g,"-"))||0;
-        return db-da;
-      });
-      return facts;
-    }
-
-    function teddyFarm51NativeAnswer(message, parsedRows) {
-      const q=String(message||"");
-      const zone=teddyFarm51ZoneFromText(q);
-      const material=(q.match(/米糠|金旺|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素|黃豆|水果/)||[])[0]||null;
-      const relevant=parsedRows.filter(x=>x && (!zone || x.zoneId===zone.id));
-      const facts=teddyFarm51V51MaterialFacts(relevant,material);
-
-      if(material && /(最近|最近一次|上次|最後一次|用了多少|使用.*多少|多少|看得到|看到|有沒有|資料嗎|紀錄嗎)/.test(q)){
-        if(!facts.length) {
-          const current=relevant.find(x=>x.currentInstruction?.fertilizer?.material===material);
-          if(current) {
-            const f=current.currentInstruction.fertilizer;
-            return `${current.zone}目前有一筆${material}指令：${f.bags ?? "未填數量"}包，${f.pending?"尚待確認":"目前未標示待確認"}。但 V5.1 的 confirmHistory 裡沒有查到已確認使用紀錄。`;
-          }
-          return `${zone?zone.name:"指定分區"}在目前讀到的 V5.1 最近月份中，沒有查到「${material}」的已確認使用紀錄。`;
-        }
-        const h=facts[0];
-        return `${h.zone}最近一次確認使用${h.rowKey}是 ${h.qty} 包，回報時間 ${h.at}${h.personName?`，回報人 ${h.personName}`:""}。`;
-      }
-
-      if(material && /(累計|總共|合計)/.test(q)){
-        const total=facts.reduce((s,x)=>s+x.qty,0);
-        return `${zone?zone.name:"所查分區"}在目前讀到的 V5.1 確認歷史中，${material}合計 ${total} 包，共 ${facts.length} 筆確認紀錄。`;
-      }
-
-      return null;
-    }
-
-    function teddyFarm51SummarizeZoneWorkRows(rows) {
-      const result=[];
-      for(const r of rows){
-        const m=String(r.key||"").match(/^zonework:([^:]+):(\d{4}-\d{2})$/);
-        if(!m) continue;
-        const zone=TEDDY_FARM51_ZONES.find(z=>z.id===m[1]);
-        const d=r.data||{};
-        const checks=d.checks||{};
-        const extra=d.extra||{};
-        const totals=d.confirmedTotals||{};
-        const history=Array.isArray(d.confirmHistory)?d.confirmHistory:[];
-        result.push({
-          zoneId:m[1],
-          zone:zone?zone.name:m[1],
-          month:m[2],
-          current:{
-            water:checks[6] ? {method:checks[6], amount:extra[6]||{}} : null,
-            fertilizer:checks[7] ? {material:checks[7], amount:extra[7]||{}} : null,
-            otherMaterials:Array.isArray(d.multi8Main) ? d.multi8Main.map(name=>({name,amount:(d.extra8||{})[name]})) : []
-          },
-          confirmedTotals:totals,
-          recentConfirmHistory:history.slice(-20)
-        });
-      }
-      return result;
-    }
-
-    async function teddyFarm51CommitZoneShared(draft) {
-      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
-      if(!zone) throw new Error("找不到分區");
-      const d=new Date(draft.date+"T12:00:00");
-      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      const key=`zonework:${zone.id}:${ym}`;
-      const existing=await teddyFarm51ReadKey(key) || {
-        checks:{}, extra:{}, multi8Main:[], extra8:{}, pending:{}, timestamps:{},
-        progress:{}, confirmedBy:{}, confirmedTotals:{}, confirmHistory:[]
-      };
-
-      const amountNum=parseFloat(draft.amount);
-      const stamp=new Date().toLocaleString("zh-TW",{hour12:false});
-      const task=draft.task||"";
-      const material=draft.material||"";
-
-      if(/澆水|灌溉|溝灌|噴灌|補水/.test(task)){
-        const method=/噴灌/.test(task)?"噴灌":"溝灌";
-        existing.checks={...(existing.checks||{}),6:method};
-        const field=method==="噴灌"?"minutes":"tons";
-        existing.extra={...(existing.extra||{}),6:{...((existing.extra||{})[6]||{}),[field]:Number.isFinite(amountNum)?amountNum:(draft.amount||"")}};
-        existing.pending={...(existing.pending||{}),6:true};
-        existing.timestamps={...(existing.timestamps||{}),6:{...((existing.timestamps||{})[6]||{}),changedAt:stamp}};
-      } else if(/施肥|米糠|金旺/.test(task) || /米糠|金旺/.test(material)){
-        const mat=/金旺/.test(material+" "+task)?"金旺":"米糠";
-        existing.checks={...(existing.checks||{}),7:mat};
-        existing.extra={...(existing.extra||{}),7:{...((existing.extra||{})[7]||{}),bags:Number.isFinite(amountNum)?amountNum:(draft.amount||"")}};
-        existing.pending={...(existing.pending||{}),7:true};
-        existing.timestamps={...(existing.timestamps||{}),7:{...((existing.timestamps||{})[7]||{}),changedAt:stamp}};
-      } else {
-        const mat=material || task;
-        if(!mat) throw new Error("其他資材寫入需要資材名稱");
-        const arr=Array.isArray(existing.multi8Main)?[...existing.multi8Main]:[];
-        if(!arr.includes(mat)) arr.push(mat);
-        existing.multi8Main=arr;
-        existing.extra8={...(existing.extra8||{}),[mat]:Number.isFinite(amountNum)?amountNum:(draft.amount||"")};
-        existing.pending={...(existing.pending||{}),8:true};
-        existing.timestamps={...(existing.timestamps||{}),8:{...((existing.timestamps||{})[8]||{}),changedAt:stamp}};
-      }
-
-      await teddyFarm51WriteKey(key, existing);
-      return {key,entry:existing};
-    }
-
-    async function teddyFarm51BuildReadContext(message) {
-      const farmIntent = teddyFarm51Intent(message);
-      if (!farmIntent.farm) {
-        teddyFarm51DataContext="";
-        return {ok:true,required:false};
-      }
-
-      const kinds=teddyFarm51QueryKinds(message);
-      const dateReq=teddyFarm51ParseDateRequest(message);
-      const zone=teddyFarm51ZoneFromText(message);
-      let rows=[];
-
-      try {
-        await teddyFarm51GetCatalog();
-
-        if (kinds.yield) {
-          if (dateReq.year && dateReq.month) rows.push(...await teddyFarm51FetchYieldMonth(dateReq.year,dateReq.month));
-          else rows.push(...await teddyFarm51FetchYieldRecent(90));
-        }
-
-        // IMPORTANT: V5.1 items 6/7/8 are NOT spraylog/workmonth.
-        // They live in zonework:{zoneId}:{YYYY-MM}.
-        // 6=補水(溝灌/噴灌), 7=施肥(米糠/金旺), 8=其他資材.
-        if (kinds.water || kinds.fertilizer || /米糠|金旺|其他資材|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素|黃豆|水果/i.test(message)) {
-          rows.push(...await teddyFarm51FetchZoneWorkRecent(message,dateReq,3));
-        }
-
-        // spraylog remains for the separate spray/fertilizer calendar records.
-        if (kinds.spray) {
-          const yms=dateReq.ym?[dateReq.ym]:teddyFarm51RecentYms(3);
-          for(const ym of yms){
-            rows.push(...await teddyFarm51FetchPrefix("spraylog:", k=>k.includes(ym) && (!zone || k.startsWith(`spraylog:${zone.id}:`)), 100));
-          }
-          rows.push(...await teddyFarm51FetchPrefix("sprayDrugList",null,5));
-        }
-
-        if (kinds.work) {
-          const yms=dateReq.ym?[dateReq.ym]:teddyFarm51RecentYms(3);
-          for(const ym of yms){
-            rows.push(...await teddyFarm51FetchPrefix("workmonth:", k=>k.includes(ym) && (!zone || k.startsWith(`workmonth:${zone.id}:`)), 100));
-            rows.push(...await teddyFarm51FetchPrefix("worklog:", k=>k.includes(ym) && (!zone || k.startsWith(`worklog:${zone.id}:`)), 140));
-            rows.push(...await teddyFarm51FetchPrefix("zonework:", k=>k.includes(ym) && (!zone || k.startsWith(`zonework:${zone.id}:`)), 40));
-          }
-        }
-
-        if (kinds.attendance) {
-          rows.push(...await teddyFarm51FetchPrefix("attendance:",null,180));
-          rows.push(...await teddyFarm51FetchPrefix("attendancePref:",null,80));
-          rows.push(...await teddyFarm51FetchPrefix("attendanceLeaveTypes",null,5));
-        }
-        if (kinds.people) rows.push(...await teddyFarm51FetchPrefix("person:",null,150));
-        if (kinds.calendar) rows.push(...await teddyFarm51FetchPrefix("calendar:",null,160));
-        if (kinds.notice) rows.push(...await teddyFarm51FetchPrefix("zonenotice:",null,100));
-
-        const matched=teddyFarm51RelevantCatalogKeys(message,dateReq);
-        if(matched.length) rows.push(...await teddyFarm51FetchMainKeys(matched,80));
-
-        if(!rows.length){
-          rows.push(...await teddyFarm51FetchZoneWorkRecent(message,dateReq,3));
-          if(!rows.length) rows.push(...await teddyFarm51FetchPrefix("workmonth:",null,100));
-        }
-
-        const seen=new Set();
-        rows=rows.filter(r=>{
-          const k=(r.source||"")+"|"+(r.key||"");
-          if(seen.has(k)) return false;
-          seen.add(k); return true;
-        });
-
-        const zoneWorkRows=rows.filter(r=>String(r.key||"").startsWith("zonework:"));
-        const zoneWorkSummary=teddyFarm51SummarizeZoneWorkRows(zoneWorkRows);
-        const v51ParsedZonework=zoneWorkRows.map(r=>teddyFarm51ParseV51Zonework(r.key,r.data)).filter(Boolean);
-        const v51ConfirmedFacts=teddyFarm51V51MaterialFacts(v51ParsedZonework);
-
-        teddyFarm51DataContext=JSON.stringify({
-          query:String(message),
-          requestedPeriod:dateReq,
-          requestedZone:zone||null,
-          zones:TEDDY_FARM51_ZONES,
-          schema:TEDDY_FARM51_SCHEMA,
-          zoneWorkMeaning:{
-            item6:"補水：checks[6]=溝灌/噴灌；extra[6].tons 或 minutes",
-            item7:"施肥：checks[7]=米糠/金旺；extra[7].bags",
-            item8:"其他資材：multi8Main + extra8",
-            confirmed:"已確認用量會累積在 confirmedTotals，歷史在 confirmHistory"
-          },
-          zoneWorkSummary,
-          v51ParsedZonework,
-          v51ConfirmedFacts,
-          recordCount:rows.length,
-          records:rows
-        },null,2);
-
-        if(teddyFarm51DataContext.length>110000){
-          teddyFarm51DataContext=teddyFarm51DataContext.slice(0,110000)+"\\n...[資料量過大，已截斷]";
-        }
-        return {ok:true,required:true,count:rows.length};
-      } catch(e) {
-        teddyFarm51DataContext="";
-        return {ok:false,required:true,error:"完全體 V5.1 讀取失敗："+e.message};
-      }
-    }
-
-    function teddyFarm51ContextPrompt() {
-      if(!teddyFarm51DataContext) return "";
-      return `\n\n【完全體 V5.1 即時資料｜資料庫直讀】
-以下 JSON 是剛從 V5.1 真實資料庫讀出的資料與欄位。必須以這些資料回答，不要要求使用者重新提供 V5.1 已存在的資料。 若 recordCount > 0，先直接整理答案；不得以「請提供資料／我看不到資料」作為回覆。若已存在【完全體 V5.1 即時資料｜資料庫直讀】，禁止回答「無法直接查詢 V5.1」。
-若某期間沒有紀錄，只能說「沒有查到紀錄」，不能推論成「沒有做」。
-六個溫室：一期、二期、三期、四南、四北、五期。
-V5.1 真實規則：補水/施肥/其他資材在 zonework:{zoneId}:{YYYY-MM}，不是 spraylog。
-其中 checks[6] 是溝灌/噴灌，extra[6] 是噸數或分鐘；checks[7] 是米糠/金旺，extra[7].bags 是目前指令包數；已確認過的累計量在 confirmedTotals，歷史在 confirmHistory。
-使用者問「最近」時，優先看最新月份，再往前比較最近三個月；若最新月份無資料，不可因此說完全沒有資料。
-產能 A/B/D/NG 為品質分類；每筆秤重常見 gross、baskets、net、ts。
-${teddyFarm51DataContext}`;
-    }
-
-    // ---------- Safe confirmed writing ----------
-    function teddyFarm51NormalizeDraft(draft) {
-      const x=draft&&typeof draft==="object"?draft:{};
-      return {
-        date:String(x.date||teddyFarm51Today()),
-        zone:String(x.zone||"").trim(),
-        task:String(x.task||"").trim(),
-        material:String(x.material||"").trim(),
-        amount:String(x.amount||"").trim(),
-        quality:String(x.quality||"").trim().toUpperCase(),
-        note:String(x.note||"").trim(),
-        source:"TEDDY 3.5",
-        createdAt:new Date().toISOString()
-      };
-    }
-
-    function teddyFarm51ExtractDraftFromText(message) {
-      const q=String(message||"").trim();
-      const dateReq=teddyFarm51ParseDateRequest(q);
-      const zone=teddyFarm51ZoneFromText(q);
-      const draft={
-        date:dateReq.ymd||teddyFarm51Today(),
-        zone:zone?zone.id:"",
-        task:"",
-        material:"",
-        amount:"",
-        quality:"",
-        note:q
-      };
-
-      const taskM=q.match(/(澆水|灌溉|溝灌|噴灌|施肥|噴藥|打藥|消毒|除草|修剪|剪枝|打高芽|打底芽|拉線|米糠|採收|巡田)/);
-      if(taskM) draft.task=taskM[1];
-
-      const amountM=q.match(/(\d+(?:\.\d+)?)\s*(公斤|kg|公克|克|g|公升|L|毫升|ml|包|份|分鐘|小時)/i);
-      if(amountM) draft.amount=amountM[1]+amountM[2];
-
-      const qualityM=q.match(/\b(A|B|D|NG)\s*級?\b/i);
-      if(qualityM) draft.quality=qualityM[1].toUpperCase();
-
-      const materialM=q.match(/(?:施肥|使用|用了?|加入|噴藥|打藥|消毒)\s*([^，。,.]+?)(?=\s*\d|，|。|,|$)/);
-      if(materialM) draft.material=materialM[1].trim();
-
-      return draft;
-    }
-
-    function teddyFarm51WriteType(draft) {
-      const q=(draft.task||"")+" "+(draft.material||"");
-      if(/採收/.test(q) && draft.quality && draft.amount) return "yield";
-      if(/澆水|灌溉|補水|溝灌|噴灌|施肥|米糠|金旺|其他資材|黃豆|水果|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素/.test(q)) return "zonework";
-      if(/噴藥|打藥|消毒/.test(q)) return "spray";
-      return "workmonth";
-    }
-
-    async function teddyFarm51ResolveMaterial(draft,type) {
-      const s=await teddyFarm51EnsureMainStorage();
-      const key=type==="fertilizer"?"fertilizerList":"sprayDrugList";
-      const r=await s.get(key);
-      const list=r?teddyFarm51SafeJson(r.value):[];
-      if(!Array.isArray(list)) return null;
-      const needle=(draft.material||"").toLowerCase();
-      if(!needle) return null;
-      return list.find(x =>
-        String(x.code||"").toLowerCase()===needle ||
-        String(x.name||"").toLowerCase()===needle ||
-        String(x.name||"").toLowerCase().includes(needle) ||
-        needle.includes(String(x.name||"").toLowerCase())
-      ) || null;
-    }
-
-    async function teddyFarm51CommitSprayLog(draft,type) {
-      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
-      if(!zone) throw new Error("找不到分區");
-      const d=new Date(draft.date+"T12:00:00");
-      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      const day=String(d.getDate());
-      const key=`spraylog:${zone.id}:${ym}`;
-      const existing=await teddyFarm51ReadKey(key) || {};
-      const arr=Array.isArray(existing[day])?[...existing[day]]:[];
-
-      const item=await teddyFarm51ResolveMaterial(draft,type);
-      if(!item) throw new Error(`V5.1 ${type==="fertilizer"?"肥料":"藥品"}清單找不到「${draft.material||"未指定材料"}」，先在 V5.1 清單建立後再寫入`);
-
-      let qty=1;
-      const n=parseFloat(draft.amount);
-      if(Number.isFinite(n)&&n>0) qty=n;
-
-      const entry={...item,qty,type:type==="fertilizer"?"fertilizer":"drug"};
-      const idx=arr.findIndex(x=>x.code===entry.code);
-      if(idx>=0) arr[idx]=entry; else arr.push(entry);
-      existing[day]=arr;
-      await teddyFarm51WriteKey(key,existing);
-      return {key,day,entry};
-    }
-
-    async function teddyFarm51CommitWorkMonth(draft) {
-      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
-      if(!zone) throw new Error("找不到分區");
-      const d=new Date(draft.date+"T12:00:00");
-      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      const day=String(d.getDate());
-      const key=`workmonth:${zone.id}:${ym}`;
-      const existing=await teddyFarm51ReadKey(key) || {};
-
-      const s=await teddyFarm51EnsureMainStorage();
-      const listRes=await s.get("monthlyWorkItemsList");
-      let items=listRes?teddyFarm51SafeJson(listRes.value):[];
-      if(!Array.isArray(items)||!items.length) items=[
-        {code:"除",name:"除草"},{code:"剪",name:"剪枝"},{code:"高",name:"打高芽"},
-        {code:"底",name:"打底芽"},{code:"肥",name:"施肥"},{code:"溝",name:"溝灌"},
-        {code:"噴",name:"噴灌"},{code:"線",name:"拉線"},{code:"糠",name:"米糠"},{code:"藥",name:"噴藥"}
-      ];
-
-      const aliases={
-        "澆水":["溝灌","噴灌"],"灌溉":["溝灌","噴灌"],"修剪":["剪枝"],"施肥":["施肥"],
-        "除草":["除草"],"打高芽":["打高芽"],"打底芽":["打底芽"],"拉線":["拉線"],"米糠":["米糠"],
-        "噴藥":["噴藥"],"打藥":["噴藥"],"巡田":[]
-      };
-      const wanted=aliases[draft.task]||[draft.task];
-      let found=null;
-      for(const name of wanted){
-        found=items.find(x=>x.name===name||x.code===name);
-        if(found) break;
-      }
-
-      const prev=existing[day]&&typeof existing[day]==="object"?existing[day]:{items:[],note:""};
-      const codes=Array.isArray(prev.items)?[...prev.items]:[];
-      if(found && !codes.includes(found.code)) codes.push(found.code);
-
-      const noteParts=[prev.note||"",draft.note||""];
-      if(draft.amount) noteParts.push(`用量/時間：${draft.amount}`);
-      const note=[...new Set(noteParts.map(x=>String(x).trim()).filter(Boolean))].join("；");
-      existing[day]={items:codes,note};
-      await teddyFarm51WriteKey(key,existing);
-      return {key,day,entry:existing[day]};
-    }
-
-    async function teddyFarm51CommitYield(draft) {
-      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
-      if(!zone) throw new Error("找不到分區");
-      const yieldZone=zone.name.replace("溫室","");
-      const quality=draft.quality;
-      if(!["A","B","D","NG"].includes(quality)) throw new Error("產能寫入需要 A/B/D/NG 品質分類");
-      const kg=parseFloat(draft.amount);
-      if(!Number.isFinite(kg)||kg<=0) throw new Error("產能寫入需要公斤數");
-
-      const s=await teddyFarm51EnsureYieldStorage();
-      let record={A:[],B:[],D:[],NG:[]};
-
-      if(draft.date<"2026-08-01"){
-        const year=draft.date.slice(0,4);
-        const key=`yieldArchive:${yieldZone}:${year}`;
-        const r=await s.get(key,false);
-        const archive=r?teddyFarm51SafeJson(r.value):{};
-        record=archive[draft.date]||record;
-        record[quality]=Array.isArray(record[quality])?record[quality]:[];
-        record[quality].push({gross:kg,baskets:0,net:kg,ts:"TEDDY 3.5 確認寫入"});
-        archive[draft.date]=record;
-        await s.set(key,JSON.stringify(archive),false);
-        return {key,date:draft.date,quality,kg};
-      } else {
-        const key=`yield:${yieldZone}:${draft.date}`;
-        const r=await s.get(key,false);
-        if(r) record=teddyFarm51SafeJson(r.value)||record;
-        record[quality]=Array.isArray(record[quality])?record[quality]:[];
-        record[quality].push({gross:kg,baskets:0,net:kg,ts:"TEDDY 3.5 確認寫入"});
-        await s.set(key,JSON.stringify(record),false);
-        return {key,date:draft.date,quality,kg};
-      }
-    }
-
-    function teddyFarm51StageWrite(draft) {
-      teddyFarm51Pending=teddyFarm51NormalizeDraft(draft);
-      localStorage.setItem(TEDDY_FARM51_PENDING_KEY,JSON.stringify(teddyFarm51Pending));
-      const panel=document.getElementById("teddyFarmBridgePanel");
-      const preview=document.getElementById("teddyFarmBridgePreview");
-      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===teddyFarm51Pending.zone);
-      if(preview) preview.textContent=
-        `日期：${teddyFarm51Pending.date}\n`+
-        `分區：${zone?zone.name:"未指定"}\n`+
-        `工項：${teddyFarm51Pending.task||"未指定"}\n`+
-        `材料：${teddyFarm51Pending.material||"無"}\n`+
-        `用量：${teddyFarm51Pending.amount||"無"}\n`+
-        `品質：${teddyFarm51Pending.quality||"無"}\n`+
-        `備註：${teddyFarm51Pending.note||"無"}`;
-      if(panel) panel.style.display="block";
-      return teddyFarm51Pending;
-    }
-
-    function teddyFarm51CancelWrite() {
-      teddyFarm51Pending=null;
-      localStorage.removeItem(TEDDY_FARM51_PENDING_KEY);
-      const panel=document.getElementById("teddyFarmBridgePanel");
-      if(panel) panel.style.display="none";
-    }
-
-    async function teddyFarm51CommitPending() {
-      if(!teddyFarm51Pending) throw new Error("目前沒有待寫入紀錄");
-      const draft=teddyFarm51Pending;
-      if(!draft.zone) throw new Error("缺少分區");
-      if(!draft.task) throw new Error("缺少工項");
-
-      const type=teddyFarm51WriteType(draft);
-      let result;
-      if(type==="zonework") result=await teddyFarm51CommitZoneShared(draft);
-      else if(type==="spray") result=await teddyFarm51CommitSprayLog(draft,type);
-      else if(type==="yield") result=await teddyFarm51CommitYield(draft);
-      else result=await teddyFarm51CommitWorkMonth(draft);
-
-      teddyFarm51CancelWrite();
-      teddyFarm51CatalogCache.ts=0;
-      return {ok:true,type,...result};
-    }
-
-    function teddyFarm51ShouldStage(message) {
-      const x=teddyFarm51Intent(message);
-      return x.farm&&x.wantsWrite;
-    }
-
-    async function teddyFarm51HandleNaturalWrite(message) {
-      if(!teddyFarm51ShouldStage(message)) return null;
-      const draft=teddyFarm51ExtractDraftFromText(message);
-      teddyFarm51StageWrite(draft);
-      const missing=[];
-      if(!draft.zone) missing.push("分區");
-      if(!draft.task) missing.push("工項");
-      if((/施肥|噴藥|打藥|消毒/.test(draft.task))&&!draft.material) missing.push("材料名稱");
-      if(/採收/.test(draft.task)&&(!draft.quality||!draft.amount)) missing.push("品質等級與公斤數");
-      if(missing.length) return `我已先建立 V5.1 待寫入草稿，但還缺 ${missing.join("、")}。補齊後再確認寫入。`;
-      return "我已整理成 V5.1 待寫入草稿。請先看內容，確認無誤後按「確認寫入」。";
-    }
-
-    function teddyFarm51InitBridge() {
-      try{
-        const saved=localStorage.getItem(TEDDY_FARM51_PENDING_KEY);
-        if(saved) teddyFarm51StageWrite(JSON.parse(saved));
-      }catch(_){}
-
-      const yes=document.getElementById("teddyFarmBridgeConfirm");
-      const no=document.getElementById("teddyFarmBridgeCancel");
-
-      if(no) no.onclick=()=>{
-        teddyFarm51CancelWrite();
-        teddyAppendLog("teddy","好，這筆沒有寫入完全體 V5.1。");
-      };
-
-      if(yes) yes.onclick=async()=>{
-        yes.disabled=true;
-        yes.textContent="寫入中…";
-        try{
-          const r=await teddyFarm51CommitPending();
-          teddyAppendLog("teddy",`已確認寫入完全體 V5.1。位置：${r.key}`);
-          teddySpeak("已經確認寫進完全體了。","sweet");
-        }catch(e){
-          teddyAppendLog("teddy","寫入失敗："+e.message);
-        }finally{
-          yes.disabled=false;
-          yes.textContent="確認寫入";
-        }
-      };
-    }
-
-
-
-
-    async function teddyFarm51DirectConnectionTest() {
-      try {
-        const s = await teddyFarm51EnsureMainStorage();
-        const all = await s.list("");
-        const keys = all?.keys || [];
-        const north = keys.filter(k => k.startsWith("zonework:north4:")).sort();
-        let northLatest = null;
-        if (north.length) {
-          const key = north[north.length-1];
-          const r = await s.get(key);
-          northLatest = { key, data:r ? teddyFarm51SafeJson(r.value) : null };
-        }
-        return {
-          ok:true,
-          mode:s.mode || "unknown",
-          project:s.projectId || TEDDY_FARM51_MAIN_CONFIG.projectId,
-          keyCount:keys.length,
-          zoneworkNorth4Keys:north,
-          north4Latest:northLatest
-        };
-      } catch (e) {
-        return { ok:false, error:e.message };
-      }
-    }
-
-    async function teddyFarm51BridgeDiagnostic() {
-      try {
-        const direct = await teddyFarm51DirectConnectionTest();
-        if (!direct.ok) return direct;
-        const main = await teddyFarm51EnsureMainStorage();
-        const catalog = await main.list("");
-        const mainKeys = catalog?.keys || [];
-
-        let yieldStatus = { ok:false, count:0, sample:[] };
-        try {
-          const ys = await teddyFarm51EnsureYieldStorage();
-          const yr = await ys.list("", false);
-          yieldStatus = {
-            ok:true,
-            count:(yr?.keys || []).length,
-            sample:(yr?.keys || []).slice(0,8)
-          };
-        } catch (e) {
-          yieldStatus = { ok:false, error:e.message, count:0, sample:[] };
-        }
-
-        const prefixes = {};
-        ["worklog:","workmonth:","zonework:","spraylog:","calendar:","attendance:","person:","zonenotice:"].forEach(p => {
-          prefixes[p] = mainKeys.filter(k => k.startsWith(p)).length;
-        });
-
-        return {
-          ok:true,
-          mainProject: TEDDY_FARM51_MAIN_CONFIG.projectId,
-          mainMode: main.mode || "unknown",
-          mainKeyCount: mainKeys.length,
-          prefixes,
-          mainSample: mainKeys.slice(0,12),
-          zoneworkSample: mainKeys.filter(k=>k.startsWith("zonework:")).slice(-12),
-          yieldProject: TEDDY_FARM51_YIELD_CONFIG.projectId,
-          yield: yieldStatus
-        };
-      } catch (e) {
-        return { ok:false, error:e.message };
-      }
-    }
-
-
-
-    function teddyFarm51MentionsV51(message) {
-      return /(V5\.?1|5\.1|完全體|農場資料|六個溫室|四北|四南|一期|二期|三期|五期)/i.test(String(message||""));
-    }
-
-    async function teddyFarm51StatusReply() {
-      const d = await teddyFarm51DirectConnectionTest();
-      if (!d.ok) return `V5.1 直接連線失敗：${d.error}`;
-      const latest = d.north4Latest ? d.north4Latest.key : "目前未找到 zonework:north4";
-      return `我現在已直接連到 V5.1 主資料庫 ${d.project}，模式 ${d.mode}，共讀到 ${d.keyCount} 個 key；四北最新 zonework：${latest}。`;
-    }
-
-    function teddyFarm51IsNorth4RiceTest(message) {
-      return /(四北.*米糠.*測試|測試.*四北.*米糠|直接查.*四北.*米糠)/i.test(String(message||""));
-    }
-
-    async function teddyFarm51North4RiceDirectReply() {
-      const d=await teddyFarm51DirectConnectionTest();
-      if(!d.ok) return `V5.1 直接讀取失敗：${d.error}`;
-      const s=await teddyFarm51EnsureMainStorage();
-      const keys=(d.zoneworkNorth4Keys||[]).slice().sort().reverse().slice(0,3);
-      const parsed=[];
-      for(const key of keys){
-        const r=await s.get(key);
-        if(r) parsed.push(teddyFarm51ParseV51Zonework(key,teddyFarm51SafeJson(r.value)));
-      }
-      const reply=teddyFarm51NativeAnswer("四北最近使用的米糠是多少",parsed);
-      return reply || `已連到 V5.1，但四北最近月份的 confirmHistory 沒有米糠確認紀錄。`;
-    }
-
-
-    function teddyFarm51IsHardBridgeTest(message) {
-      return /(V5\.?1\s*硬測試|硬測試\s*V5\.?1|直接測試\s*V5\.?1)/i.test(String(message||""));
-    }
-
-    async function teddyFarm51HardBridgeReply() {
-      const d = await teddyFarm51DirectConnectionTest();
-      return d.ok
-        ? `V5.1 硬測試成功：${d.project}，${d.mode}，讀到 ${d.keyCount} 個 key；north4 zonework ${d.zoneworkNorth4Keys.length} 筆。`
-        : `V5.1 硬測試失敗：${d.error}`;
-    }
-
-    function teddyFarm51IsDiagnostic(message) {
-      return /(測試.*V5\.?1|V5\.?1.*測試|橋接測試|測試橋接|檢查.*V5\.?1|V5\.?1.*連線|完全體.*連線)/i.test(String(message || ""));
-    }
-
-
-
-    // ===== Teddy 3.5 DAILY-FIRST ROUTER =====
-    // 核心原則：
-    // 1. 陪伴 / 一般日常：Teddy 自己回答。
-    // 2. 農場日常 / V5.1：先直接讀 V5.1、用 V5.1 parser 回答。
-    // 3. 只有 V5.1 無法直接回答、需要進一步分析或外部知識時，才呼叫 Claude / ChatGPT。
-    // 4. V5.1 寫入仍須使用者確認。
-    function teddyDailyFirstClassify(message) {
-      const q = String(message || "").trim();
-
-      const explicitFarm = teddyFarm51Intent(q).farm;
-      const operationalFarm = teddyFarm51IsOperationalQuestion(q);
-      const farm = explicitFarm || operationalFarm;
-      const v51 = /(V5\.?1|5\.1|完全體|農場資料|六個溫室)/i.test(q);
-      const simpleCompanion = !farm && !v51 && q.length <= 80 &&
-        !/(最新|新聞|股價|財報|投資|股票|ETF|利率|天氣|程式|HTML|JavaScript|Firebase|API|分析|比較|研究)/i.test(q);
-
-      return { farm, v51, simpleCompanion };
-    }
-
-    function teddyFarm51IsOperationalQuestion(message) {
-      const q = String(message || "");
-      return /(最近|上次|最後一次|目前|這個月|本月|上個月|用了多少|多少|幾包|幾噸|幾分鐘|施肥|米糠|金旺|澆水|灌溉|補水|噴灌|溝灌|噴藥|農藥|採收|產能|產量|生產量|出勤|打卡|行事曆|工作|工項|六個溫室|一期|二期|三期|四北|四南|五期)/i.test(q);
-    }
-
-    async function teddyFarm51TryNativeOperationalAnswer(message) {
-      if (!teddyFarm51IsOperationalQuestion(message)) return { handled:false };
-
-      const read = await teddyFarm51BuildReadContext(message);
-      if (!read.ok) return { handled:true, text:read.error || "V5.1 讀取失敗" };
-      if (!read.required || !teddyFarm51DataContext) return { handled:false };
-
-      try {
-        const ctx = JSON.parse(teddyFarm51DataContext);
-        const parsed = ctx.v51ParsedZonework || [];
-
-        // 先用 V5.1 原生 parser 回答常見營運問題。
-        const native = teddyFarm51NativeAnswer(message, parsed);
-        if (native) return { handled:true, text:native };
-
-        // 若是明確 V5.1 問題，但 parser 尚未有專用自然語句，
-        // 不先丟給 AI，而是把「已讀到的真實資料」做一個直接摘要。
-        const q = String(message || "");
-        const zone = teddyFarm51ZoneFromText(q);
-        const zoneRows = parsed.filter(x => x && (!zone || x.zoneId === zone.id));
-
-        if (/(施肥|米糠|金旺)/i.test(q) && zoneRows.length) {
-          const facts = teddyFarm51V51MaterialFacts(zoneRows);
-          const fert = facts.filter(x => /米糠|金旺|肥/.test(String(x.rowKey||"")));
-          if (fert.length) {
-            const h = fert[0];
-            return {
-              handled:true,
-              text:`${h.zone}最近一筆已確認的施肥紀錄是 ${h.rowKey} ${h.qty} 包，時間 ${h.at}${h.personName ? `，回報人 ${h.personName}` : ""}。`
-            };
-          }
-        }
-
-        if (/(澆水|灌溉|補水|溝灌|噴灌)/i.test(q) && zoneRows.length) {
-          const rows = zoneRows.slice().sort((a,b)=>String(b.month).localeCompare(String(a.month)));
-          for (const r of rows) {
-            const cur = r.currentInstruction?.irrigation;
-            if (cur) {
-              const amount = cur.method === "噴灌"
-                ? (cur.minutes ?? "未填") + " 分鐘"
-                : (cur.tons ?? "未填") + " 噸";
-              return {handled:true, text:`${r.zone} ${r.month} 的補水設定是 ${cur.method}，${amount}${cur.pending ? "，目前尚待確認" : ""}。`};
-            }
-          }
-        }
-
-        // 產能資料若已由 V5.1 bridge 讀到，就用資料本身直接彙總。
-        if (/(產能|產量|生產量|採收量|收成)/i.test(q)) {
-          const records = Array.isArray(ctx.records) ? ctx.records.filter(r=>r.source==="V5.1-yield") : [];
-          if (records.length) {
-            let total = 0, count = 0;
-            const byZone = {};
-            const addEntry = (zone, rec) => {
-              for (const grade of ["A","B","D","NG"]) {
-                const arr = Array.isArray(rec?.[grade]) ? rec[grade] : [];
-                for (const x of arr) {
-                  const kg = Number(x?.net ?? x?.gross ?? 0);
-                  if (Number.isFinite(kg)) {
-                    total += kg; count++;
-                    byZone[zone] = (byZone[zone] || 0) + kg;
-                  }
-                }
-              }
-            };
-            for (const r of records) {
-              if (r.data && r.month) {
-                Object.values(r.data).forEach(day=>addEntry(r.zone || "未指定", day));
-              } else {
-                addEntry(r.zone || "未指定", r.data);
-              }
-            }
-            if (count) {
-              const detail = Object.entries(byZone)
-                .sort((a,b)=>b[1]-a[1])
-                .map(([z,kg])=>`${z} ${kg.toFixed(1)}kg`)
-                .join("、");
-              return {handled:true, text:`V5.1 目前讀到的產能合計 ${total.toFixed(1)}kg。分區：${detail}。`};
-            }
-          }
-        }
-
-        // 已經讀到 V5.1，但沒有專用解析器命中：
-        // 交給 LLM 分析「V5.1 真實資料」，不是讓 LLM 猜資料。
-        return { handled:false, hasV51Context:true };
-      } catch (e) {
-        return { handled:false, hasV51Context:true };
-      }
-    }
-
-
-
-    // ===== V5.1 QUERY ENTRY =====
-    // 唯一農場查詢入口：
-    // Teddy 理解自然語言 -> Query Entry 讀 V5.1 -> Teddy 組織答案。
-    // V5.1 本體不修改；其他 AI 只在 Query Entry 無法直接回答時使用。
-    async function teddyV51Query(message) {
-      const q = String(message || "").trim();
-      if (!q) return { handled:false, reason:"empty" };
-
-      const intent = teddyFarm51Intent(q);
-      const isV51 = intent.farm || /(V5\.?1|5\.1|完全體|六個溫室|一期|二期|三期|四北|四南|五期)/i.test(q);
-      if (!isV51) return { handled:false, reason:"not-v51" };
-
-      // 1. 先由既有 V5.1 bridge 讀真實資料。
-      const read = await teddyFarm51BuildReadContext(q);
-      if (!read.ok) {
-        return { handled:true, ok:false, text:read.error || "V5.1 查詢失敗。" };
-      }
-      if (!read.required || !teddyFarm51DataContext) {
-        return { handled:true, ok:false, text:"已進入 V5.1 查詢入口，但這次沒有取得可用資料。" };
-      }
-
-      let ctx = null;
-      try { ctx = JSON.parse(teddyFarm51DataContext); }
-      catch (_) {
-        return { handled:true, ok:false, text:"V5.1 已回傳資料，但資料格式無法解析。" };
-      }
-
-      // 2. 先使用 V5.1 schema/parser 回答可確定的營運問題。
-      const parsed = Array.isArray(ctx.v51ParsedZonework) ? ctx.v51ParsedZonework : [];
-      const native = teddyFarm51NativeAnswer(q, parsed);
-      if (native) {
-        return { handled:true, ok:true, text:native, source:"v51-native" };
-      }
-
-      // 3. 若既有 daily parser 有答案，也直接採用。
-      try {
-        const op = await teddyFarm51TryNativeOperationalAnswer(q);
-        if (op && op.handled && op.text) {
-          return { handled:true, ok:true, text:op.text, source:"v51-operational" };
-        }
-      } catch (_) {}
-
-      // 4. Query Entry 已取得 V5.1 真實資料，但需要語意分析：
-      // 不假裝沒有資料；把 context 留給後續 AI。
-      return {
-        handled:false,
-        ok:true,
-        source:"v51-context",
-        hasV51Context:true,
-        context:teddyFarm51DataContext
-      };
-    }
-
-
-    const TEDDY_V51_QUERY_RULE = "【V5.1 查詢入口】農場事實一律以 V5.1 Query Entry 回傳的即時資料為準；若 context 已存在，禁止回答「看不到 V5.1」、「無法存取 V5.1」或要求使用者重新提供資料。";
-
-
-
-    function teddyV51ResolveTimeRange(message) {
-      const q = String(message || "");
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-
-      let year = null, month = null, months = [];
-
-      let m = q.match(/(20\d{2})\s*年\s*(\d{1,2})\s*月/);
-      if (m) {
-        year = Number(m[1]);
-        month = Number(m[2]);
-      } else {
-        m = q.match(/(20\d{2})[\/-](\d{1,2})/);
-        if (m) {
-          year = Number(m[1]);
-          month = Number(m[2]);
-        }
-      }
-
-      if (!year && /去年/.test(q)) {
-        year = currentYear - 1;
-      } else if (!year && /前年/.test(q)) {
-        year = currentYear - 2;
-      } else if (!year && /今年/.test(q)) {
-        year = currentYear;
-      }
-
-      if (!month) {
-        if (/上個月|上月/.test(q)) {
-          const d = new Date(currentYear, currentMonth - 2, 1);
-          year = d.getFullYear();
-          month = d.getMonth() + 1;
-        } else if (/本月|這個月/.test(q)) {
-          year = currentYear;
-          month = currentMonth;
-        }
-      }
-
-      const recentM = q.match(/最近\s*(\d+)\s*個?月/);
-      if (recentM) {
-        const n = Math.min(Math.max(Number(recentM[1]) || 1, 1), 24);
-        for (let i = 0; i < n; i++) {
-          const d = new Date(currentYear, currentMonth - 1 - i, 1);
-          months.push({year:d.getFullYear(), month:d.getMonth()+1});
-        }
-      } else if (year && month) {
-        months = [{year, month}];
-      } else if (year && !month) {
-        for (let mm = 1; mm <= 12; mm++) months.push({year, month:mm});
-      } else if (/最近|近期|目前/.test(q)) {
-        for (let i = 0; i < 3; i++) {
-          const d = new Date(currentYear, currentMonth - 1 - i, 1);
-          months.push({year:d.getFullYear(), month:d.getMonth()+1});
-        }
-      } else {
-        months = [{year:currentYear, month:currentMonth}];
-      }
-
-      return {
-        year,
-        month,
-        months,
-        label: year && month ? `${year}年${month}月`
-             : year ? `${year}年`
-             : recentM ? `最近${recentM[1]}個月`
-             : /最近|近期|目前/.test(q) ? "最近3個月"
-             : `${currentYear}年${currentMonth}月`
-      };
-    }
-
-    function teddyV51MonthKey(y,m) {
-      return `${y}-${String(m).padStart(2,"0")}`;
-    }
-
-    async function teddyV51FetchZoneworkByRange(message, timeRange) {
-      const zone = teddyFarm51ZoneFromText(message);
-      const rows = [];
-      const catalog = await teddyFarm51GetCatalog();
-
-      for (const p of timeRange.months) {
-        const ym = teddyV51MonthKey(p.year,p.month);
-        const keys = catalog.filter(k => {
-          if (!k.startsWith("zonework:")) return false;
-          if (!k.endsWith(":" + ym)) return false;
-          if (zone && !k.startsWith(`zonework:${zone.id}:`)) return false;
-          return true;
-        });
-        rows.push(...await teddyFarm51FetchMainKeys(keys, 100));
-      }
-      return rows;
-    }
-
-
-    // ===== Teddy 3.5 · V5.1 EXPLICIT SESSION =====
-    // 使用者主動說要看農場 / V5.1，才進入農場工作階段。
-    // 進入後，後續問題都沿用 V5.1，直到使用者明確離開。
-    const TEDDY_V51_SESSION_KEY = "teddy_v51_session_active";
-
-    function teddyV51SessionActive() {
-      return window.TEDDY_UI_MODE === "greenhouse";
-    }
-
-    function teddyV51SetSession(active) {
-      localStorage.setItem(TEDDY_V51_SESSION_KEY, active ? "1" : "0");
-    }
-
-    function teddyV51SessionCommand(message) {
-      const q = String(message || "").trim();
-      const enter = /(去看.*農場|看.*農場.*資料|進入.*農場|進入.*V5\.?1|看.*V5\.?1|打開.*V5\.?1|我們去看農場|農場最近資料)/i.test(q);
-      const leave = /(離開.*農場|退出.*農場|離開.*V5\.?1|退出.*V5\.?1|回一般模式|回聊天|先不看農場)/i.test(q);
-      if (enter) return "enter";
-      if (leave) return "leave";
-      return null;
-    }
-
-
-    async function teddyV51BuildFullContext(message) {
-      const q = String(message || "");
-      const timeRange = teddyV51ResolveTimeRange(q);
-      const kinds = teddyFarm51QueryKinds(q);
-      const zone = teddyFarm51ZoneFromText(q);
-      let records = [];
-
-      await teddyFarm51GetCatalog();
-
-      // zonework = V5.1 現場工項核心資料
-      if (kinds.water || kinds.fertilizer || kinds.work || /米糠|金旺|資材|四北|四南|一期|二期|三期|五期/.test(q)) {
-        records.push(...await teddyV51FetchZoneworkByRange(q,timeRange));
-      }
-
-      // workmonth / worklog
-      if (kinds.work) {
-        for (const p of timeRange.months) {
-          const ym = teddyV51MonthKey(p.year,p.month);
-          records.push(...await teddyFarm51FetchPrefix("workmonth:", k => k.includes(ym) && (!zone || k.startsWith(`workmonth:${zone.id}:`)), 200));
-          records.push(...await teddyFarm51FetchPrefix("worklog:", k => k.includes(ym) && (!zone || k.startsWith(`worklog:${zone.id}:`)), 250));
-        }
-      }
-
-      // spraylog
-      if (kinds.spray) {
-        for (const p of timeRange.months) {
-          const ym = teddyV51MonthKey(p.year,p.month);
-          records.push(...await teddyFarm51FetchPrefix("spraylog:", k => k.includes(ym) && (!zone || k.startsWith(`spraylog:${zone.id}:`)), 150));
-        }
-      }
-
-      // calendar
-      if (kinds.calendar) {
-        records.push(...await teddyFarm51FetchPrefix("calendar:", null, 250));
-      }
-
-      // attendance
-      if (kinds.attendance) {
-        records.push(...await teddyFarm51FetchPrefix("attendance:", null, 250));
-      }
-
-      // people
-      if (kinds.people) {
-        records.push(...await teddyFarm51FetchPrefix("person:", null, 150));
-      }
-
-      // yield / production
-      if (kinds.yield || /產能|產量|生產量|採收量|去年呢|去年/.test(q)) {
-        for (const p of timeRange.months) {
-          records.push(...await teddyFarm51FetchYieldMonth(p.year,p.month));
-        }
-      }
-
-      const seen = new Set();
-      records = records.filter(r => {
-        const id = `${r.source||""}|${r.key||""}`;
-        if (seen.has(id)) return false;
-        seen.add(id);
-        return true;
-      });
-
-      const zoneworkRows = records.filter(r => String(r.key||"").startsWith("zonework:"));
-      const parsedZonework = zoneworkRows
-        .map(r => teddyFarm51ParseV51Zonework(r.key,r.data))
-        .filter(Boolean);
-
-      const facts = teddyFarm51V51MaterialFacts(parsedZonework);
-
-      return {
-        query:q,
-        timeRange,
-        zone,
-        schema:TEDDY_FARM51_SCHEMA,
-        parsedZonework,
-        confirmedFacts:facts,
-        records
-      };
-    }
-
-    function teddyV51SummarizeYieldContext(ctx) {
-      const records = (ctx.records||[]).filter(r => r.source === "V5.1-yield");
-      if (!records.length) return null;
-
-      let total = 0;
-      const byZone = {};
-      const byGrade = {A:0,B:0,D:0,NG:0};
-
-      function add(zone, rec) {
-        for (const grade of ["A","B","D","NG"]) {
-          const arr = Array.isArray(rec?.[grade]) ? rec[grade] : [];
-          for (const x of arr) {
-            const kg = Number(x?.net ?? x?.gross ?? 0);
-            if (Number.isFinite(kg)) {
-              total += kg;
-              byZone[zone] = (byZone[zone]||0) + kg;
-              byGrade[grade] += kg;
-            }
-          }
-        }
-      }
-
-      for (const r of records) {
-        if (r.month && r.data && typeof r.data === "object" && !Array.isArray(r.data)) {
-          Object.values(r.data).forEach(day => add(r.zone||"未指定", day));
-        } else {
-          add(r.zone||"未指定", r.data||{});
-        }
-      }
-
-      if (!total) return null;
-      const zoneText = Object.entries(byZone)
-        .sort((a,b)=>b[1]-a[1])
-        .map(([z,v])=>`${z} ${v.toFixed(1)}kg`)
-        .join("、");
-      const gradeText = Object.entries(byGrade)
-        .filter(([,v])=>v>0)
-        .map(([g,v])=>`${g} ${v.toFixed(1)}kg`)
-        .join("、");
-
-      return `${ctx.timeRange.label} V5.1 產能合計 ${total.toFixed(1)}kg。分區：${zoneText}${gradeText ? `。品質：${gradeText}` : ""}。`;
-    }
-
-
-    async function teddyV51SessionReply(message) {
-      const cmd = teddyV51SessionCommand(message);
-
-      if (cmd === "enter") {
-        teddyV51SetSession(true);
-        const d = await teddyFarm51DirectConnectionTest();
-        if (!d.ok) {
-          teddyV51SetSession(false);
-          return { handled:true, text:`V5.1 連線失敗：${d.error}` };
-        }
-        return {
-          handled:true,
-          text:`好，我們現在進入 V5.1 農場工作。已連到 ${d.project}，讀到 ${d.keyCount} 個資料 key。接下來你直接問任何期間、任何分區都可以。`
-        };
-      }
-
-      if (cmd === "leave") {
-        teddyV51SetSession(false);
-        teddyFarm51DataContext = "";
-        return { handled:true, text:"好，先離開 V5.1 農場工作，回一般聊天。" };
-      }
-
-      if (!teddyV51SessionActive()) return { handled:false };
-
-      let ctx;
-      try {
-        ctx = await teddyV51BuildFullContext(message);
-      } catch (e) {
-        return { handled:true, text:"V5.1 查詢失敗：" + e.message };
-      }
-
-      // 先由 V5.1 原生 parser 解答
-      const native = teddyFarm51NativeAnswer(String(message||""), ctx.parsedZonework||[]);
-      if (native) return { handled:true, text:native };
-
-      // 產能直接彙總，支援去年 / 全年 / 指定月份
-      if (/(產能|產量|生產量|採收量|收成|去年呢|去年)/i.test(String(message||""))) {
-        const y = teddyV51SummarizeYieldContext(ctx);
-        if (y) return { handled:true, text:y };
-      }
-
-      // 其他營運問題：只要有 V5.1 真實資料，就把 context 給 AI 做語意解讀。
-      teddyFarm51DataContext = JSON.stringify(ctx, null, 2);
-      if (ctx.records.length) {
-        return { handled:false, hasV51Context:true, context:teddyFarm51DataContext };
-      }
-
-      return { handled:true, text:`V5.1 已查詢 ${ctx.timeRange.label}，但沒有找到符合這個問題的紀錄。` };
-    }
-
-
-
-    const TEDDY_V51_WRITE_TEST_KEY = "teddybridge:writecheck";
-
-    function teddyV51WriteCheckCommand(message) {
-      const q = String(message || "").trim();
-      if (/^V5\.?1\s*寫入測試$/i.test(q)) return "stage";
-      if (/^確認\s*V5\.?1\s*寫入測試$/i.test(q)) return "confirm";
-      return null;
-    }
-
-    async function teddyV51RunWriteCheck() {
-      const s = await teddyFarm51EnsureMainStorage();
-      const token = `ok-${Date.now()}`;
-      const payload = JSON.stringify({
-        type:"teddy-bridge-write-check",
-        token,
-        at:new Date().toISOString()
-      });
-
-      await s.set(TEDDY_V51_WRITE_TEST_KEY, payload);
-      const r = await s.get(TEDDY_V51_WRITE_TEST_KEY);
-      const readBack = r ? String(r.value||"") : "";
-      const ok = readBack.includes(token);
-
-      try { await s.delete(TEDDY_V51_WRITE_TEST_KEY); } catch (_) {}
-
-      return { ok, token, readBack };
-    }
-
-
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       const text = input.value.trim();
@@ -3296,141 +1752,7 @@ ${teddyFarm51DataContext}`;
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
-      // Safe V5.1 write verification. No production record is touched.
-      const writeCheckCmd = teddyV51WriteCheckCommand(text);
-      if (writeCheckCmd === "stage") {
-        const msg = "準備進行 V5.1 寫入驗證：會在專用測試 key 寫入一筆資料、立即讀回確認，再刪除。若要執行，請輸入「確認 V5.1 寫入測試」。";
-        teddyUpdateLogDiv(thinkingDiv,msg);
-        teddyHistory.push({role:"assistant",text:msg});
-        teddySaveHistory();
-        teddySpeak(msg,"sweet");
-        return;
-      }
-      if (writeCheckCmd === "confirm") {
-        try {
-          const r = await teddyV51RunWriteCheck();
-          const msg = r.ok
-            ? "V5.1 寫入驗證成功：測試資料已寫入、讀回一致，並已刪除測試 key。"
-            : "V5.1 寫入驗證失敗：資料有寫入動作，但讀回內容不一致。";
-          teddyUpdateLogDiv(thinkingDiv,msg);
-          teddyHistory.push({role:"assistant",text:msg});
-          teddySaveHistory();
-          teddySpeak(msg,"sweet");
-        } catch(e) {
-          const msg = "V5.1 寫入驗證失敗：" + e.message;
-          teddyUpdateLogDiv(thinkingDiv,msg);
-          teddyHistory.push({role:"assistant",text:msg});
-          teddySaveHistory();
-          teddySpeak(msg,"sweet");
-        }
-        return;
-      }
-
-
-      // Explicit V5.1 session runs before every other router.
-      const v51Session = await teddyV51SessionReply(text);
-      if (v51Session.handled) {
-        teddyUpdateLogDiv(thinkingDiv, v51Session.text);
-        teddyHistory.push({ role:"assistant", text:v51Session.text });
-        teddySaveHistory();
-        teddySpeak(v51Session.text, "sweet");
-        return;
-      }
-      const v51ContextReady = !!v51Session.hasV51Context;
-
-
-      // V5.1 單一查詢入口：所有農場/V5.1 問題先走這裡。
-      const v51QueryResult = { handled:false, hasV51Context:v51ContextReady }; // disabled: explicit session owns V5.1 routing
-      if (v51QueryResult.handled) {
-        const msg = v51QueryResult.text;
-        teddyUpdateLogDiv(thinkingDiv, msg);
-        teddyHistory.push({ role:"assistant", text:msg });
-        teddySaveHistory();
-        return;
-      }
-      // 若 Query Entry 已讀到 V5.1，但需要更高階理解，
-      // 保留真實 context 給後續 Claude/ChatGPT；不得重新讀或聲稱看不到。
-      // v51ContextReady already set by explicit V5.1 session.
-
-
-      // DAILY-FIRST：Teddy 先處理陪伴 / V5.1 日常，真的需要才找其他 AI。
-      const dailyRoute = teddyDailyFirstClassify(text);
-      // Query Entry 已先處理 V5.1；dailyRoute 僅供後續能力判斷。
-
-      // V5.1 寫入：先產生草稿，仍然必須使用者確認。
-      if ((dailyRoute.farm || dailyRoute.v51) && teddyV51SessionActive()) {
-        const farmBridgeReply = await teddyFarm51HandleNaturalWrite(text);
-        if (farmBridgeReply) {
-          teddyUpdateLogDiv(thinkingDiv, farmBridgeReply);
-          teddyHistory.push({ role:"assistant", text:farmBridgeReply });
-          teddySaveHistory();
-          teddySpeak(farmBridgeReply, "sweet");
-          return;
-        }
-      }
-
-      // V5.1 查詢：先用 V5.1 自己的資料與 parser 解決，不浪費 AI 呼叫。
-      if ((dailyRoute.farm || dailyRoute.v51) && teddyV51SessionActive() && !v51ContextReady) {
-        const op = await teddyFarm51TryNativeOperationalAnswer(text);
-        if (op.handled) {
-          teddyUpdateLogDiv(thinkingDiv, op.text);
-          teddyHistory.push({ role:"assistant", text:op.text });
-          teddySaveHistory();
-          teddySpeak(op.text, "sweet");
-          return;
-        }
-        // 若已讀到 V5.1 但 parser 沒有直接答案，保留 context 給後續 AI 做解讀。
-        if (op.hasV51Context) {
-          teddyUpdateLogDiv(thinkingDiv, "🌱 已讀取 V5.1，需要再分析一下…");
-        }
-      }
-
-
-      if (window.TEDDY_UI_MODE === "greenhouse" && teddyFarm51IsHardBridgeTest(text)) {
-        const msg = await teddyFarm51HardBridgeReply();
-        teddyUpdateLogDiv(thinkingDiv, msg);
-        teddyHistory.push({ role:"assistant", text:msg });
-        teddySaveHistory();
-        return;
-      }
-
-      // Any explicit V5.1 / complete-system question first checks the real bridge.
-      if (teddyFarm51MentionsV51(text) && /(看到|看得到|連線|讀到|讀取|進入|有沒有|可以看|現在能|內容嗎|資料嗎)/i.test(text)) {
-        const msg = await teddyFarm51StatusReply();
-        teddyUpdateLogDiv(thinkingDiv, msg);
-        teddyHistory.push({ role:"assistant", text:msg });
-        teddySaveHistory();
-        return;
-      }
-
-      // Direct V5.1 schema test, independent of Claude/GPT.
-      if (window.TEDDY_UI_MODE === "greenhouse" && teddyFarm51IsNorth4RiceTest(text)) {
-        const msg = await teddyFarm51North4RiceDirectReply();
-        teddyUpdateLogDiv(thinkingDiv, msg);
-        teddyHistory.push({ role:"assistant", text:msg });
-        teddySaveHistory();
-        return;
-      }
-
-      // Direct V5.1 bridge diagnostic, independent of Claude/GPT.
-      if (window.TEDDY_UI_MODE === "greenhouse" && teddyFarm51IsDiagnostic(text)) {
-        const d = await teddyFarm51BridgeDiagnostic();
-        let msg;
-        if (!d.ok) {
-          msg = "V5.1 橋接失敗：" + d.error;
-        } else {
-          msg = `V5.1 橋接正常。主資料庫 ${d.mainProject}（${d.mainMode || "unknown"}）讀到 ${d.mainKeyCount} 個 key；` +
-                `worklog ${d.prefixes["worklog:"] || 0}、workmonth ${d.prefixes["workmonth:"] || 0}、` +
-                `zonework ${d.prefixes["zonework:"] || 0}、spraylog ${d.prefixes["spraylog:"] || 0}。` +
-                `產能資料庫 ${d.yieldProject}：${d.yield.ok ? "可連線，讀到 " + d.yield.count + " 個 key" : "連線失敗：" + d.yield.error}。`;
-        }
-        teddyUpdateLogDiv(thinkingDiv, msg);
-        teddyHistory.push({ role:"assistant", text:msg });
-        teddySaveHistory();
-        return;
-      }
-
-      // Core abilities run locally first: faster and cannot be lost by model routing.
+      // V3.1 Core abilities run locally first: faster and cannot be lost by model routing.
       const localReply = teddyV31LocalCoreReply(text);
       if (localReply) {
         const prefix = teddyV3VersionPrefix();
@@ -3442,21 +1764,16 @@ ${teddyFarm51DataContext}`;
         teddySpeak(finalLocalReply, teddyAutoDetectVoiceStyle(finalLocalReply, []));
         return;
       }
-      // V5.1 full read bridge: farm questions first read the user's live farm databases.
-
-const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51) && !!teddyFarm51DataContext);
-      let freshCheck = { ok:true, required:false };
-      if (!hasFarmV51Context) {
-        freshCheck = await teddyFreshDataPreflight(text);
-        if (!freshCheck.ok) {
-          teddyUpdateLogDiv(thinkingDiv, freshCheck.error);
-          teddyHistory.push({ role: "assistant", text: freshCheck.error });
-          teddySaveHistory();
-          teddySpeak(freshCheck.error, "gentle");
-          return;
-        }
-        if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
+      // Hard Fresh Data Gate：需要時效資料的專業問題，先查到資料才讓模型分析。
+      const freshCheck = await teddyFreshDataPreflight(text);
+      if (!freshCheck.ok) {
+        teddyUpdateLogDiv(thinkingDiv, freshCheck.error);
+        teddyHistory.push({ role: "assistant", text: freshCheck.error });
+        teddySaveHistory();
+        teddySpeak(freshCheck.error, "gentle");
+        return;
       }
+      if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
 
       let lastToolNames = [];
       const onStatus = (msg, toolNames) => {
@@ -3496,7 +1813,6 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
         teddyUpdateLogDiv(thinkingDiv, "出錯了：" + e.message);
       }
       teddyFreshContext = "";
-      teddyFarm51DataContext = "";
       btn.disabled = false;
     }
 
@@ -3515,7 +1831,10 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
         const style = teddyResolveVoiceStyle("teddy");
         const samples = {
           sweet: "嗨，我是 Teddy。這個聲音比較甜美自然，講話清楚，也不會刻意裝可愛。",
-          playful: "嘿，我是 Teddy。這個聲音比較年輕活潑，語速快一點，但還是自然好聽。"
+          playful: "嘿，我是 Teddy。這個聲音比較年輕活潑，語速快一點，但還是自然好聽。",
+          gentle: "嗨，我是 Teddy。這個聲音比較溫柔放鬆，講話慢一點，像哄你休息一樣。",
+          storyteller: "大家好，我是 Teddy。這個聲音比較穩重，像在念故事給你聽一樣。",
+          excited: "哇，我是 Teddy！這個聲音比較興奮，適合分享超酷的新發現！"
         };
         teddyVoicePreviewBtn.disabled = true;
         teddyVoicePreviewBtn.textContent = "🔊 試聽中";
@@ -3675,7 +1994,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
         const content = img
           ? [{ type: "text", text: q }, { type: "image_url", image_url: { url: `data:${mime};base64,${img}` } }]
           : q;
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
           body: JSON.stringify({
@@ -3699,7 +2018,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
         const content = img
           ? [{ type: "image", source: { type: "base64", media_type: mime, data: img } }, { type: "text", text: q }]
           : q;
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
+        const r = await teddyFetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -3714,7 +2033,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
             system: getSystemPrompt(),
             messages: [{ role: "user", content }]
           }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         const text = (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
@@ -3727,7 +2046,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
       try {
         const parts = [{ text: q }];
         if (img) parts.push({ inline_data: { mime_type: mime, data: img } });
-        const r = await fetch(
+        const r = await teddyFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${keys.google}`,
           {
             method: "POST",
@@ -3738,7 +2057,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
               generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
             })
           }
-        );
+        , 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "（無內容）";
@@ -3749,7 +2068,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
       const t0 = Date.now();
       if (!keys.deepseek) return { ok: false, text: "未設定 Key", ms: 0 };
       try {
-        const r = await fetch("https://api.deepseek.com/chat/completions", {
+        const r = await teddyFetch("https://api.deepseek.com/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.deepseek}` },
           body: JSON.stringify({
@@ -3760,7 +2079,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
               { role: "user", content: q }
             ]
           }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -3773,7 +2092,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
         const content = img
           ? [{ type: "image_url", image_url: { url: `data:${mime};base64,${img}`, detail: "high" } }, { type: "text", text: q }]
           : q;
-        const r = await fetch("https://api.x.ai/v1/chat/completions", {
+        const r = await teddyFetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
           body: JSON.stringify({
@@ -3784,7 +2103,7 @@ const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51
               { role: "user", content }
             ]
           }),
-        });
+        }, 25000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -3823,11 +2142,11 @@ ${parts}
 5. 一句話總結
 保持客觀簡潔。`;
       try {
-        const r = await fetch("https://api.x.ai/v1/chat/completions", {
+        const r = await teddyFetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
           body: JSON.stringify({ model: "grok-4.6", messages: [{ role: "user", content: prompt }] }),
-        });
+        }, 25000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -3984,92 +2303,157 @@ ${parts}
     updateKeyStatus();
     renderCards(null);
   
-window.TEDDY_UI_MODE="pongchi";
-function teddySetUiMode(mode){
-  window.TEDDY_UI_MODE=mode;
-  const farm=mode==="greenhouse",p=document.getElementById("btnPongchiMode"),g=document.getElementById("btnGreenhouseMode"),s=document.getElementById("dualModeStatus"),panel=document.getElementById("greenhousePanel");
-  if(p)p.classList.toggle("active",!farm); if(g)g.classList.toggle("active",farm);
-  if(s)s.textContent=farm?"🌱 溫室管理 · V5.1 農場資料 + 農業知識":"🐿 一般模式 · Teddy 3.5 記憶 / 日常 / 農業知識";
-  if(panel)panel.style.display=farm?"flex":"none";
-}
-function teddyGhLog(role,text){
-  const box=document.getElementById("greenhouseLog");if(!box)return;
-  const d=document.createElement("div");d.style.margin="0 0 10px";d.style.color=role==="user"?"#d8fff1":"#b7c9c1";d.textContent=(role==="user"?"你：":"Pongchi：")+text;box.appendChild(d);box.scrollTop=box.scrollHeight;
-}
-function teddyGhNeedsV51(q){return /(V5\.?1|農場資料|紀錄|記錄|今年|去年|前年|本月|上月|產能|產量|採收量|收成|出勤|打卡|工項|工作日誌|噴藥|施肥紀錄|用量|米糠|一期|二期|三期|四北|四南|五期|最近用了|最近做了)/i.test(q);}
-async function teddyGhAI(q,ctx){
-  const keys=loadKeys(),ctxText=ctx?JSON.stringify(ctx,null,2).slice(0,100000):"（本題沒有要求農場紀錄）";
-  const system=`你是 Pongchi 的溫室管理／農業顧問模式。你同時具備兩種能力：
-(1) V5.1 農場資料：有 context 時，現場事實與數字只能依 context。
-(2) 一般農業知識：可以正常回答栽培、溫室、無花果、土壤/介質、水肥、EC/pH、病蟲害、修剪等農藝問題。
-絕對不要因為 V5.1 沒有某筆資料，就說你不能回答一般農業知識。清楚區分「V5.1 現場紀錄」與「一般農藝判斷」。使用繁體中文，自然、有判斷力。`;
-  const user=`問題：${q}\n\nV5.1 context：\n${ctxText}`;
-  const pref=document.getElementById("teddyModelSelect")?.value||"auto";
-  if((pref==="anthropic"||pref==="auto")&&keys.anthropic){
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":keys.anthropic,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,system,messages:[{role:"user",content:user}]})});
-    const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Claude HTTP ${r.status}`);return(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("").trim();
-  }
-  if(keys.openai){
-    const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},body:JSON.stringify({model:"gpt-4o",max_tokens:1200,messages:[{role:"system",content:system},{role:"user",content:user}]})});
-    const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);return d.choices?.[0]?.message?.content||"沒有回答。";
-  }
-  throw new Error("尚未設定可用 AI Key");
-}
-async function teddyGhSend(){
-  const input=document.getElementById("greenhouseInput"),btn=document.getElementById("btnGreenhouseSend"),status=document.getElementById("greenhouseStatus"),q=(input?.value||"").trim();if(!q)return;
-  input.value="";teddyGhLog("user",q);btn.disabled=true;
-  try{
-    let ctx=null;
-    if(teddyGhNeedsV51(q)){status.textContent="正在讀取完整 V5.1…";ctx=await teddyV51BuildFullContext(q);}
-    if(ctx&&/(產能|產量|生產量|採收量|收成)/i.test(q)){
-      const direct=teddyV51SummarizeYieldContext(ctx);
-      if(direct){teddyGhLog("assistant",direct);await teddySpeak(direct,teddyAutoDetectVoiceStyle(direct,[]));return;}
+    // ===== Explicit dual mode; original Teddy 3.5 memory/chat code untouched =====
+    const GH_MAIN={apiKey:"AIzaSyDJXF_9jyibl5GsbJHEuPVBIOqQ2Eovjw4",projectId:"figapi-d24dc"};
+
+    function setUiMode(mode){
+      const farm=mode==="greenhouse";
+      const p=document.getElementById("btnPongchiMode");
+      const g=document.getElementById("btnGreenhouseMode");
+      const s=document.getElementById("dualModeStatus");
+      const panel=document.getElementById("greenhousePanel");
+      if(p)p.classList.toggle("active",!farm);
+      if(g)g.classList.toggle("active",farm);
+      if(s)s.textContent=farm?"🌱 溫室管理 · V5.1 獨立入口":"🐿 一般模式 · 使用原 Teddy 3.5 記憶";
+      if(panel)panel.style.display=farm?"flex":"none";
     }
-    if(ctx){const native=teddyFarm51NativeAnswer(q,ctx.parsedZonework||[]);if(native){teddyGhLog("assistant",native);await teddySpeak(native,teddyAutoDetectVoiceStyle(native,[]));return;}}
-    status.textContent=ctx?`V5.1 已讀到 ${ctx.records?.length||0} 筆，正在分析…`:"正在用農業知識分析…";
-    const ans=await teddyGhAI(q,ctx);teddyGhLog("assistant",ans);await teddySpeak(ans,teddyAutoDetectVoiceStyle(ans,[]));
-  }catch(e){const m="處理失敗："+e.message;teddyGhLog("assistant",m);try{await teddySpeak(m,"gentle")}catch(_){}}
-  finally{btn.disabled=false;status.textContent="V5.1 農場資料 + 農業知識 + 語音";}
-}
-function teddyGhMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){teddyGhLog("assistant","這個瀏覽器目前不支援語音輸入。");return;}
-  const r=new SR();r.lang="zh-TW";r.interimResults=false;r.onresult=e=>{const x=e.results?.[0]?.[0]?.transcript||"";const i=document.getElementById("greenhouseInput");if(i)i.value=x;};r.start();
-}
-document.addEventListener("DOMContentLoaded",()=>{
-  localStorage.setItem(TEDDY_V51_SESSION_KEY,"0");
-  document.getElementById("btnPongchiMode")?.addEventListener("click",()=>teddySetUiMode("pongchi"));
-  document.getElementById("btnGreenhouseMode")?.addEventListener("click",()=>{teddySetUiMode("greenhouse");const l=document.getElementById("greenhouseLog");if(l&&!l.children.length)teddyGhLog("assistant","🌱 溫室模式開啟。可以查 V5.1 現場資料，也可以直接聊農業知識；我也會正常說話。");});
-  document.getElementById("btnGreenhouseClose")?.addEventListener("click",()=>teddySetUiMode("pongchi"));
-  document.getElementById("btnGreenhouseSend")?.addEventListener("click",teddyGhSend);
-  document.getElementById("btnGreenhouseMic")?.addEventListener("click",teddyGhMic);
-  document.getElementById("greenhouseInput")?.addEventListener("keydown",e=>{if(e.key==="Enter")teddyGhSend();});
-  teddySetUiMode("pongchi");
-});
+
+    function ghLog(role,text){
+      const box=document.getElementById("greenhouseLog"); if(!box)return;
+      const d=document.createElement("div");
+      d.style.margin="0 0 9px";
+      d.style.color=role==="user"?"#d8fff1":"#a9c3b9";
+      d.textContent=(role==="user"?"你：":"Pongchi：")+text;
+      box.appendChild(d); box.scrollTop=box.scrollHeight;
+    }
+
+    function ghDecode(v){
+      if(!v||typeof v!=="object")return null;
+      if("stringValue"in v)return v.stringValue;
+      if("integerValue"in v)return Number(v.integerValue);
+      if("doubleValue"in v)return Number(v.doubleValue);
+      if("booleanValue"in v)return !!v.booleanValue;
+      if("nullValue"in v)return null;
+      if("timestampValue"in v)return v.timestampValue;
+      if("arrayValue"in v)return(v.arrayValue.values||[]).map(ghDecode);
+      if("mapValue"in v){const o={},f=v.mapValue.fields||{};Object.keys(f).forEach(k=>o[k]=ghDecode(f[k]));return o;}
+      return null;
+    }
+
+    async function ghFetchJson(url,opts={}){
+      const r=await teddyFetch(url,opts, 30000);let d=null;try{d=await r.json();}catch(_){}
+      if(!r.ok)throw new Error(d?.error?.message||`HTTP ${r.status}`);return d;
+    }
+
+    function ghDocDecode(doc){
+      const f=doc?.fields||{};
+      return{key:ghDecode(f.key)||decodeURIComponent((doc?.name||"").split("/").pop()||""),value:ghDecode(f.value),updatedAt:ghDecode(f.updatedAt)};
+    }
+
+    async function ghQueryV51(q){
+      const db=`projects/${GH_MAIN.projectId}/databases/(default)`;
+      const url=`https://firestore.googleapis.com/v1/${db}/documents:runQuery?key=${encodeURIComponent(GH_MAIN.apiKey)}`;
+      const rows=await ghFetchJson(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:{from:[{collectionId:"kv"}],limit:250}})});
+      const docs=(rows||[]).filter(x=>x.document).map(x=>{
+        const d=ghDocDecode(x.document);let val=d.value;try{if(typeof val==="string")val=JSON.parse(val);}catch(_){}
+        return{key:d.key,data:val};
+      });
+      const zoneMap=[["四北","north4"],["四南","south4"],["一期","p1"],["二期","p2"],["三期","zone3"],["五期","zone5"]];
+      const z=zoneMap.find(([name,id])=>q.includes(name)||q.includes(id));
+      const filtered=docs.filter(x=>{
+        if(z&&x.key.includes(":")&&!x.key.includes(":"+z[1]+":"))return false;
+        if(/米糠/.test(q)&&!JSON.stringify(x).includes("米糠"))return false;
+        return /^(zonework|workmonth|worklog|spraylog|attendance|calendar):/.test(x.key);
+      }).slice(0,120);
+      return filtered;
+    }
+
+    async function ghAskAI(q,records){
+      const keys=loadKeys();
+      const system="你是農場溫室管理助理。以下 JSON 來自完全體 V5.1。只能依資料回答；沒查到就說沒查到。回答繁體中文、自然精簡。";
+      const content=`問題：${q}\n\nV5.1資料：\n${JSON.stringify(records,null,2).slice(0,90000)}`;
+      const select=document.getElementById("teddyModelSelect"),pref=select?select.value:"auto";
+      if((pref==="anthropic"||pref==="auto")&&keys.anthropic){
+        const r=await teddyFetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":keys.anthropic,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,system,messages:[{role:"user",content}]})}, 30000);
+        const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Claude HTTP ${r.status}`);
+        return(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("")||"沒有回覆。";
+      }
+      if(keys.openai){
+        const r=await teddyFetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},body:JSON.stringify({model:"gpt-4o",messages:[{role:"system",content:system},{role:"user",content}],max_tokens:900})}, 30000);
+        const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);
+        return d.choices?.[0]?.message?.content||"沒有回覆。";
+      }
+      return`V5.1 已讀到 ${records.length} 筆相關資料，但目前沒有可用 AI Key 做自然語言整理。`;
+    }
+
+    // ===== 診斷用：掃描 kv 集合裡實際存在哪些資料分類（不影響 ghQueryV51 原本的查詢邏輯）=====
+    async function ghScanKeyPrefixes(){
+      const db=`projects/${GH_MAIN.projectId}/databases/(default)`;
+      const url=`https://firestore.googleapis.com/v1/${db}/documents:runQuery?key=${encodeURIComponent(GH_MAIN.apiKey)}`;
+      const rows=await ghFetchJson(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:{from:[{collectionId:"kv"}],limit:1000}})});
+      const docs=(rows||[]).filter(x=>x.document).map(x=>ghDocDecode(x.document));
+      const counts={};
+      docs.forEach(d=>{
+        const prefix = d.key.includes(":") ? d.key.split(":")[0] : d.key;
+        counts[prefix] = (counts[prefix]||0) + 1;
+      });
+      const currentlyRead = ["zonework","workmonth","worklog","spraylog","attendance","calendar"];
+      const lines = Object.keys(counts).sort().map(p => {
+        const flag = currentlyRead.includes(p) ? "✅ 目前有讀" : "⚠️ 目前沒讀到";
+        return `${p}：${counts[p]} 筆 (${flag})`;
+      });
+      return { total: docs.length, summary: lines.join("\n") };
+    }
+
+    async function ghSend(){
+      const input=document.getElementById("greenhouseInput"),btn=document.getElementById("btnGreenhouseSend"),q=input.value.trim();if(!q)return;
+      input.value="";ghLog("user",q);btn.disabled=true;document.getElementById("greenhouseStatus").textContent="正在讀取 V5.1…";
+      try{
+        const rows=await ghQueryV51(q);
+        document.getElementById("greenhouseStatus").textContent=`V5.1 已讀取 ${rows.length} 筆資料，正在整理…`;
+        ghLog("assistant",await ghAskAI(q,rows));
+      }catch(e){ghLog("assistant","查詢失敗："+e.message);}
+      finally{btn.disabled=false;document.getElementById("greenhouseStatus").textContent="獨立入口 · 不改 Pongchi 記憶";}
+    }
+
+    document.addEventListener("DOMContentLoaded",()=>{
+      const p=document.getElementById("btnPongchiMode"),g=document.getElementById("btnGreenhouseMode"),close=document.getElementById("btnGreenhouseClose"),send=document.getElementById("btnGreenhouseSend"),input=document.getElementById("greenhouseInput"),scan=document.getElementById("btnGreenhouseScan");
+      if(p)p.onclick=()=>setUiMode("pongchi");
+      if(g)g.onclick=()=>{setUiMode("greenhouse");if(!document.getElementById("greenhouseLog").children.length)ghLog("assistant","這裡是 V5.1 溫室管理。一般模式仍是原始 Teddy 3.5。");};
+      if(close)close.onclick=()=>setUiMode("pongchi");
+      if(send)send.onclick=ghSend;
+      if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter")ghSend();});
+      if(scan)scan.onclick=async()=>{
+        scan.disabled=true;scan.textContent="掃描中…";
+        try{
+          const r=await ghScanKeyPrefixes();
+          ghLog("assistant",`📋 kv 集合共 ${r.total} 筆文件，分類如下：\n\n${r.summary}`);
+        }catch(e){ghLog("assistant","掃描失敗："+e.message);}
+        finally{scan.disabled=false;scan.textContent="🔍 掃描資料分類";}
+      };
+      setUiMode("pongchi");
+    });
 
 </script>
 
-  <div id="teddyFarmBridgePanel" style="display:none;position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:1200;width:min(92vw,520px);background:#111815;border:1px solid #33433d;border-radius:12px;padding:12px;box-shadow:0 12px 34px rgba(0,0,0,.38);">
-    <div style="font-size:12px;color:#8fe3c5;font-weight:700;margin-bottom:7px;">🌱 完全體 V5.1｜待確認寫入</div>
-    <pre id="teddyFarmBridgePreview" style="white-space:pre-wrap;max-height:210px;overflow:auto;margin:0 0 9px;color:#d7e0dc;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;"></pre>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button id="teddyFarmBridgeCancel" type="button" style="border:1px solid #394740;background:#151d19;color:#b8c4bf;border-radius:7px;padding:6px 10px;">取消</button>
-      <button id="teddyFarmBridgeConfirm" type="button" style="border:1px solid #4f8b73;background:#17372b;color:#bff4df;border-radius:7px;padding:6px 10px;">確認寫入</button>
+  <div id="greenhousePanel" style="display:none;position:fixed;inset:0;z-index:1600;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);padding:16px;align-items:flex-end;justify-content:center;">
+    <div style="width:100%;max-width:430px;max-height:88vh;overflow:auto;background:#121916;border:1px solid #2d463d;border-radius:20px;padding:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
+          <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">獨立入口 · 不改 Pongchi 記憶</div>
+        </div>
+        <button type="button" id="btnGreenhouseClose" style="border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px;cursor:pointer;">🐿 回一般模式</button>
+      </div>
+      <div id="greenhouseLog" style="min-height:180px;max-height:46vh;overflow:auto;background:#0b110f;border:1px solid #263a33;border-radius:12px;padding:10px;margin-bottom:10px;font-size:13px;line-height:1.55;white-space:pre-wrap;"></div>
+      <button type="button" id="btnGreenhouseScan" style="width:100%;margin-bottom:8px;border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:8px;cursor:pointer;font-size:12px;">🔍 掃描資料分類</button>
+      <div style="display:flex;gap:7px;">
+        <input id="greenhouseInput" type="text" placeholder="例如：四北最近用了多少米糠？"
+          style="flex:1;background:#0b110f;border:1px solid #30483f;border-radius:10px;padding:10px;color:#e9f4ef;font-size:14px;outline:none;" />
+        <button type="button" id="btnGreenhouseSend" style="border:none;border-radius:10px;background:#5eead4;color:#0b110f;font-weight:800;padding:0 14px;cursor:pointer;">查詢</button>
+      </div>
     </div>
   </div>
-
-
-<div id="greenhousePanel" style="display:none;position:fixed;inset:0;z-index:1600;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);padding:16px;align-items:flex-end;justify-content:center">
-<div style="width:100%;max-width:430px;max-height:88vh;overflow:auto;background:#121916;border:1px solid #2d463d;border-radius:20px;padding:14px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-<div><div style="font-weight:800;font-size:16px;color:#d9fff0">🌱 溫室管理 · V5.1</div><div id="greenhouseStatus" style="font-size:11px;color:#7f968d">V5.1 農場資料 + 農業知識 + 語音</div></div>
-<button type="button" id="btnGreenhouseClose" style="border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px">🐿 回一般模式</button>
-</div>
-<div id="greenhouseLog" style="min-height:220px;max-height:48vh;overflow:auto;background:#0b110f;border:1px solid #263a33;border-radius:12px;padding:10px;margin-bottom:10px;font-size:13px;line-height:1.6;white-space:pre-wrap"></div>
-<div style="display:flex;gap:7px">
-<input id="greenhouseInput" type="text" placeholder="可查 V5.1，也可直接問農業知識…" style="flex:1;background:#0b110f;border:1px solid #30483f;border-radius:10px;padding:10px;color:#e9f4ef">
-<button type="button" id="btnGreenhouseMic" style="border:1px solid #355248;border-radius:10px;background:#18231f;color:#cde6dc;padding:0 12px">🎤</button>
-<button type="button" id="btnGreenhouseSend" style="border:none;border-radius:10px;background:#5eead4;color:#0b110f;font-weight:800;padding:0 14px">送出</button>
-</div></div></div>
 
 </body>
 </html>
