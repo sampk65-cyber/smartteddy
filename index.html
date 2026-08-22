@@ -467,9 +467,13 @@
               <option value="anthropic">Claude</option>
               <option value="openai">ChatGPT</option>
             </select>
-            <select id="teddyVoiceStyleSelect" title="TEDDY 聲音" style="background:#141a18;border:1px solid #2a3532;color:#d7e0dc;border-radius:6px;padding:3px 6px;font-size:11px;">
+            <select id="teddyVoiceStyleSelect" title="TEDDY 聲音（自動判斷會依內容自己換語氣）" style="background:#141a18;border:1px solid #2a3532;color:#d7e0dc;border-radius:6px;padding:3px 6px;font-size:11px;">
+              <option value="auto">🤖 自動判斷</option>
               <option value="sweet">🍬 甜美可愛</option>
               <option value="playful">😄 年輕調皮</option>
+              <option value="gentle">🌙 溫柔哄睡</option>
+              <option value="storyteller">📖 說書人</option>
+              <option value="excited">✨ 驚喜興奮</option>
             </select>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -535,7 +539,7 @@
     </div>
 
     <div class="toolbar">
-      <button type="button" class="teddy-chip" title="Smart Teddy V3：財務＋農業＋即時資料優先">V3 🧠</button>
+      <span title="Smart Teddy V3：財務＋農業＋即時資料優先" style="display:inline-flex;align-items:center;background:#1a2220;border:1px solid #2a3532;color:#8a9a92;border-radius:16px;padding:5px 10px;font-size:11px;white-space:nowrap;cursor:default;">V3 🧠</span>
       <input type="file" id="fileInput" accept="image/*,.txt,.md,.csv,.json,.xlsx,.xls" style="display:none" />
       <button type="button" class="icon-btn" id="btnFile" title="上傳">📎</button>
       <button type="button" class="icon-btn" id="btnMic" title="語音">🎤</button>
@@ -812,10 +816,8 @@
     function teddyDetectSkill(text) {
       const manual = "auto";
       const t = String(text || "").toLowerCase();
-      const agricultureWords = ["農業","農作","作物","栽培","種植","施肥","肥料","灌溉","土壤","病蟲害","農藥","修剪","嫁接","果樹","無花果","溫室","採收","葉片","根系","ec值","ph值"];
       const codingWords = ["程式","程式碼","javascript","html","css","firebase","api","console","bug","錯誤","部署","vercel","netlify","cors"];
       const investmentWords = ["投資","股票","股價","台股","美股","etf","ipo","spacex","基金","黃金","債券","殖利率","利率","美元","匯率","財報","營收","eps","本益比","估值","fed","聯準會","降息","升息","nasdaq","s&p","道瓊","台積電","nvidia"];
-      if (agricultureWords.some(w => t.includes(w))) return "agriculture";
       if (codingWords.some(w => t.includes(w))) return "coding";
       if (investmentWords.some(w => t.includes(w))) return "investment";
       return "general";
@@ -850,6 +852,20 @@
     }
 
 
+    // ===== 帶逾時保護的 fetch，避免網路卡住時畫面永遠停在「處理中」=====
+    async function teddyFetch(url, options, timeoutMs) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs || 25000);
+      try {
+        return await fetch(url, { ...(options || {}), signal: controller.signal });
+      } catch (e) {
+        if (e.name === "AbortError") throw new Error("回應太久沒反應（逾時），請稍後再試一次");
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     // ===== V3.1 CORE ASSISTANT ROUTER =====
     // Basic assistant abilities are routed before specialist skills.
     function teddyV31CoreIntent(message) {
@@ -881,26 +897,24 @@
 
 
     // Skill Router: keep routing deterministic and fast; no extra model call.
+    // 一般聊天不再對農業/溫室關鍵字敏感——那個專業程度留給獨立的「溫室管理」視窗處理。
     function teddyV3RouteSkill(message) {
       const q = String(message || "").toLowerCase();
       const finance = /(股票|股價|台股|美股|etf|ipo|spacex|財報|營收|eps|本益比|殖利率|fed|聯準會|利率|債券|黃金|美元|匯率|投資|資產配置|基金|期貨|選擇權|加密|bitcoin|nvidia|台積電)/i;
-      const agriculture = /(農業|農作|作物|栽培|種植|施肥|肥料|灌溉|土壤|病蟲害|農藥|修剪|嫁接|果樹|無花果|溫室|採收|葉片|根系|氮|磷|鉀|ec值|ph值)/i;
       const coding = /(程式|javascript|html|css|firebase|api|console|bug|錯誤|部署|netlify|程式碼)/i;
       if (finance.test(q)) return "finance";
-      if (agriculture.test(q)) return "agriculture";
       if (coding.test(q)) return "coding";
       return "general";
     }
 
-    // Fresh Data Gate: finance and time-sensitive agriculture must verify changing facts first.
+    // Fresh Data Gate: 只有財務相關話題才需要先查證即時資料；一般聊天保持自然、不做搜尋驗證。
     function teddyV3NeedsFreshData(message, skill) {
       const q = String(message || "");
       const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|政策|公告|法規|疫情|病蟲害警報|現況|行情)/i;
       const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息)/i;
       if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q);
-      if (skill === "agriculture") return timeSensitive.test(q);
       if (skill === "presentation") return timeSensitive.test(q) || marketEvent.test(q);
-      return timeSensitive.test(q);
+      return false;
     }
 
     function teddyV3SkillPrompt(message) {
@@ -910,8 +924,6 @@
       let p = `\n\n【Smart Teddy V3 路由】\n目前 Skill：${skill}。`;
       if (skill === "finance") {
         p += `\n你現在是「財務與投資分析 Skill」。先區分已驗證事實、推論與情境，不把猜測寫成事實。分析優先順序：最新資料→基本面/估值→總經與產業→樂觀/基準/悲觀情境→主要風險→簡短結論。涉及個別標的時避免保證報酬。`;
-      } else if (skill === "agriculture") {
-        p += `\n你現在是「農業 Skill」。優先考慮作物種類、生育期、氣候、土壤/介質、水分、肥培、病蟲害與田間症狀；資訊不足時指出還缺什麼。把「一般原理」和「需要依現場確認的判斷」分開。涉及農藥、肥料濃度或食安時不要猜測。`;
       } else if (skill === "coding") {
         p += `\n你現在是「工程 Skill」。先定位錯誤，再給最小修改；避免無必要重構，保留現有功能。`;
       } else {
@@ -1104,11 +1116,11 @@
         try {
           const loc = String(input.location || "").trim();
           if (!loc) return { ok: false, error: "沒有指定地點" };
-          const geoR = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=zh`);
+          const geoR = await teddyFetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=zh`, {}, 12000);
           const geoD = await geoR.json();
           const place = geoD.results && geoD.results[0];
           if (!place) return { ok: false, error: "找不到這個地點：" + loc };
-          const wR = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`);
+          const wR = await teddyFetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`, {}, 12000);
           const wD = await wR.json();
           const c = wD.current || {};
           return {
@@ -1135,7 +1147,7 @@
         const keys = loadKeys();
         if (!keys.xai) return { ok: false, error: "搜尋新聞需要先設定 Grok (xAI) 的 API Key" };
         try {
-          const r = await fetch("https://api.x.ai/v1/responses", {
+          const r = await teddyFetch("https://api.x.ai/v1/responses", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
             body: JSON.stringify({
@@ -1143,7 +1155,7 @@
               input: [{ role: "user", content: String(input.query || "") }],
               tools: [{ type: "web_search" }],
             }),
-          });
+          }, 25000);
           const d = await r.json();
           if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
           const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
@@ -1329,7 +1341,7 @@
       const prompt = "請把以下這段對話濃縮成 3-5 句重點摘要，保留使用者提到的重要個人資訊、偏好、正在做的事情，用繁體中文寫成一小段文字（不要條列、不要加任何前言），如果既有摘要存在，請把新內容自然融合進去：\n\n【既有摘要】\n" + (teddySummary || "（無）") + "\n\n【新的對話內容】\n" + transcript;
       try {
         if (keys.anthropic) {
-          const r = await fetch("https://api.anthropic.com/v1/messages", {
+          const r = await teddyFetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1338,15 +1350,15 @@
               "anthropic-dangerous-direct-browser-access": "true",
             },
             body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
-          });
+          }, 20000);
           const d = await r.json();
           if (r.ok) return (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
         } else if (keys.openai) {
-          const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({ model: "gpt-4o", max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
-          });
+          }, 20000);
           const d = await r.json();
           if (r.ok) return d.choices[0].message.content.trim();
         }
@@ -1436,7 +1448,7 @@
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
+        const r = await teddyFetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1451,7 +1463,7 @@
             tools: TEDDY_TOOLS,
             messages,
           }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         if (d.usage) { usedInput += d.usage.input_tokens || 0; usedOutput += d.usage.output_tokens || 0; }
@@ -1476,11 +1488,11 @@
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
           body: JSON.stringify({ model: "gpt-4o", messages, tools: oaTools, tool_choice: "auto" }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         if (d.usage) { usedInput += d.usage.prompt_tokens || 0; usedOutput += d.usage.completion_tokens || 0; }
@@ -1550,12 +1562,18 @@
     // ===== TEDDY 多種語調（可手動選，預設由內容自動判斷）=====
     const TEDDY_VOICE_STYLES = {
       sweet: "自然、甜美、親切、清楚。聲音柔亮但不要娃娃音；有自然停頓與語氣，像熟悉的年輕助理，避免刻意裝可愛。",
-      playful: "年輕、自然、活潑、有一點調皮。語速微快、反應俐落、有自然停頓和情緒起伏，但不要浮誇、不要尖銳。"
+      playful: "年輕、自然、活潑、有一點調皮。語速微快、反應俐落、有自然停頓和情緒起伏，但不要浮誇、不要尖銳。",
+      gentle: "說話放得很輕、很慢，溫柔安撫的語氣，像哄人入睡一樣，音量感覺較低、語尾拉長，給人放鬆平靜的感覺。",
+      storyteller: "用穩重、有磁性、像在說故事或念書給人聽的語氣，語速適中偏慢，斷句清楚，帶一點戲劇張力，適合朗讀文章內容。",
+      excited: "說話語氣興奮、驚喜，音調上揚、語速稍快，像發現超酷的事情迫不及待要分享，但咬字仍要清楚。"
     };
 
     const TEDDY_VOICE_PROFILES = {
-      sweet:   { voice: "nova",    speed: 1.02, pitch: 1.18, rate: 1.02 },
-      playful: { voice: "shimmer", speed: 1.08, pitch: 1.24, rate: 1.08 }
+      sweet:       { voice: "nova",    speed: 1.02, pitch: 1.18, rate: 1.02 },
+      playful:     { voice: "shimmer", speed: 1.08, pitch: 1.24, rate: 1.08 },
+      gentle:      { voice: "nova",    speed: 0.92, pitch: 1.05, rate: 0.92 },
+      storyteller: { voice: "nova",    speed: 0.95, pitch: 1.0,  rate: 0.95 },
+      excited:     { voice: "shimmer", speed: 1.1,  pitch: 1.3,  rate: 1.1  }
     };
 
     function teddyAutoDetectVoiceStyle(replyText, lastToolNames) {
@@ -1600,7 +1618,7 @@
 
       if (keys.openai) {
         const requestVoice = async (voiceName) => {
-          const r = await fetch("https://api.openai.com/v1/audio/speech", {
+          const r = await teddyFetch("https://api.openai.com/v1/audio/speech", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({
@@ -1610,7 +1628,7 @@
               speed: profile.speed,
               instructions
             })
-          });
+          }, 20000);
           if (!r.ok) throw new Error("TTS HTTP " + r.status);
           return await r.blob();
         };
@@ -1813,7 +1831,10 @@
         const style = teddyResolveVoiceStyle("teddy");
         const samples = {
           sweet: "嗨，我是 Teddy。這個聲音比較甜美自然，講話清楚，也不會刻意裝可愛。",
-          playful: "嘿，我是 Teddy。這個聲音比較年輕活潑，語速快一點，但還是自然好聽。"
+          playful: "嘿，我是 Teddy。這個聲音比較年輕活潑，語速快一點，但還是自然好聽。",
+          gentle: "嗨，我是 Teddy。這個聲音比較溫柔放鬆，講話慢一點，像哄你休息一樣。",
+          storyteller: "大家好，我是 Teddy。這個聲音比較穩重，像在念故事給你聽一樣。",
+          excited: "哇，我是 Teddy！這個聲音比較興奮，適合分享超酷的新發現！"
         };
         teddyVoicePreviewBtn.disabled = true;
         teddyVoicePreviewBtn.textContent = "🔊 試聽中";
@@ -1973,7 +1994,7 @@
         const content = img
           ? [{ type: "text", text: q }, { type: "image_url", image_url: { url: `data:${mime};base64,${img}` } }]
           : q;
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
           body: JSON.stringify({
@@ -1997,7 +2018,7 @@
         const content = img
           ? [{ type: "image", source: { type: "base64", media_type: mime, data: img } }, { type: "text", text: q }]
           : q;
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
+        const r = await teddyFetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2012,7 +2033,7 @@
             system: getSystemPrompt(),
             messages: [{ role: "user", content }]
           }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         const text = (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
@@ -2025,7 +2046,7 @@
       try {
         const parts = [{ text: q }];
         if (img) parts.push({ inline_data: { mime_type: mime, data: img } });
-        const r = await fetch(
+        const r = await teddyFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${keys.google}`,
           {
             method: "POST",
@@ -2036,7 +2057,7 @@
               generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
             })
           }
-        );
+        , 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "（無內容）";
@@ -2047,7 +2068,7 @@
       const t0 = Date.now();
       if (!keys.deepseek) return { ok: false, text: "未設定 Key", ms: 0 };
       try {
-        const r = await fetch("https://api.deepseek.com/chat/completions", {
+        const r = await teddyFetch("https://api.deepseek.com/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.deepseek}` },
           body: JSON.stringify({
@@ -2058,7 +2079,7 @@
               { role: "user", content: q }
             ]
           }),
-        });
+        }, 30000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -2071,7 +2092,7 @@
         const content = img
           ? [{ type: "image_url", image_url: { url: `data:${mime};base64,${img}`, detail: "high" } }, { type: "text", text: q }]
           : q;
-        const r = await fetch("https://api.x.ai/v1/chat/completions", {
+        const r = await teddyFetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
           body: JSON.stringify({
@@ -2082,7 +2103,7 @@
               { role: "user", content }
             ]
           }),
-        });
+        }, 25000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -2121,11 +2142,11 @@ ${parts}
 5. 一句話總結
 保持客觀簡潔。`;
       try {
-        const r = await fetch("https://api.x.ai/v1/chat/completions", {
+        const r = await teddyFetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
           body: JSON.stringify({ model: "grok-4.6", messages: [{ role: "user", content: prompt }] }),
-        });
+        }, 25000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -2320,7 +2341,7 @@ ${parts}
     }
 
     async function ghFetchJson(url,opts={}){
-      const r=await fetch(url,opts);let d=null;try{d=await r.json();}catch(_){}
+      const r=await teddyFetch(url,opts, 30000);let d=null;try{d=await r.json();}catch(_){}
       if(!r.ok)throw new Error(d?.error?.message||`HTTP ${r.status}`);return d;
     }
 
@@ -2353,16 +2374,35 @@ ${parts}
       const content=`問題：${q}\n\nV5.1資料：\n${JSON.stringify(records,null,2).slice(0,90000)}`;
       const select=document.getElementById("teddyModelSelect"),pref=select?select.value:"auto";
       if((pref==="anthropic"||pref==="auto")&&keys.anthropic){
-        const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":keys.anthropic,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,system,messages:[{role:"user",content}]})});
+        const r=await teddyFetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":keys.anthropic,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,system,messages:[{role:"user",content}]})}, 30000);
         const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Claude HTTP ${r.status}`);
         return(d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("")||"沒有回覆。";
       }
       if(keys.openai){
-        const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},body:JSON.stringify({model:"gpt-4o",messages:[{role:"system",content:system},{role:"user",content}],max_tokens:900})});
+        const r=await teddyFetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},body:JSON.stringify({model:"gpt-4o",messages:[{role:"system",content:system},{role:"user",content}],max_tokens:900})}, 30000);
         const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);
         return d.choices?.[0]?.message?.content||"沒有回覆。";
       }
       return`V5.1 已讀到 ${records.length} 筆相關資料，但目前沒有可用 AI Key 做自然語言整理。`;
+    }
+
+    // ===== 診斷用：掃描 kv 集合裡實際存在哪些資料分類（不影響 ghQueryV51 原本的查詢邏輯）=====
+    async function ghScanKeyPrefixes(){
+      const db=`projects/${GH_MAIN.projectId}/databases/(default)`;
+      const url=`https://firestore.googleapis.com/v1/${db}/documents:runQuery?key=${encodeURIComponent(GH_MAIN.apiKey)}`;
+      const rows=await ghFetchJson(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:{from:[{collectionId:"kv"}],limit:1000}})});
+      const docs=(rows||[]).filter(x=>x.document).map(x=>ghDocDecode(x.document));
+      const counts={};
+      docs.forEach(d=>{
+        const prefix = d.key.includes(":") ? d.key.split(":")[0] : d.key;
+        counts[prefix] = (counts[prefix]||0) + 1;
+      });
+      const currentlyRead = ["zonework","workmonth","worklog","spraylog","attendance","calendar"];
+      const lines = Object.keys(counts).sort().map(p => {
+        const flag = currentlyRead.includes(p) ? "✅ 目前有讀" : "⚠️ 目前沒讀到";
+        return `${p}：${counts[p]} 筆 (${flag})`;
+      });
+      return { total: docs.length, summary: lines.join("\n") };
     }
 
     async function ghSend(){
@@ -2377,12 +2417,20 @@ ${parts}
     }
 
     document.addEventListener("DOMContentLoaded",()=>{
-      const p=document.getElementById("btnPongchiMode"),g=document.getElementById("btnGreenhouseMode"),close=document.getElementById("btnGreenhouseClose"),send=document.getElementById("btnGreenhouseSend"),input=document.getElementById("greenhouseInput");
+      const p=document.getElementById("btnPongchiMode"),g=document.getElementById("btnGreenhouseMode"),close=document.getElementById("btnGreenhouseClose"),send=document.getElementById("btnGreenhouseSend"),input=document.getElementById("greenhouseInput"),scan=document.getElementById("btnGreenhouseScan");
       if(p)p.onclick=()=>setUiMode("pongchi");
       if(g)g.onclick=()=>{setUiMode("greenhouse");if(!document.getElementById("greenhouseLog").children.length)ghLog("assistant","這裡是 V5.1 溫室管理。一般模式仍是原始 Teddy 3.5。");};
       if(close)close.onclick=()=>setUiMode("pongchi");
       if(send)send.onclick=ghSend;
       if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter")ghSend();});
+      if(scan)scan.onclick=async()=>{
+        scan.disabled=true;scan.textContent="掃描中…";
+        try{
+          const r=await ghScanKeyPrefixes();
+          ghLog("assistant",`📋 kv 集合共 ${r.total} 筆文件，分類如下：\n\n${r.summary}`);
+        }catch(e){ghLog("assistant","掃描失敗："+e.message);}
+        finally{scan.disabled=false;scan.textContent="🔍 掃描資料分類";}
+      };
       setUiMode("pongchi");
     });
 
@@ -2398,6 +2446,7 @@ ${parts}
         <button type="button" id="btnGreenhouseClose" style="border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px;cursor:pointer;">🐿 回一般模式</button>
       </div>
       <div id="greenhouseLog" style="min-height:180px;max-height:46vh;overflow:auto;background:#0b110f;border:1px solid #263a33;border-radius:12px;padding:10px;margin-bottom:10px;font-size:13px;line-height:1.55;white-space:pre-wrap;"></div>
+      <button type="button" id="btnGreenhouseScan" style="width:100%;margin-bottom:8px;border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:8px;cursor:pointer;font-size:12px;">🔍 掃描資料分類</button>
       <div style="display:flex;gap:7px;">
         <input id="greenhouseInput" type="text" placeholder="例如：四北最近用了多少米糠？"
           style="flex:1;background:#0b110f;border:1px solid #30483f;border-radius:10px;padding:10px;color:#e9f4ef;font-size:14px;outline:none;" />
