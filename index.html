@@ -396,7 +396,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="position:fixed;left:10px;top:38px;z-index:998;font-size:9px;color:#6b7a74;">deploy: V3.1-index</div>
+  <div id="deployStamp" style="position:fixed;left:10px;top:38px;z-index:998;font-size:9px;color:#6b7a74;">deploy: V3.1 FULL · core+brain+voice</div>
   <div id="teddyV3Badge" style="position:fixed;left:10px;top:10px;z-index:999;
     background:#141a18;border:1px solid #2a3532;border-radius:999px;padding:5px 9px;
     font-size:10px;color:#5eead4;opacity:.88;">TEDDY V3.1</div>
@@ -460,21 +460,25 @@
               <option value="auto">🧠 Skill 自動</option>
               <option value="general">🐿️ 一般助理</option>
               <option value="investment">📈 投資分析</option>
+              <option value="agriculture">🌱 農業分析</option>
+              <option value="coding">💻 程式協助</option>
               <option value="presentation">📊 簡報製作</option>
             </select>
             <select id="teddyVoiceStyleSelect" title="選擇 TEDDY 的語調（自動判斷會依內容自己換語氣）" style="background:#141a18;border:1px solid #2a3532;color:#c8d4ce;border-radius:6px;padding:3px 6px;font-size:11px;">
               <option value="auto">🤖 自動判斷</option>
-              <option value="sweet">🍬 甜美可愛</option>
+              <option value="teddy">🐿️ Teddy 年輕自然</option>
               <option value="childlike">🧒 童趣活潑</option>
-              <option value="gentle">🌙 溫柔哄睡</option>
+              <option value="sweet">🍬 甜美可愛</option>
+              <option value="gentle">🌙 溫柔輕聲</option>
               <option value="playful">😄 調皮活潑</option>
-              <option value="storyteller">📖 說書人</option>
+              <option value="storyteller">📖 沉穩說書</option>
               <option value="excited">✨ 驚喜興奮</option>
             </select>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button type="button" id="teddyUsageToggle" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">📊 用量</button>
             <button type="button" id="teddyVoiceToggle" title="開關 TEDDY 語音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🔇 語音</button>
+            <button type="button" id="teddyVoicePreview" title="試聽目前選擇的聲音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🎧 試聽</button>
             <button type="button" id="teddyChatClear" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">清除記憶</button>
           </div>
           <div id="teddyUsagePanel" style="display:none;margin-top:8px;font-size:11px;color:#8a9a92;line-height:1.7;"></div>
@@ -491,6 +495,8 @@
           <button type="button" class="teddy-chip" data-msg="用投資分析模式，分析我接下來要問的標的">📈 投資模式</button>
           <button type="button" class="teddy-chip" data-msg="分析目前市場：美股、台股、美元、利率與黃金有哪些重要變化？">🧭 市場雷達</button>
           <button type="button" class="teddy-chip" data-msg="切換到簡報模式，幫我把接下來的主題整理成投影片">📊 簡報模式</button>
+          <button type="button" class="teddy-chip" data-msg="用農業分析模式回答我接下來的栽培問題">🌱 農業模式</button>
+          <button type="button" class="teddy-chip" data-msg="用程式協助模式幫我檢查接下來的問題">💻 程式模式</button>
           <button type="button" class="teddy-chip" data-msg="Teddy 自我檢查：告訴我版本、目前模型、語音模式與可用能力">🩺 自我檢查</button>
         </div>
 
@@ -793,6 +799,23 @@
 7. 最後用簡潔文字給 TEDDY 的判斷與觀察重點，不把內容包裝成保證獲利或確定預測。
 8. 若資料不足，直接說還缺什麼，不要編造財報數字、即時價格或新聞。`
       },
+      agriculture: {
+        name: "農業分析",
+        prompt: `你現在啟用「TEDDY 農業 Skill」。分析作物問題時先辨識作物、品種/生育期、地點或氣候、栽培介質/土壤、水分、肥培與症狀。
+1. 把「一般農藝原理」「現場推論」「需要再確認的資訊」分開。
+2. 無花果、果樹與溫室問題優先從光照、溫度、水分、根系、EC/pH、氮磷鉀與微量元素、病蟲害、修剪與結果負載分析。
+3. 涉及近期天氣、病蟲害警報、法規或產品登記時必須先查最新資料。
+4. 農藥、肥料濃度與食安相關數字若沒有可靠資料，不可猜測；要明說需要查標示或官方資料。
+5. 優先提供可操作的排查順序，而不是一次列很多可能性。`
+      },
+      coding: {
+        name: "程式協助",
+        prompt: `你現在啟用「TEDDY 工程 Skill」。先定位問題，再做最小必要修改。
+1. 保留現有功能，避免無必要重構。
+2. 明確區分前端、API、Firebase、Vercel、CORS、權限與瀏覽器相容性問題。
+3. 修改程式時先找真正執行路徑，不只改 Prompt。
+4. 若是部署問題，要先確認實際部署主檔與快取，而不是假設修改已上線。`
+      },
       presentation: {
         name: "簡報製作",
         prompt: `你現在啟用「TEDDY 簡報 Skill」。使用者要做簡報、投影片、PPT、報告展示或演講時：
@@ -809,19 +832,24 @@
       const manual = document.getElementById("teddySkillSelect")?.value || "auto";
       if (manual !== "auto") return manual;
       const t = String(text || "").toLowerCase();
-      const investmentWords = [
-        "投資", "股票", "股價", "台股", "美股", "etf", "基金", "黃金", "債券", "殖利率", "利率",
-        "美元", "匯率", "財報", "營收", "eps", "本益比", "估值", "fed", "聯準會", "降息", "升息",
-        "nasdaq", "s&p", "道瓊", "加權指數", "半導體", "nvidia", "tsmc", "台積電", "買進", "賣出", "持有"
-      ];
-      const presentationWords = ["簡報", "投影片", "ppt", "powerpoint", "slides", "演講稿", "簡報大綱", "簡報模式"];
-      if (presentationWords.some((w) => t.includes(w))) return "presentation";
-      return investmentWords.some((w) => t.includes(w)) ? "investment" : "general";
+
+      const presentationWords = ["簡報","投影片","ppt","powerpoint","slides","演講稿","簡報大綱","簡報模式"];
+      const agricultureWords = ["農業","農作","作物","栽培","種植","施肥","肥料","灌溉","土壤","病蟲害","農藥","修剪","嫁接","果樹","無花果","溫室","採收","葉片","根系","ec值","ph值"];
+      const codingWords = ["程式","程式碼","javascript","html","css","firebase","api","console","bug","錯誤","部署","vercel","netlify","cors"];
+      const investmentWords = ["投資","股票","股價","台股","美股","etf","ipo","spacex","基金","黃金","債券","殖利率","利率","美元","匯率","財報","營收","eps","本益比","估值","fed","聯準會","降息","升息","nasdaq","s&p","道瓊","台積電","nvidia"];
+
+      if (presentationWords.some(w => t.includes(w))) return "presentation";
+      if (agricultureWords.some(w => t.includes(w))) return "agriculture";
+      if (codingWords.some(w => t.includes(w))) return "coding";
+      if (investmentWords.some(w => t.includes(w))) return "investment";
+      return "general";
     }
 
     let teddyActiveSkill = "general";
     function teddySkillLabel(skill) {
       if (skill === "investment") return "📈 投資分析";
+      if (skill === "agriculture") return "🌱 農業分析";
+      if (skill === "coding") return "💻 程式協助";
       if (skill === "presentation") return "📊 簡報製作";
       return "🐿️ 一般助理";
     }
@@ -894,9 +922,11 @@
     // Fresh Data Gate: finance and time-sensitive agriculture must verify changing facts first.
     function teddyV3NeedsFreshData(message, skill) {
       const q = String(message || "");
-      const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|天氣|颱風|政策|公告|法規|疫情|病蟲害警報)/i;
-      if (skill === "finance") return true; // V3: investment analysis is fresh-data-first.
-      if (skill === "agriculture" && timeSensitive.test(q)) return true;
+      const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|政策|公告|法規|疫情|病蟲害警報|現況|行情)/i;
+      const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息)/i;
+      if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q);
+      if (skill === "agriculture") return timeSensitive.test(q);
+      if (skill === "presentation") return timeSensitive.test(q) || marketEvent.test(q);
       return timeSensitive.test(q);
     }
 
@@ -1226,14 +1256,71 @@
       }
     }
 
+
+    let teddyFreshContext = "";
+
+    function teddyRuntimeState() {
+      const modelEl = document.getElementById("teddyModelSelect");
+      const voiceEl = document.getElementById("teddyVoiceStyleSelect");
+      const skillEl = document.getElementById("teddySkillSelect");
+      const keys = loadKeys();
+      return {
+        version: TEDDY_VERSION,
+        modelPreference: modelEl?.selectedOptions?.[0]?.textContent || "自動",
+        modelValue: modelEl?.value || "auto",
+        voice: voiceEl?.selectedOptions?.[0]?.textContent || "自動判斷",
+        skillPreference: skillEl?.selectedOptions?.[0]?.textContent || "Skill 自動",
+        activeSkill: teddySkillLabel(teddyActiveSkill),
+        claudeReady: !!keys.anthropic,
+        openaiReady: !!keys.openai,
+        searchReady: !!keys.xai,
+        firebaseReady: typeof firebase !== "undefined",
+        speechRecognitionReady: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+        browserTtsReady: !!window.speechSynthesis
+      };
+    }
+
+    async function teddyFreshDataPreflight(message) {
+      const routed = teddyV3RouteSkill(message);
+      if (!teddyV3NeedsFreshData(message, routed)) {
+        teddyFreshContext = "";
+        return { ok: true, required: false };
+      }
+      const keys = loadKeys();
+      if (!keys.xai) {
+        teddyFreshContext = "";
+        return { ok: false, required: true, error: "這題需要最新資料，但目前尚未設定 Grok (xAI) 搜尋 Key，所以我先不拿舊知識冒充即時資訊。" };
+      }
+      const result = await teddyRunTool("search_news", { query: message });
+      if (!result || !result.ok) {
+        teddyFreshContext = "";
+        return { ok: false, required: true, error: "這題需要最新資料，但即時搜尋失敗：" + (result?.error || "未知錯誤") };
+      }
+      teddyFreshContext = String(result.result || "").trim();
+      return { ok: true, required: true };
+    }
+
+
     function teddyBuildSystemPrompt() {
       const skill = TEDDY_SKILLS[teddyActiveSkill] || TEDDY_SKILLS.general;
       const lastUser = [...teddyHistory].reverse().find((h) => h.role === "user");
       const currentMessage = lastUser ? lastUser.text : "";
+      const state = teddyRuntimeState();
+
       let prompt = TEDDY_SYSTEM_PROMPT + "\n\n【目前啟用 Skill：" + skill.name + "】\n" + skill.prompt;
-      // V3.1: Core Router first, then specialist router.
       prompt += teddyV31CorePrompt(currentMessage);
       prompt += teddyV3SkillPrompt(currentMessage);
+      prompt += `\n\n【Teddy 即時自我狀態】
+應用版本：${state.version}
+介面目前模型：${state.modelPreference}
+目前語音模式：${state.voice}
+目前 Skill：${state.activeSkill}
+搜尋工具：${state.searchReady ? "可用" : "未設定"}。
+如果使用者問你現在使用哪個模型，必須以上述介面目前模型為準，禁止自行猜成 GPT 或 Claude。`;
+
+      if (teddyFreshContext) {
+        prompt += "\n\n【Fresh Data Gate 已驗證資料】\n以下內容是本次回答前剛取得的即時搜尋結果。只能依據它和明確推論回答會變動的市場/新聞事實；若其中沒有答案，要說資料不足。\n" + teddyFreshContext;
+      }
       if (teddySummary) {
         prompt += "\n\n以下是你和這位使用者更早以前聊過的長期記憶摘要，可以自然地參考裡面提到的個人資訊、偏好或事件，不用逐字複誦：\n" + teddySummary;
       }
@@ -1491,12 +1578,23 @@
 
     // ===== TEDDY 多種語調（可手動選，預設由內容自動判斷）=====
     const TEDDY_VOICE_STYLES = {
-      childlike: "使用童趣、明亮、輕盈的合成聲線表達；語速稍快、咬字清楚、句子短、帶自然好奇與活力。聲音可以顯得稚氣可愛，但不要模仿任何真實兒童或特定人物，也不要刻意裝娃娃音。",
-      sweet: "說話聲音年輕、明亮、有活力，像十幾歲的小女孩，甜美可愛、語氣輕快纖細，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
-      gentle: "說話聲音放得很輕、很慢，溫柔安撫的語氣，像哄人入睡一樣，音量感覺較低、語尾拉長，給人放鬆平靜的感覺。",
-      playful: "說話帶點調皮惡作劇的語氣，語速稍快、偶爾停頓賣關子，像在跟好朋友開玩笑，但不要太浮誇。",
-      storyteller: "用穩重、有磁性、像在說故事或念書給人聽的語氣，語速適中偏慢，斷句清楚，帶一點戲劇張力，適合朗讀文章內容。",
-      excited: "說話語氣興奮、驚喜，音調上揚、語速稍快，像發現超酷的事情迫不及待要分享，但咬字仍要清楚。",
+      teddy: "年輕、自然、聰明、親切，語速微快但不趕，聲音明亮、有精神，像熟悉的年輕助理；不要刻意裝可愛。",
+      childlike: "童趣、明亮、輕盈、好奇，句子短、語速稍快、音色感覺較小巧，但不要模仿任何真實兒童或特定人物。",
+      sweet: "甜美、清楚、柔亮，語尾自然稍微上揚，保持成熟可理解，不要娃娃音。",
+      gentle: "輕柔、慢一些、低刺激、安定，斷句舒緩，適合晚上與較長說明。",
+      playful: "活潑、有一點調皮，節奏俐落，像熟朋友聊天，但不要浮誇。",
+      storyteller: "沉穩、有厚度、斷句清楚、速度偏慢，適合文章與長篇朗讀。",
+      excited: "明亮、有驚喜感、速度稍快，但保持清楚，不尖叫、不誇張。"
+    };
+
+    const TEDDY_VOICE_PROFILES = {
+      teddy:      { voice: "coral",   speed: 1.06, pitch: 1.15, rate: 1.05 },
+      childlike:  { voice: "shimmer", speed: 1.14, pitch: 1.48, rate: 1.12 },
+      sweet:      { voice: "nova",    speed: 1.04, pitch: 1.28, rate: 1.04 },
+      gentle:     { voice: "sage",    speed: 0.92, pitch: 1.02, rate: 0.92 },
+      playful:    { voice: "shimmer", speed: 1.10, pitch: 1.30, rate: 1.10 },
+      storyteller:{ voice: "onyx",    speed: 0.90, pitch: 0.92, rate: 0.90 },
+      excited:    { voice: "fable",   speed: 1.13, pitch: 1.34, rate: 1.12 }
     };
 
     function teddyAutoDetectVoiceStyle(replyText, lastToolNames) {
@@ -1506,7 +1604,7 @@
       if (/(😂|🤣|哈哈|開玩笑|逗你)/.test(replyText)) return "playful";
       const exclaimCount = (replyText.match(/！|!/g) || []).length;
       if (/(🎉|✨|🚀|太酷了|太厲害|驚喜|哇)/.test(replyText) || exclaimCount >= 2) return "excited";
-      return "sweet";
+      return "teddy";
     }
 
 
@@ -1525,63 +1623,69 @@
       const sel = document.getElementById("teddyVoiceStyleSelect");
       const val = sel ? sel.value : "auto";
       if (val !== "auto" && TEDDY_VOICE_STYLES[val]) return val;
-      return TEDDY_VOICE_STYLES[autoHint] ? autoHint : "sweet";
+      return TEDDY_VOICE_STYLES[autoHint] ? autoHint : "teddy";
     }
 
-    async function teddySpeak(text, autoStyleHint) {
-      if (!teddyVoiceEnabled || !text) return;
+    async function teddySpeak(text, autoStyleHint, forcePreview = false) {
+      if ((!teddyVoiceEnabled && !forcePreview) || !text) return;
       const clean = text.replace(/[*_`#]/g, "").trim();
       if (!clean) return;
       const keys = loadKeys();
       if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
+
       const styleKey = teddyResolveVoiceStyle(autoStyleHint);
-      const instructions = TEDDY_VOICE_STYLES[styleKey];
-      // V3 語音角色：不只改提示詞，也切換實際 TTS voice。
-      // 童趣活潑使用較輕亮的合成聲線；若 API 不支援則自動 fallback。
-      const voiceByStyle = {
-        childlike: "shimmer",
-        sweet: "nova",
-        gentle: "nova",
-        playful: "shimmer",
-        storyteller: "onyx",
-        excited: "shimmer"
-      };
-      const selectedTtsVoice = voiceByStyle[styleKey] || "nova";
+      const instructions = TEDDY_VOICE_STYLES[styleKey] || TEDDY_VOICE_STYLES.teddy;
+      const profile = TEDDY_VOICE_PROFILES[styleKey] || TEDDY_VOICE_PROFILES.teddy;
+
       if (keys.openai) {
-        try {
+        const requestVoice = async (voiceName) => {
           const r = await fetch("https://api.openai.com/v1/audio/speech", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({
               model: "gpt-4o-mini-tts",
-              voice: selectedTtsVoice,
+              voice: voiceName,
               input: clean,
-              speed: styleKey === "childlike" ? 1.12 : (styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05),
-              instructions,
-            }),
+              speed: profile.speed,
+              instructions
+            })
           });
-          if (r.ok) {
-            const blob = await r.blob();
-            const url = URL.createObjectURL(blob);
-            teddyCurrentAudio = new Audio(url);
-            teddyCurrentAudio.play();
-            teddyRecordTtsUsage(clean.length);
-            return;
+          if (!r.ok) throw new Error("TTS HTTP " + r.status);
+          return await r.blob();
+        };
+
+        try {
+          let blob;
+          try {
+            blob = await requestVoice(profile.voice);
+          } catch (_) {
+            // Some accounts/models may not expose every voice; nova is the compatibility fallback.
+            blob = await requestVoice("nova");
           }
-        } catch (_) { /* 失敗就往下 fallback */ }
+          const url = URL.createObjectURL(blob);
+          teddyCurrentAudio = new Audio(url);
+          teddyCurrentAudio.onended = () => URL.revokeObjectURL(url);
+          await teddyCurrentAudio.play();
+          teddyRecordTtsUsage(clean.length);
+          return;
+        } catch (_) {
+          // Fall through to browser TTS.
+        }
       }
+
       if (window.speechSynthesis) {
         try {
           window.speechSynthesis.cancel();
           const utter = new SpeechSynthesisUtterance(clean);
           utter.lang = "zh-TW";
-          utter.pitch = styleKey === "childlike" ? 1.48 : (styleKey === "gentle" || styleKey === "storyteller" ? 1.05 : 1.3);
-          utter.rate = styleKey === "childlike" ? 1.12 : (styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05);
+          utter.pitch = profile.pitch;
+          utter.rate = profile.rate;
           const voices = window.speechSynthesis.getVoices();
-          const femaleVoice =
-            voices.find((v) => /zh/i.test(v.lang) && /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao/i.test(v.name)) ||
-            voices.find((v) => /zh/i.test(v.lang));
-          if (femaleVoice) utter.voice = femaleVoice;
+          const zhVoices = voices.filter(v => /zh|cmn/i.test(v.lang));
+          const preferred =
+            zhVoices.find(v => /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao|Google.*中文|Microsoft.*Hsiao/i.test(v.name)) ||
+            zhVoices[0];
+          if (preferred) utter.voice = preferred;
           window.speechSynthesis.speak(utter);
         } catch (_) {}
       }
@@ -1607,6 +1711,34 @@
       ];
     }
 
+
+    function teddyV31DiagnosticsText() {
+      const s = teddyRuntimeState();
+      const checks = [
+        ["版本辨識", true, s.version],
+        ["日期時間", typeof Intl !== "undefined", "本機時間"],
+        ["數學工具", TEDDY_TOOLS.some(t => t.name === "calculate"), "calculate"],
+        ["天氣工具", TEDDY_TOOLS.some(t => t.name === "get_weather"), "Open-Meteo"],
+        ["計時器", TEDDY_TOOLS.some(t => t.name === "start_timer"), "瀏覽器計時"],
+        ["提醒", TEDDY_TOOLS.some(t => t.name === "set_reminder"), "分頁開啟時"],
+        ["音樂", TEDDY_TOOLS.some(t => t.name === "play_music"), "Firebase Storage"],
+        ["即時搜尋", s.searchReady, s.searchReady ? "xAI 已設定" : "需要 xAI Key"],
+        ["Claude", s.claudeReady, s.claudeReady ? "可用" : "未設定"],
+        ["ChatGPT", s.openaiReady, s.openaiReady ? "可用" : "未設定"],
+        ["語音輸入", s.speechRecognitionReady, s.speechRecognitionReady ? "支援" : "此瀏覽器不支援"],
+        ["瀏覽器 TTS", s.browserTtsReady, s.browserTtsReady ? "支援" : "不支援"],
+        ["Firebase", s.firebaseReady, s.firebaseReady ? "SDK 已載入" : "未載入"],
+        ["財務 Skill", !!TEDDY_SKILLS.investment, "已啟用"],
+        ["農業 Skill", !!TEDDY_SKILLS.agriculture, "已啟用"],
+        ["工程 Skill", !!TEDDY_SKILLS.coding, "已啟用"],
+        ["簡報 Skill", !!TEDDY_SKILLS.presentation, "已啟用"]
+      ];
+      return "我是 " + s.version + "。\\n" +
+        checks.map(([name, ok, note]) => `${ok ? "✅" : "⚠️"} ${name}：${note}`).join("\\n") +
+        `\\n目前介面模型：${s.modelPreference}\\n目前語音：${s.voice}\\n目前 Skill：${s.skillPreference}`;
+    }
+
+
     function teddyV31LocalCoreReply(message) {
       const q = String(message || "").trim();
       const core = teddyV31CoreIntent(q);
@@ -1623,17 +1755,9 @@
         return `現在是 ${formatted}，時區 ${tz}。`;
       }
 
-      // Self-awareness/version/capability questions are also answered locally.
-      if (/(妳的版本|你的版本|什麼版本|版本多少|版本是什麼|妳會什麼|你會什麼|有什麼能力|自我檢查|能力檢查|系統狀態)/i.test(q)) {
-        const model = document.getElementById("teddyModelSelect")?.selectedOptions?.[0]?.textContent || "自動";
-        const voice = document.getElementById("teddyVoiceStyleSelect")?.selectedOptions?.[0]?.textContent || "自動判斷";
-        const skill = document.getElementById("teddySkillSelect")?.selectedOptions?.[0]?.textContent || "Skill 自動";
-        const keys = loadKeys();
-        const onlineModels = [
-          keys.anthropic ? "Claude" : null,
-          keys.openai ? "ChatGPT" : null
-        ].filter(Boolean).join("、") || "尚未設定 API Key";
-        return `我是 ${TEDDY_VERSION}。目前模型選擇：${model}；可連線模型：${onlineModels}；語音模式：${voice}；Skill：${skill}。我的主要能力有：${teddyV31CapabilityList().join("、")}。`;
+      // Self-awareness/version/capability questions are answered from the real UI/runtime, never guessed by the model.
+      if (/(妳的版本|你的版本|什麼版本|版本多少|版本是什麼|妳會什麼|你會什麼|有什麼能力|自我檢查|能力檢查|系統狀態|回報版本|功能檢查)/i.test(q)) {
+        return teddyV31DiagnosticsText();
       }
 
       return null;
@@ -1663,6 +1787,17 @@
         teddySpeak(finalLocalReply, teddyAutoDetectVoiceStyle(finalLocalReply, []));
         return;
       }
+      // Hard Fresh Data Gate：需要時效資料的專業問題，先查到資料才讓模型分析。
+      const freshCheck = await teddyFreshDataPreflight(text);
+      if (!freshCheck.ok) {
+        teddyUpdateLogDiv(thinkingDiv, freshCheck.error);
+        teddyHistory.push({ role: "assistant", text: freshCheck.error });
+        teddySaveHistory();
+        teddySpeak(freshCheck.error, "gentle");
+        return;
+      }
+      if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
+
       let lastToolNames = [];
       const onStatus = (msg, toolNames) => {
         teddyUpdateLogDiv(thinkingDiv, msg);
@@ -1700,6 +1835,7 @@
       } catch (e) {
         teddyUpdateLogDiv(thinkingDiv, "出錯了：" + e.message);
       }
+      teddyFreshContext = "";
       btn.disabled = false;
     }
 
@@ -1710,6 +1846,33 @@
         localStorage.setItem("teddy_skill_pref", teddySkillSelect.value);
       });
     }
+
+
+    const teddyVoicePreviewBtn = document.getElementById("teddyVoicePreview");
+    if (teddyVoicePreviewBtn) {
+      teddyVoicePreviewBtn.onclick = async () => {
+        const style = teddyResolveVoiceStyle("teddy");
+        const samples = {
+          teddy: "嗨，我是 Teddy。這個聲音會比較年輕、自然，說話速度也稍微快一點。",
+          childlike: "嗨！我是 Teddy，今天想先玩什麼？我可以陪你一起找答案喔！",
+          sweet: "嗨，我是 Teddy。這個聲音比較甜一點，也會保持清楚自然。",
+          gentle: "嗨，我是 Teddy。現在我用比較輕柔、慢一點的方式跟你說話。",
+          playful: "嘿，我是 Teddy。這個模式比較活潑一點，反應也會俐落一點。",
+          storyteller: "我是 Teddy。現在用比較沉穩的聲音，慢慢把故事和重點說清楚。",
+          excited: "嗨！我是 Teddy。這個模式會更有精神，但我還是會把每個字說清楚。"
+        };
+        teddyVoicePreviewBtn.disabled = true;
+        teddyVoicePreviewBtn.textContent = "🔊 試聽中";
+        try { await teddySpeak(samples[style] || samples.teddy, style, true); }
+        finally {
+          setTimeout(() => {
+            teddyVoicePreviewBtn.disabled = false;
+            teddyVoicePreviewBtn.textContent = "🎧 試聽";
+          }, 800);
+        }
+      };
+    }
+
 
     document.getElementById("teddyChatSend").onclick = teddySend;
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
