@@ -396,7 +396,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 simple+stable</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 farm51-write-bridge</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -756,7 +756,7 @@
     const _origTeddyPanelOpen = () => {};
 
     // ===== TEDDY Router：讓 TEDDY 自己判斷該用哪個工具 =====
-    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。 ";
+    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。  【完全體 V5.1 農場系統】 你知道使用者另有一套「完全體 V5.1」農場資訊管理系統。它目前使用 Firebase Firestore，透過 window.storage 的 get/set/delete/list 介面，把 key/value 資料存到 kv collection。 已確認的重要資料類型包括： - person: 人員與帳號 - attendance: 出勤／打卡 - attendancePref: 出勤偏好 - attendanceLeaveTypes: 假別 - worklog: 分區／格位工項紀錄 - zonework: 分區月份工項 - zonenotice: 分區提示 - calendar: 工項行事曆／年度計畫 - sprayDrugList: 藥品清單 - fertilizerList: 肥料清單 - monthlyWorkItemsList: 月份工項清單 - printlog: 列印紀錄  Teddy 的定位不是維護完全體程式碼，而是「農場秘書／自然語言操作入口」： 1. 使用者用口語說農場紀錄時，先整理成清楚的結構化草稿：日期、分區/格位、工項、材料/肥料/藥品、用量、備註。 2. 已建立安全寫入橋接。任何新增紀錄都必須先顯示草稿，使用者確認後才可寫入完全體 V5.1。 3. 不直接猜 Firestore key 或覆寫資料。 4. 未來若有專用 bridge/API，必須先讀取、驗證目標資料，再要求確認後才寫入；刪除與覆寫尤其要二次確認。 5. 使用者若要修改完全體程式本身，提醒可交給主要 ChatGPT 工程協助處理；Teddy 日常以資料整理與農業判斷為主。 ";
 
     // ===== TEDDY v2 Skills：專業能力模組 + 自動路由 =====
     const TEDDY_SKILLS = {
@@ -1259,6 +1259,25 @@
     }
 
 
+
+    function teddyFarm51Intent(message) {
+      const q = String(message || "");
+      const farmWords = /(農場|田區|分區|溫室|無花果|工項|工作紀錄|施肥|肥料|噴藥|農藥|藥品|打卡|出勤|行事曆|年度計畫|採收|澆水|灌溉)/i;
+      const writeWords = /(記一下|記錄|登記|新增|存起來|寫進|上傳|更新|改成|刪除)/i;
+      return { farm: farmWords.test(q), wantsWrite: writeWords.test(q) };
+    }
+
+    function teddyFarm51Prompt(message) {
+      const x = teddyFarm51Intent(message);
+      if (!x.farm) return "";
+      let p = "\n\n【完全體 V5.1 農場秘書模式】\n這是農場日常資訊。先用農業專業理解內容，再整理成完全體 V5.1 可用的紀錄草稿。";
+      if (x.wantsWrite) {
+        p += "\nTeddy 3.5 已有完全體 V5.1 安全寫入橋接。先整理成待寫入草稿並顯示確認；只有使用者按下「確認寫入」後才真正寫入。缺少分區或工項時不得寫入。";
+      }
+      return p;
+    }
+
+
     function teddyBuildSystemPrompt() {
       const skill = TEDDY_SKILLS[teddyActiveSkill] || TEDDY_SKILLS.general;
       const lastUser = [...teddyHistory].reverse().find((h) => h.role === "user");
@@ -1268,6 +1287,7 @@
       let prompt = TEDDY_SYSTEM_PROMPT + "\n\n【目前啟用 Skill：" + skill.name + "】\n" + skill.prompt;
       prompt += teddyV31CorePrompt(currentMessage);
       prompt += teddyV3SkillPrompt(currentMessage);
+      prompt += teddyFarm51Prompt(currentMessage);
       prompt += `\n\n【Teddy 即時自我狀態】
 應用版本：${state.version}
 介面目前模型：${state.modelPreference}
@@ -1652,6 +1672,7 @@
         "新聞／即時資訊搜尋",
         "財務與投資分析",
         "農業分析",
+        "完全體 V5.1 農場紀錄整理（安全橋接前採確認制）",
         "程式協助",
         "文章寫作與朗讀",
         "語音輸入與 TTS 語音"
@@ -1710,6 +1731,169 @@
     }
 
 
+
+    // ===== Teddy 3.5 ↔ 完全體 V5.1 Safe Farm Bridge =====
+    const TEDDY_FARM51_PENDING_KEY = "teddy_farm51_pending_write";
+    let teddyFarm51Pending = null;
+
+    function teddyFarm51Today() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function teddyFarm51NormalizeDraft(draft) {
+      const x = draft && typeof draft === "object" ? draft : {};
+      return {
+        date: String(x.date || teddyFarm51Today()),
+        zone: String(x.zone || x.area || "").trim(),
+        slot: String(x.slot || x.grid || "").trim(),
+        task: String(x.task || x.work || "").trim(),
+        material: String(x.material || "").trim(),
+        amount: String(x.amount || "").trim(),
+        note: String(x.note || "").trim(),
+        source: "TEDDY 3.5",
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function teddyFarm51BuildKey(draft) {
+      // V5.1 uses worklog:<zone>:<year>:<month> as an established family of keys.
+      // Keep Teddy entries namespaced below worklog so existing data is not overwritten.
+      const d = new Date(draft.date + "T12:00:00");
+      const y = Number.isNaN(d.getTime()) ? new Date().getFullYear() : d.getFullYear();
+      const m = Number.isNaN(d.getTime()) ? new Date().getMonth()+1 : d.getMonth()+1;
+      const zone = (draft.zone || "未指定").replace(/[:/\\#?]/g, "_");
+      return `worklog:${zone}:${y}:${String(m).padStart(2,"0")}`;
+    }
+
+    async function teddyFarm51ReadKey(key) {
+      if (!window.storage || typeof window.storage.get !== "function") throw new Error("完全體 storage 尚未連線");
+      const r = await window.storage.get(key);
+      if (!r) return null;
+      try { return JSON.parse(r.value); } catch (_) { return r.value; }
+    }
+
+    async function teddyFarm51WriteKey(key, value) {
+      if (!window.storage || typeof window.storage.set !== "function") throw new Error("完全體 storage 尚未連線");
+      return await window.storage.set(key, JSON.stringify(value));
+    }
+
+    function teddyFarm51StageWrite(draft) {
+      teddyFarm51Pending = teddyFarm51NormalizeDraft(draft);
+      localStorage.setItem(TEDDY_FARM51_PENDING_KEY, JSON.stringify(teddyFarm51Pending));
+      const panel = document.getElementById("teddyFarmBridgePanel");
+      const preview = document.getElementById("teddyFarmBridgePreview");
+      if (preview) preview.textContent =
+        `日期：${teddyFarm51Pending.date}\n` +
+        `分區：${teddyFarm51Pending.zone || "未指定"}\n` +
+        `格位：${teddyFarm51Pending.slot || "未指定"}\n` +
+        `工項：${teddyFarm51Pending.task || "未指定"}\n` +
+        `材料：${teddyFarm51Pending.material || "無"}\n` +
+        `用量：${teddyFarm51Pending.amount || "無"}\n` +
+        `備註：${teddyFarm51Pending.note || "無"}`;
+      if (panel) panel.style.display = "block";
+      return teddyFarm51Pending;
+    }
+
+    function teddyFarm51CancelWrite() {
+      teddyFarm51Pending = null;
+      localStorage.removeItem(TEDDY_FARM51_PENDING_KEY);
+      const panel = document.getElementById("teddyFarmBridgePanel");
+      if (panel) panel.style.display = "none";
+    }
+
+    async function teddyFarm51CommitPending() {
+      if (!teddyFarm51Pending) throw new Error("目前沒有待寫入的農場紀錄");
+      const draft = teddyFarm51Pending;
+      if (!draft.task) throw new Error("缺少工項，不能寫入");
+      if (!draft.zone) throw new Error("缺少分區，不能寫入");
+
+      const key = teddyFarm51BuildKey(draft);
+      const existing = await teddyFarm51ReadKey(key);
+      let records = [];
+      if (Array.isArray(existing)) records = existing;
+      else if (existing && Array.isArray(existing.records)) records = existing.records;
+      else if (existing) records = [existing];
+
+      const record = {
+        id: `teddy-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        ...draft
+      };
+      records.push(record);
+
+      // Non-destructive append: preserve old records and append one Teddy record.
+      await teddyFarm51WriteKey(key, records);
+      teddyFarm51CancelWrite();
+      return { ok:true, key, record, total:records.length };
+    }
+
+    function teddyFarm51ExtractDraftFromText(message) {
+      const q = String(message || "").trim();
+      const draft = { date: teddyFarm51Today(), zone:"", slot:"", task:"", material:"", amount:"", note:q };
+      const dateM = q.match(/(\d{1,2})月(\d{1,2})日/);
+      if (dateM) {
+        const y = new Date().getFullYear();
+        draft.date = `${y}-${String(dateM[1]).padStart(2,"0")}-${String(dateM[2]).padStart(2,"0")}`;
+      }
+      const zoneM = q.match(/(?:在|於)?\s*([A-Za-z0-9一二三四五六七八九十東西南北甲乙丙丁]+(?:區|溫室|田|棚))/);
+      if (zoneM) draft.zone = zoneM[1];
+      const slotM = q.match(/(?:第)?([A-Za-z0-9一二三四五六七八九十]+)(?:格|畦|床)/);
+      if (slotM) draft.slot = slotM[1];
+      const amountM = q.match(/(\d+(?:\.\d+)?)\s*(公斤|公克|克|kg|g|公升|毫升|L|ml|分鐘|小時)/i);
+      if (amountM) draft.amount = amountM[1] + amountM[2];
+      const materialM = q.match(/(?:施肥|使用|用了?|噴(?:藥)?|加入)\s*([^\s，。,.]+)(?:\s|，|。|,|$)/);
+      if (materialM) draft.material = materialM[1];
+      const taskM = q.match(/(澆水|灌溉|施肥|噴藥|除草|修剪|採收|整枝|疏果|巡田|病蟲害檢查|打藥|換盆|定植|種植)/);
+      if (taskM) draft.task = taskM[1];
+      return draft;
+    }
+
+    function teddyFarm51ShouldStage(message) {
+      const x = teddyFarm51Intent(message);
+      return x.farm && x.wantsWrite;
+    }
+
+    async function teddyFarm51HandleNaturalWrite(message) {
+      if (!teddyFarm51ShouldStage(message)) return null;
+      const draft = teddyFarm51ExtractDraftFromText(message);
+      teddyFarm51StageWrite(draft);
+      const missing = [];
+      if (!draft.zone) missing.push("分區");
+      if (!draft.task) missing.push("工項");
+      if (missing.length) {
+        return `我先整理成完全體 V5.1 的待寫入草稿了，但還缺 ${missing.join("、")}。補上後再確認寫入。`;
+      }
+      return `我已整理成完全體 V5.1 的待寫入紀錄。請看下方內容；確認無誤後按「確認寫入」。`;
+    }
+
+    function teddyFarm51InitBridge() {
+      try {
+        const saved = localStorage.getItem(TEDDY_FARM51_PENDING_KEY);
+        if (saved) teddyFarm51StageWrite(JSON.parse(saved));
+      } catch (_) {}
+      const yes = document.getElementById("teddyFarmBridgeConfirm");
+      const no = document.getElementById("teddyFarmBridgeCancel");
+      if (no) no.onclick = () => {
+        teddyFarm51CancelWrite();
+        teddyAppendLog("teddy", "好，這筆沒有寫入完全體。");
+      };
+      if (yes) yes.onclick = async () => {
+        yes.disabled = true;
+        yes.textContent = "寫入中…";
+        try {
+          const r = await teddyFarm51CommitPending();
+          teddyAppendLog("teddy", `已寫入完全體 V5.1。紀錄位置：${r.key}。`);
+          teddySpeak("已經幫你寫進完全體了。", "sweet");
+        } catch (e) {
+          teddyAppendLog("teddy", "寫入失敗：" + e.message);
+        } finally {
+          yes.disabled = false;
+          yes.textContent = "確認寫入";
+        }
+      };
+    }
+
+
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       const text = input.value.trim();
@@ -1721,7 +1905,17 @@
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
-      // V3.1 Core abilities run locally first: faster and cannot be lost by model routing.
+      // Farm V5.1 bridge: natural-language write requests are staged locally first.
+      const farmBridgeReply = await teddyFarm51HandleNaturalWrite(text);
+      if (farmBridgeReply) {
+        teddyUpdateLogDiv(thinkingDiv, farmBridgeReply);
+        teddyHistory.push({ role: "assistant", text: farmBridgeReply });
+        teddySaveHistory();
+        teddySpeak(farmBridgeReply, "sweet");
+        return;
+      }
+
+      // Core abilities run locally first: faster and cannot be lost by model routing.
       const localReply = teddyV31LocalCoreReply(text);
       if (localReply) {
         const prefix = teddyV3VersionPrefix();
@@ -2269,5 +2463,15 @@ ${parts}
     updateKeyStatus();
     renderCards(null);
   </script>
+
+  <div id="teddyFarmBridgePanel" style="display:none;position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:1200;width:min(92vw,520px);background:#111815;border:1px solid #33433d;border-radius:12px;padding:12px;box-shadow:0 12px 34px rgba(0,0,0,.38);">
+    <div style="font-size:12px;color:#8fe3c5;font-weight:700;margin-bottom:7px;">🌱 完全體 V5.1｜待確認寫入</div>
+    <pre id="teddyFarmBridgePreview" style="white-space:pre-wrap;max-height:210px;overflow:auto;margin:0 0 9px;color:#d7e0dc;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;"></pre>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="teddyFarmBridgeCancel" type="button" style="border:1px solid #394740;background:#151d19;color:#b8c4bf;border-radius:7px;padding:6px 10px;">取消</button>
+      <button id="teddyFarmBridgeConfirm" type="button" style="border:1px solid #4f8b73;background:#17372b;color:#bff4df;border-radius:7px;padding:6px 10px;">確認寫入</button>
+    </div>
+  </div>
+
 </body>
 </html>
