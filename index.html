@@ -397,7 +397,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-force-bridge</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-native-parser</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -2124,6 +2124,94 @@
       return rows;
     }
 
+
+    function teddyFarm51ParseV51Zonework(key, raw) {
+      const m=String(key||"").match(/^zonework:([^:]+):(\d{4}-\d{2})$/);
+      if(!m) return null;
+      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===m[1]);
+      const d=raw&&typeof raw==="object"?raw:{};
+      const history=(Array.isArray(d.confirmHistory)?d.confirmHistory:[])
+        .filter(h=>h && h.rowKey && Number.isFinite(parseFloat(h.qty)) && parseFloat(h.qty)>0 && h.at)
+        .map(h=>({
+          itemId:Number(h.itemId)||null,
+          itemName:h.itemName||"",
+          rowKey:String(h.rowKey),
+          qty:parseFloat(h.qty),
+          personId:h.personId||"",
+          personName:h.personName||h.personId||"",
+          at:String(h.at)
+        }));
+      return {
+        key,
+        zoneId:m[1],
+        zone:zone?zone.name:m[1],
+        month:m[2],
+        currentInstruction:{
+          irrigation:(d.checks||{})[6] ? {
+            method:(d.checks||{})[6],
+            tons:((d.extra||{})[6]||{}).tons ?? null,
+            minutes:((d.extra||{})[6]||{}).minutes ?? null,
+            pending:!!((d.pending||{})[6])
+          } : null,
+          fertilizer:(d.checks||{})[7] ? {
+            material:(d.checks||{})[7],
+            bags:((d.extra||{})[7]||{}).bags ?? null,
+            pending:!!((d.pending||{})[7])
+          } : null,
+          otherMaterials:(Array.isArray(d.multi8Main)?d.multi8Main:[]).map(name=>({
+            material:name,
+            qty:(d.extra8||{})[name] ?? null
+          }))
+        },
+        confirmedTotals:d.confirmedTotals||{},
+        confirmHistory:history
+      };
+    }
+
+    function teddyFarm51V51MaterialFacts(parsedRows, material=null) {
+      const facts=[];
+      for(const z of parsedRows.filter(Boolean)){
+        for(const h of z.confirmHistory||[]){
+          if(material && h.rowKey!==material) continue;
+          facts.push({...h,zone:z.zone,zoneId:z.zoneId,month:z.month,key:z.key});
+        }
+      }
+      facts.sort((a,b)=>{
+        const da=Date.parse(String(a.at).replace(/\//g,"-"))||0;
+        const db=Date.parse(String(b.at).replace(/\//g,"-"))||0;
+        return db-da;
+      });
+      return facts;
+    }
+
+    function teddyFarm51NativeAnswer(message, parsedRows) {
+      const q=String(message||"");
+      const zone=teddyFarm51ZoneFromText(q);
+      const material=(q.match(/米糠|金旺|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素|黃豆|水果/)||[])[0]||null;
+      const relevant=parsedRows.filter(x=>x && (!zone || x.zoneId===zone.id));
+      const facts=teddyFarm51V51MaterialFacts(relevant,material);
+
+      if(material && /(最近|最近一次|上次|最後一次|用了多少|使用.*多少|多少)/.test(q)){
+        if(!facts.length) {
+          const current=relevant.find(x=>x.currentInstruction?.fertilizer?.material===material);
+          if(current) {
+            const f=current.currentInstruction.fertilizer;
+            return `${current.zone}目前有一筆${material}指令：${f.bags ?? "未填數量"}包，${f.pending?"尚待確認":"目前未標示待確認"}。但 V5.1 的 confirmHistory 裡沒有查到已確認使用紀錄。`;
+          }
+          return `${zone?zone.name:"指定分區"}在目前讀到的 V5.1 最近月份中，沒有查到「${material}」的已確認使用紀錄。`;
+        }
+        const h=facts[0];
+        return `${h.zone}最近一次確認使用${h.rowKey}是 ${h.qty} 包，回報時間 ${h.at}${h.personName?`，回報人 ${h.personName}`:""}。`;
+      }
+
+      if(material && /(累計|總共|合計)/.test(q)){
+        const total=facts.reduce((s,x)=>s+x.qty,0);
+        return `${zone?zone.name:"所查分區"}在目前讀到的 V5.1 確認歷史中，${material}合計 ${total} 包，共 ${facts.length} 筆確認紀錄。`;
+      }
+
+      return null;
+    }
+
     function teddyFarm51SummarizeZoneWorkRows(rows) {
       const result=[];
       for(const r of rows){
@@ -2264,7 +2352,10 @@
           seen.add(k); return true;
         });
 
-        const zoneWorkSummary=teddyFarm51SummarizeZoneWorkRows(rows.filter(r=>String(r.key||"").startsWith("zonework:")));
+        const zoneWorkRows=rows.filter(r=>String(r.key||"").startsWith("zonework:"));
+        const zoneWorkSummary=teddyFarm51SummarizeZoneWorkRows(zoneWorkRows);
+        const v51ParsedZonework=zoneWorkRows.map(r=>teddyFarm51ParseV51Zonework(r.key,r.data)).filter(Boolean);
+        const v51ConfirmedFacts=teddyFarm51V51MaterialFacts(v51ParsedZonework);
 
         teddyFarm51DataContext=JSON.stringify({
           query:String(message),
@@ -2279,6 +2370,8 @@
             confirmed:"已確認用量會累積在 confirmedTotals，歷史在 confirmHistory"
           },
           zoneWorkSummary,
+          v51ParsedZonework,
+          v51ConfirmedFacts,
           recordCount:rows.length,
           records:rows
         },null,2);
@@ -2655,15 +2748,17 @@ ${teddyFarm51DataContext}`;
     }
 
     async function teddyFarm51North4RiceDirectReply() {
-      const d = await teddyFarm51DirectConnectionTest();
-      if (!d.ok) return `V5.1 直接讀取失敗：${d.error}`;
-      if (!d.north4Latest) return `已直接連到 ${d.project}，但目前找不到 zonework:north4 的資料。`;
-      const data=d.north4Latest.data || {};
-      const checks=data.checks || {};
-      const extra=data.extra || {};
-      const totals=data.confirmedTotals || {};
-      const hist=Array.isArray(data.confirmHistory)?data.confirmHistory:[];
-      return `已直接從 V5.1 讀到 ${d.north4Latest.key}。目前施肥選項：${checks[7] || "未設定"}；目前包數：${extra?.[7]?.bags ?? "未記錄"}；已確認累計：${JSON.stringify(totals)}；確認歷史 ${hist.length} 筆。`;
+      const d=await teddyFarm51DirectConnectionTest();
+      if(!d.ok) return `V5.1 直接讀取失敗：${d.error}`;
+      const s=await teddyFarm51EnsureMainStorage();
+      const keys=(d.zoneworkNorth4Keys||[]).slice().sort().reverse().slice(0,3);
+      const parsed=[];
+      for(const key of keys){
+        const r=await s.get(key);
+        if(r) parsed.push(teddyFarm51ParseV51Zonework(key,teddyFarm51SafeJson(r.value)));
+      }
+      const reply=teddyFarm51NativeAnswer("四北最近使用的米糠是多少",parsed);
+      return reply || `已連到 V5.1，但四北最近月份的 confirmHistory 沒有米糠確認紀錄。`;
     }
 
 
@@ -2699,7 +2794,6 @@ ${teddyFarm51DataContext}`;
         teddyUpdateLogDiv(thinkingDiv, msg);
         teddyHistory.push({ role:"assistant", text:msg });
         teddySaveHistory();
-        teddySpeak(msg, "sweet");
         return;
       }
 
@@ -2709,7 +2803,6 @@ ${teddyFarm51DataContext}`;
         teddyUpdateLogDiv(thinkingDiv, msg);
         teddyHistory.push({ role:"assistant", text:msg });
         teddySaveHistory();
-        teddySpeak(msg, "sweet");
         return;
       }
 
@@ -2719,7 +2812,6 @@ ${teddyFarm51DataContext}`;
         teddyUpdateLogDiv(thinkingDiv, msg);
         teddyHistory.push({ role:"assistant", text:msg });
         teddySaveHistory();
-        teddySpeak(msg, "sweet");
         return;
       }
 
@@ -2738,7 +2830,6 @@ ${teddyFarm51DataContext}`;
         teddyUpdateLogDiv(thinkingDiv, msg);
         teddyHistory.push({ role:"assistant", text:msg });
         teddySaveHistory();
-        teddySpeak(msg, "sweet");
         return;
       }
 
@@ -2786,6 +2877,23 @@ ${teddyFarm51DataContext}`;
           return;
         }
         teddyUpdateLogDiv(thinkingDiv, "🌱 已直接讀取完全體 V5.1，正在分析…");
+      }
+
+      // V5.1 native parser: answer common operational questions using the exact
+      // confirmHistory semantics used by V5.1 reports, before asking any LLM.
+      if (farmRead.required && teddyFarm51DataContext) {
+        try {
+          const ctx=JSON.parse(teddyFarm51DataContext);
+          const nativeReply=teddyFarm51NativeAnswer(text,ctx.v51ParsedZonework||[]);
+          if(nativeReply){
+            teddyUpdateLogDiv(thinkingDiv,nativeReply);
+            teddyHistory.push({role:"assistant",text:nativeReply});
+            teddySaveHistory();
+            // One TTS outlet only.
+            teddySpeak(nativeReply,"sweet");
+            return;
+          }
+        } catch(_) {}
       }
 
 let freshCheck = { ok:true, required:false };
