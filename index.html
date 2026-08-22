@@ -1605,12 +1605,16 @@
       return TEDDY_VOICE_STYLES[autoHint] ? autoHint : "sweet";
     }
 
+    let teddySpeakSeq = 0;
     async function teddySpeak(text, autoStyleHint, forcePreview = false) {
       if ((!teddyVoiceEnabled && !forcePreview) || !text) return;
       const clean = text.replace(/[*_`#]/g, "").trim();
       if (!clean) return;
+      const mySpeakSeq = ++teddySpeakSeq;
       const keys = loadKeys();
-      if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
+      // 單一語音通道：任何新朗讀都立即停止舊的 Audio 與瀏覽器 TTS。
+      if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); teddyCurrentAudio.currentTime = 0; } catch (_) {} teddyCurrentAudio = null; }
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (_) {}
 
       const styleKey = teddyResolveVoiceStyle(autoStyleHint);
       const instructions = TEDDY_VOICE_STYLES[styleKey] || TEDDY_VOICE_STYLES.sweet;
@@ -1641,9 +1645,11 @@
             // Some accounts/models may not expose every voice; nova is the compatibility fallback.
             blob = await requestVoice("nova");
           }
+          // 若等待 API 時已有更新的朗讀要求，丟棄這次舊語音，避免重疊。
+          if (mySpeakSeq !== teddySpeakSeq) return;
           const url = URL.createObjectURL(blob);
           teddyCurrentAudio = new Audio(url);
-          teddyCurrentAudio.onended = () => URL.revokeObjectURL(url);
+          teddyCurrentAudio.onended = () => { URL.revokeObjectURL(url); if (mySpeakSeq === teddySpeakSeq) teddyCurrentAudio = null; };
           await teddyCurrentAudio.play();
           teddyRecordTtsUsage(clean.length);
           return;
@@ -1665,6 +1671,7 @@
             zhVoices.find(v => /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao|Google.*中文|Microsoft.*Hsiao/i.test(v.name)) ||
             zhVoices[0];
           if (preferred) utter.voice = preferred;
+          if (mySpeakSeq !== teddySpeakSeq) return;
           window.speechSynthesis.speak(utter);
         } catch (_) {}
       }
@@ -2657,32 +2664,53 @@ ${parts}
     }
 
     async function ghQueryYield(q){
-      const s=await ghYieldStorage();
+      const store=await ghYieldStorage();
       const zone=ghFindZone(q);
       const zones=zone?[zone]:GH_ZONES;
       const periods=ghYieldMonthsForQuestion(q);
-      const rows=[];
+      const rows=[], seen=new Set();
+      const wantedYM=new Set(periods.map(p=>`${p.year}-${String(p.month).padStart(2,"0")}`));
+      const wantedYears=new Set(periods.map(p=>String(p.year)));
 
+      const pushRow=(key,value,updatedAt)=>{
+        const sig=key+"|"+JSON.stringify(value||{});
+        if(seen.has(sig))return; seen.add(sig);
+        rows.push(ghNormalizeYieldRecord({key,data:value,updatedAt}));
+      };
+
+      // 1) 現行逐日產量：不再用 2026-08 當硬切點，指定月份一律實際查詢。
       for(const p of periods){
         const ym=`${p.year}-${String(p.month).padStart(2,"0")}`;
         for(const z of zones){
-          if(`${ym}-01`<"2026-08-01"){
-            const key=`yieldArchive:${z.yield}:${p.year}`;
-            const r=await s.get(key);
-            if(!r)continue;
-            const archive=r.value&&typeof r.value==="object"?r.value:{};
-            const monthData={};
-            Object.keys(archive).filter(d=>d.startsWith(ym)).sort().forEach(d=>monthData[d]=archive[d]);
-            if(Object.keys(monthData).length){
-              rows.push(ghNormalizeYieldRecord({key,data:monthData,updatedAt:r.updatedAt}));
-            }
-          }else{
-            const prefix=`yield:${z.yield}:${ym}`;
-            const keys=await s.list(prefix);
-            for(const key of keys){
-              const r=await s.get(key);
-              if(r)rows.push(ghNormalizeYieldRecord({key,data:r.value,updatedAt:r.updatedAt}));
-            }
+          const keys=await store.list(`yield:${z.yield}:${ym}`);
+          for(const key of keys){ const r=await store.get(key); if(r)pushRow(key,r.value,r.updatedAt); }
+        }
+      }
+
+      // 2) 歷史封存：先探索實際存在的 yieldArchive key，兼容「年度一包」與其他舊命名。
+      //    這可避免把「五期 7 月」誤當成只有 8 月工作紀錄。
+      const archiveKeys=await store.list("yieldArchive:");
+      for(const key of archiveKeys){
+        const z=zones.find(x=>key.includes(`:${x.yield}:`)||key.includes(`:${x.id}:`));
+        if(!z)continue;
+        if(![...wantedYears].some(y=>key.includes(y)))continue;
+        const r=await store.get(key); if(!r)continue;
+        const raw=r.value&&typeof r.value==="object"?r.value:{};
+        const filtered={};
+        for(const [d,v] of Object.entries(raw)){
+          const ds=String(d);
+          if([...wantedYM].some(ym=>ds.startsWith(ym))) filtered[d]=v;
+        }
+        if(Object.keys(filtered).length)pushRow(key,filtered,r.updatedAt);
+      }
+
+      // 3) 舊資料若仍放在 yield: 下但命名不完全一致，再掃描 zone prefix 後依日期過濾。
+      if(!rows.length){
+        for(const z of zones){
+          const keys=await store.list(`yield:${z.yield}:`);
+          for(const key of keys){
+            if(![...wantedYM].some(ym=>key.includes(ym)))continue;
+            const r=await store.get(key); if(r)pushRow(key,r.value,r.updatedAt);
           }
         }
       }
