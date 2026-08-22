@@ -397,7 +397,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-full-read-bridge</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-complete-bridge</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -1735,23 +1735,47 @@
 
 
 
-    // ===== Teddy 3.5 ↔ 完全體 V5.1 FULL READ BRIDGE =====
+
+    // ===== Teddy 3.5 ↔ 完全體 V5.1 COMPLETE BRIDGE =====
     const TEDDY_FARM51_MAIN_CONFIG = {"apiKey": "AIzaSyDJXF_9jyibl5GsbJHEuPVBIOqQ2Eovjw4", "authDomain": "figapi-d24dc.firebaseapp.com", "projectId": "figapi-d24dc", "storageBucket": "figapi-d24dc.firebasestorage.app", "messagingSenderId": "334799549554", "appId": "1:334799549554:web:d197425c2c629ee53dbeeb", "measurementId": "G-T1ZZQ2K4Y8"};
     const TEDDY_FARM51_YIELD_CONFIG = {"apiKey": "AIzaSyBoHlZFS3fuhuS6MjYH8cPE3djbA--lJLY", "authDomain": "figdata-d2737.firebaseapp.com", "projectId": "figdata-d2737", "storageBucket": "figdata-d2737.firebasestorage.app", "messagingSenderId": "46163670891", "appId": "1:46163670891:web:c496942014d47ea19c7e2e"};
     const TEDDY_FARM51_YIELD_COLLECTION = "fbrfA_data";
+    const TEDDY_FARM51_PENDING_KEY = "teddy_farm51_pending_write_v2";
+
     const TEDDY_FARM51_ZONES = [
-      { id:"p1", name:"一期溫室", short:"一期" },
-      { id:"p2", name:"二期溫室 / 總公司", short:"二期" },
-      { id:"zone3", name:"三期溫室", short:"三期" },
-      { id:"north4", name:"四北溫室", short:"四北" },
-      { id:"south4", name:"四南溫室", short:"四南" },
-      { id:"zone5", name:"五期溫室", short:"五期" }
+      { id:"p1", name:"一期溫室", aliases:["一期","一期溫室","p1"] },
+      { id:"p2", name:"二期溫室", aliases:["二期","二期溫室","總公司","p2"] },
+      { id:"zone3", name:"三期溫室", aliases:["三期","三期溫室","zone3"] },
+      { id:"north4", name:"四北溫室", aliases:["四北","四北溫室","north4"] },
+      { id:"south4", name:"四南溫室", aliases:["四南","四南溫室","south4"] },
+      { id:"zone5", name:"五期溫室", aliases:["五期","五期溫室","zone5"] }
     ];
     const TEDDY_FARM51_YIELD_ZONES = ["一期","二期","三期","四南","四北","五期"];
+
+    const TEDDY_FARM51_SCHEMA = {
+      "person:": "人員/帳號資料",
+      "attendance:": "出勤與打卡資料，key = attendance:{personId}:{YYYY-MM-DD}",
+      "attendancePref:": "個人出勤偏好",
+      "attendanceLeaveTypes": "全場共用假別清單",
+      "worklog:": "分區格位工作紀錄與完成等級",
+      "zonework:": "分區共用工項紀錄",
+      "workmonth:": "工作月表，value = {day:{items:[code],note}}",
+      "monthlyWorkItemsList": "工作月表工項代號清單",
+      "spraylog:": "施肥/噴藥月曆，value = {day:[{code,name,dosage,qty,type}]}",
+      "sprayDrugList": "全場共用藥品清單",
+      "fertilizerList": "全場共用肥料清單",
+      "calendar:": "行事曆/年度計畫",
+      "zonenotice:": "分區通知/留言",
+      "printlog": "列印紀錄",
+      "yield:": "產能逐日紀錄（新資料）",
+      "yieldArchive:": "產能年度封存（2026-08-01 前）"
+    };
 
     let teddyFarm51MainStorage = null;
     let teddyFarm51YieldStorage = null;
     let teddyFarm51DataContext = "";
+    let teddyFarm51Pending = null;
+    let teddyFarm51CatalogCache = { ts:0, keys:[] };
 
     function teddyFarm51SafeJson(value) {
       if (value === null || value === undefined) return value;
@@ -1759,36 +1783,47 @@
       try { return JSON.parse(value); } catch (_) { return value; }
     }
 
+    function teddyFarm51Today() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function teddyFarm51ZoneFromText(text) {
+      const q = String(text || "").toLowerCase();
+      for (const z of TEDDY_FARM51_ZONES) {
+        if (z.aliases.some(a => q.includes(String(a).toLowerCase()))) return z;
+      }
+      return null;
+    }
+
     async function teddyFarm51EnsureMainStorage() {
       if (teddyFarm51MainStorage) return teddyFarm51MainStorage;
-      if (typeof firebase === "undefined") throw new Error("Firebase SDK 未載入");
       let app;
       try { app = firebase.app("farm51-main"); }
       catch (_) { app = firebase.initializeApp(TEDDY_FARM51_MAIN_CONFIG, "farm51-main"); }
       const db = app.firestore();
-      const COLLECTION = "kv";
+      const C = "kv";
       teddyFarm51MainStorage = {
         async get(key) {
-          const doc = await db.collection(COLLECTION).doc(key).get();
+          const doc = await db.collection(C).doc(key).get();
           if (!doc.exists) return null;
           const d = doc.data() || {};
           return { key, value:d.value, updatedAt:d.updatedAt || null };
         },
         async set(key, value) {
-          await db.collection(COLLECTION).doc(key).set({ key, value, updatedAt:Date.now() });
+          await db.collection(C).doc(key).set({ key, value, updatedAt:Date.now() });
           return { key, value };
         },
         async delete(key) {
-          await db.collection(COLLECTION).doc(key).delete();
+          await db.collection(C).doc(key).delete();
           return { key, deleted:true };
         },
         async list(prefix="") {
-          const end = prefix + "\uf8ff";
-          const snap = await db.collection(COLLECTION)
+          const snap = await db.collection(C)
             .where("key", ">=", prefix)
-            .where("key", "<", end)
+            .where("key", "<", prefix + "\uf8ff")
             .get();
-          return { keys:snap.docs.map(d=>d.id), prefix };
+          return { keys:snap.docs.map(d => d.id), prefix };
         }
       };
       return teddyFarm51MainStorage;
@@ -1796,7 +1831,6 @@
 
     async function teddyFarm51EnsureYieldStorage() {
       if (teddyFarm51YieldStorage) return teddyFarm51YieldStorage;
-      if (typeof firebase === "undefined") throw new Error("Firebase SDK 未載入");
       let app;
       try { app = firebase.app("farm51-yield"); }
       catch (_) { app = firebase.initializeApp(TEDDY_FARM51_YIELD_CONFIG, "farm51-yield"); }
@@ -1808,10 +1842,12 @@
           throw new Error("產能資料庫匿名登入失敗：" + e.message);
         }
       }
+
       const db = app.firestore();
       const C = TEDDY_FARM51_YIELD_COLLECTION;
-      const PREFIX = "fbrfA_";
-      const marker = shared => PREFIX + (shared ? "shared__" : "priv__");
+      const ROOT = "fbrfA_";
+      const marker = shared => ROOT + (shared ? "shared__" : "priv__");
+
       teddyFarm51YieldStorage = {
         async get(key, shared=false) {
           const doc = await db.collection(C).doc(marker(shared) + key).get();
@@ -1829,90 +1865,97 @@
             .where(firebase.firestore.FieldPath.documentId(), ">=", fp)
             .where(firebase.firestore.FieldPath.documentId(), "<", fp + "\uf8ff")
             .get();
-          return { keys:snap.docs.map(d=>d.id.slice(marker(shared).length)), prefix, shared };
+          return { keys:snap.docs.map(d => d.id.slice(marker(shared).length)), prefix, shared };
         }
       };
       return teddyFarm51YieldStorage;
     }
 
-    async function teddyFarm51ReadKey(key) {
+    async function teddyFarm51GetCatalog(force=false) {
+      if (!force && Date.now() - teddyFarm51CatalogCache.ts < 60000 && teddyFarm51CatalogCache.keys.length) {
+        return teddyFarm51CatalogCache.keys;
+      }
       const s = await teddyFarm51EnsureMainStorage();
-      const r = await s.get(key);
-      return r ? teddyFarm51SafeJson(r.value) : null;
-    }
-
-    async function teddyFarm51WriteKey(key, value) {
-      const s = await teddyFarm51EnsureMainStorage();
-      return await s.set(key, JSON.stringify(value));
+      const r = await s.list("");
+      const keys = r?.keys || [];
+      teddyFarm51CatalogCache = { ts:Date.now(), keys };
+      return keys;
     }
 
     function teddyFarm51ParseDateRequest(message) {
       const q = String(message || "");
       const now = new Date();
-      let year = null, month = null;
-      let m = q.match(/(20\d{2})\s*年\s*(\d{1,2})\s*月/);
-      if (m) { year = Number(m[1]); month = Number(m[2]); }
+      let year=null, month=null, day=null;
+      let m = q.match(/(20\d{2})\s*年\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*日)?/);
+      if (m) { year=+m[1]; month=+m[2]; day=m[3]?+m[3]:null; }
       else {
-        m = q.match(/(20\d{2})[\/-](\d{1,2})/);
-        if (m) { year = Number(m[1]); month = Number(m[2]); }
+        m = q.match(/(20\d{2})[\/-](\d{1,2})(?:[\/-](\d{1,2}))?/);
+        if (m) { year=+m[1]; month=+m[2]; day=m[3]?+m[3]:null; }
         else if (/上個月|上月/.test(q)) {
           const d = new Date(now.getFullYear(), now.getMonth()-1, 1);
           year=d.getFullYear(); month=d.getMonth()+1;
-        } else if (/這個月|本月|最近|近期|目前/.test(q)) {
+        } else if (/本月|這個月|目前|最近|近期/.test(q)) {
           year=now.getFullYear(); month=now.getMonth()+1;
         }
       }
-      return { year, month, ym:year&&month ? `${year}-${String(month).padStart(2,"0")}` : null };
+      return {
+        year, month, day,
+        ym:year&&month ? `${year}-${String(month).padStart(2,"0")}` : null,
+        ymd:year&&month&&day ? `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}` : null
+      };
     }
 
     function teddyFarm51QueryKinds(message) {
       const q = String(message || "").toLowerCase();
       return {
-        yield: /(產能|產量|生產量|採收量|收成|公斤|品質|a級|b級|d級|ng)/i.test(q),
+        yield: /(產能|產量|生產量|採收量|收成|a級|b級|d級|ng|公斤數)/i.test(q),
         water: /(澆水|灌溉|補水|溝灌|噴灌|水分)/i.test(q),
         fertilizer: /(施肥|肥料|米糠|金旺|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂|微量元素)/i.test(q),
         spray: /(噴藥|消毒|農藥|藥品|病蟲害)/i.test(q),
-        work: /(工項|工作|修剪|剪葉|打芽|除草|覆蓋|其他資材|紀錄)/i.test(q),
+        work: /(工項|工作|修剪|剪葉|打芽|除草|覆蓋|資材|巡田)/i.test(q),
         attendance: /(出勤|打卡|上班|下班|請假|假別)/i.test(q),
         people: /(人員|員工|帳號|權限)/i.test(q),
         calendar: /(行事曆|產季|剪枝|座果|度冬|年度計畫)/i.test(q),
-        notice: /(通知|公告|未讀)/i.test(q)
+        notice: /(通知|公告|未讀|留言)/i.test(q)
       };
     }
 
-    async function teddyFarm51FetchMainPrefix(prefix, filterFn=null, limit=120) {
+    async function teddyFarm51FetchMainKeys(keys, limit=180) {
       const s = await teddyFarm51EnsureMainStorage();
-      const listed = await s.list(prefix);
-      let keys = listed?.keys || [];
-      if (filterFn) keys = keys.filter(filterFn);
-      keys = keys.slice(0, limit);
-      const rows = [];
-      for (const key of keys) {
+      const rows=[];
+      for (const key of keys.slice(0,limit)) {
         try {
           const r = await s.get(key);
-          if (r) rows.push({ source:"V5.1-main", key, updatedAt:r.updatedAt, data:teddyFarm51SafeJson(r.value) });
+          if (r) rows.push({source:"V5.1-main", key, updatedAt:r.updatedAt, data:teddyFarm51SafeJson(r.value)});
         } catch (_) {}
       }
       return rows;
     }
 
+    async function teddyFarm51FetchPrefix(prefix, filterFn=null, limit=160) {
+      const keys = (await teddyFarm51GetCatalog()).filter(k => k.startsWith(prefix));
+      const selected = filterFn ? keys.filter(filterFn) : keys;
+      return await teddyFarm51FetchMainKeys(selected, limit);
+    }
+
     async function teddyFarm51FetchYieldMonth(year, month) {
       const s = await teddyFarm51EnsureYieldStorage();
-      const rows = [];
-      const ymPrefix = `${year}-${String(month).padStart(2,"0")}`;
+      const ym = `${year}-${String(month).padStart(2,"0")}`;
+      const rows=[];
+
       for (const zone of TEDDY_FARM51_YIELD_ZONES) {
-        if (`${year}-${String(month).padStart(2,"0")}-01` < "2026-08-01") {
+        if (`${ym}-01` < "2026-08-01") {
           const r = await s.get(`yieldArchive:${zone}:${year}`, false);
           if (!r) continue;
           const archive = teddyFarm51SafeJson(r.value) || {};
-          const monthData = {};
-          Object.keys(archive).filter(d => d.startsWith(ymPrefix)).sort().forEach(d => monthData[d] = archive[d]);
-          if (Object.keys(monthData).length) rows.push({ source:"V5.1-yield", key:`yieldArchive:${zone}:${year}`, zone, month:ymPrefix, data:monthData });
+          const data={};
+          Object.keys(archive).filter(d => d.startsWith(ym)).sort().forEach(d => data[d]=archive[d]);
+          if (Object.keys(data).length) rows.push({source:"V5.1-yield", zone, key:`yieldArchive:${zone}:${year}`, month:ym, data});
         } else {
-          const listed = await s.list(`yield:${zone}:${ymPrefix}`, false);
-          for (const key of (listed?.keys || [])) {
-            const r = await s.get(key, false);
-            if (r) rows.push({ source:"V5.1-yield", key, zone, data:teddyFarm51SafeJson(r.value) });
+          const listed = await s.list(`yield:${zone}:${ym}`, false);
+          for (const key of listed?.keys || []) {
+            const r = await s.get(key,false);
+            if (r) rows.push({source:"V5.1-yield", zone, key, data:teddyFarm51SafeJson(r.value)});
           }
         }
       }
@@ -1920,230 +1963,375 @@
     }
 
     async function teddyFarm51FetchYieldRecent(days=45) {
-      const now = new Date();
-      const months = new Set();
-      for (let i=0;i<days;i+=15) {
+      const now=new Date();
+      const months=new Set();
+      for(let i=0;i<days;i+=15){
         const d=new Date(now); d.setDate(now.getDate()-i);
         months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
       }
       const rows=[];
-      for (const ym of months) {
+      for(const ym of months){
         const [y,m]=ym.split("-").map(Number);
         rows.push(...await teddyFarm51FetchYieldMonth(y,m));
       }
       return rows;
     }
 
-    async function teddyFarm51BuildReadContext(message) {
-      const x = teddyFarm51Intent(message);
-      if (!x.farm) { teddyFarm51DataContext=""; return { ok:true, required:false }; }
+    function teddyFarm51RelevantCatalogKeys(message, dateReq) {
+      const q=String(message||"").toLowerCase();
+      const tokens=q.replace(/[，。,.!?！？：:；;\s]+/g," ").split(" ").filter(x=>x.length>=2);
+      const ym=dateReq.ym;
+      return teddyFarm51CatalogCache.keys.filter(key => {
+        const kl=key.toLowerCase();
+        if (ym && kl.includes(ym)) return true;
+        return tokens.some(tok => kl.includes(tok));
+      }).slice(0,80);
+    }
 
-      const kinds = teddyFarm51QueryKinds(message);
-      const dateReq = teddyFarm51ParseDateRequest(message);
-      let rows = [];
-      const ym = dateReq.ym;
-      const monthFilter = key => !ym || key.includes(ym);
+    async function teddyFarm51BuildReadContext(message) {
+      const farmIntent = teddyFarm51Intent(message);
+      if (!farmIntent.farm) {
+        teddyFarm51DataContext="";
+        return {ok:true,required:false};
+      }
+
+      const kinds=teddyFarm51QueryKinds(message);
+      const dateReq=teddyFarm51ParseDateRequest(message);
+      const ym=dateReq.ym;
+      const monthFilter = k => !ym || k.includes(ym);
+      let rows=[];
 
       try {
+        await teddyFarm51GetCatalog();
+
         if (kinds.yield) {
-          if (dateReq.year && dateReq.month) rows.push(...await teddyFarm51FetchYieldMonth(dateReq.year, dateReq.month));
-          else rows.push(...await teddyFarm51FetchYieldRecent(45));
+          if (dateReq.year && dateReq.month) rows.push(...await teddyFarm51FetchYieldMonth(dateReq.year,dateReq.month));
+          else rows.push(...await teddyFarm51FetchYieldRecent());
         }
-
         if (kinds.fertilizer || kinds.spray) {
-          rows.push(...await teddyFarm51FetchMainPrefix("spraylog:", monthFilter, 80));
-          rows.push(...await teddyFarm51FetchMainPrefix("fertilizerList", null, 5));
-          rows.push(...await teddyFarm51FetchMainPrefix("sprayDrugList", null, 5));
+          rows.push(...await teddyFarm51FetchPrefix("spraylog:",monthFilter,120));
+          rows.push(...await teddyFarm51FetchPrefix("fertilizerList",null,5));
+          rows.push(...await teddyFarm51FetchPrefix("sprayDrugList",null,5));
         }
-
-        const anySpecial = Object.values(kinds).some(Boolean);
-        if (kinds.water || kinds.work || !anySpecial) {
-          rows.push(...await teddyFarm51FetchMainPrefix("worklog:", monthFilter, 160));
-          rows.push(...await teddyFarm51FetchMainPrefix("zonework:", monthFilter, 80));
-          rows.push(...await teddyFarm51FetchMainPrefix("workmonth:", monthFilter, 80));
+        if (kinds.water || kinds.work) {
+          rows.push(...await teddyFarm51FetchPrefix("workmonth:",monthFilter,140));
+          rows.push(...await teddyFarm51FetchPrefix("worklog:",monthFilter,160));
+          rows.push(...await teddyFarm51FetchPrefix("zonework:",monthFilter,100));
+          rows.push(...await teddyFarm51FetchPrefix("monthlyWorkItemsList",null,5));
         }
-
         if (kinds.attendance) {
-          rows.push(...await teddyFarm51FetchMainPrefix("attendance:", null, 120));
-          rows.push(...await teddyFarm51FetchMainPrefix("attendanceLeaveTypes", null, 5));
+          rows.push(...await teddyFarm51FetchPrefix("attendance:",null,180));
+          rows.push(...await teddyFarm51FetchPrefix("attendancePref:",null,80));
+          rows.push(...await teddyFarm51FetchPrefix("attendanceLeaveTypes",null,5));
         }
-        if (kinds.people) rows.push(...await teddyFarm51FetchMainPrefix("person:", null, 120));
-        if (kinds.calendar) rows.push(...await teddyFarm51FetchMainPrefix("calendar:", monthFilter, 160));
-        if (kinds.notice) rows.push(...await teddyFarm51FetchMainPrefix("zonenotice:", null, 80));
+        if (kinds.people) rows.push(...await teddyFarm51FetchPrefix("person:",null,150));
+        if (kinds.calendar) rows.push(...await teddyFarm51FetchPrefix("calendar:",monthFilter,160));
+        if (kinds.notice) rows.push(...await teddyFarm51FetchPrefix("zonenotice:",null,100));
 
+        // Unknown fields/questions: use real key catalog rather than asking the user where data lives.
+        const matched=teddyFarm51RelevantCatalogKeys(message,dateReq);
+        if (matched.length) rows.push(...await teddyFarm51FetchMainKeys(matched,80));
+
+        // General farm question: show the core recent operational tables.
         if (!rows.length) {
-          const s = await teddyFarm51EnsureMainStorage();
-          const listed = await s.list("");
-          rows.push({ source:"V5.1-main", key:"__catalog__", data:{ keys:(listed?.keys||[]).slice(0,500) } });
+          rows.push(...await teddyFarm51FetchPrefix("workmonth:",monthFilter,120));
+          rows.push(...await teddyFarm51FetchPrefix("spraylog:",monthFilter,120));
         }
 
-        teddyFarm51DataContext = JSON.stringify({
+        // Deduplicate by source+key.
+        const seen=new Set();
+        rows=rows.filter(r=>{
+          const k=(r.source||"")+"|"+(r.key||"");
+          if(seen.has(k)) return false;
+          seen.add(k); return true;
+        });
+
+        teddyFarm51DataContext=JSON.stringify({
           query:String(message),
-          dateRequest:dateReq,
+          requestedPeriod:dateReq,
           zones:TEDDY_FARM51_ZONES,
+          schema:TEDDY_FARM51_SCHEMA,
+          availableMainKeys:teddyFarm51CatalogCache.keys.slice(0,600),
           recordCount:rows.length,
           records:rows
-        }, null, 2);
+        },null,2);
 
-        if (teddyFarm51DataContext.length > 90000) {
-          teddyFarm51DataContext = teddyFarm51DataContext.slice(0,90000) + "\n...[資料過多，已截斷]";
+        if(teddyFarm51DataContext.length>110000){
+          teddyFarm51DataContext=teddyFarm51DataContext.slice(0,110000)+"\n...[資料量過大，已截斷]";
         }
-        return { ok:true, required:true, count:rows.length };
-      } catch (e) {
+        return {ok:true,required:true,count:rows.length};
+      } catch(e) {
         teddyFarm51DataContext="";
-        return { ok:false, required:true, error:"完全體 V5.1 讀取失敗：" + e.message };
+        return {ok:false,required:true,error:"完全體 V5.1 讀取失敗："+e.message};
       }
     }
 
     function teddyFarm51ContextPrompt() {
-      if (!teddyFarm51DataContext) return "";
-      return `\n\n【完全體 V5.1 即時資料｜已直接讀取資料庫】
-以下 JSON 是剛從使用者的完全體 V5.1 真實資料庫讀到的資料。欄位名稱與內容必須照原資料理解，不可杜撰。
-你要直接用這些資料回答使用者，不要再反問使用者提供資料，除非資料庫真的沒有該欄位或沒有該期間紀錄。
-若問題涉及六個溫室，主系統分區為：一期(p1)、二期(p2)、三期(zone3)、四北(north4)、四南(south4)、五期(zone5)；產能模組名稱為一期、二期、三期、四南、四北、五期。
-產能資料中 A/B/D/NG 各自是秤重陣列，單筆通常包含 gross(總重kg)、baskets(籃數)、net(淨重kg)、ts(時間)。
-回答時先統整，再指出異常或缺資料，不要把「沒有紀錄」說成「沒有做」。
+      if(!teddyFarm51DataContext) return "";
+      return `\n\n【完全體 V5.1 即時資料｜資料庫直讀】
+以下 JSON 是剛從 V5.1 真實資料庫讀出的資料與欄位。必須以這些資料回答，不要要求使用者重新提供 V5.1 已存在的資料。
+若某期間沒有紀錄，只能說「沒有查到紀錄」，不能推論成「沒有做」。
+六個溫室：一期、二期、三期、四南、四北、五期。
+產能 A/B/D/NG 為品質分類；每筆秤重常見 gross、baskets、net、ts。
 ${teddyFarm51DataContext}`;
     }
 
-
-    // ===== Teddy 3.5 ↔ 完全體 V5.1 Safe Farm Bridge =====
-    const TEDDY_FARM51_PENDING_KEY = "teddy_farm51_pending_write";
-    let teddyFarm51Pending = null;
-
-    function teddyFarm51Today() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    }
-
+    // ---------- Safe confirmed writing ----------
     function teddyFarm51NormalizeDraft(draft) {
-      const x = draft && typeof draft === "object" ? draft : {};
+      const x=draft&&typeof draft==="object"?draft:{};
       return {
-        date: String(x.date || teddyFarm51Today()),
-        zone: String(x.zone || x.area || "").trim(),
-        slot: String(x.slot || x.grid || "").trim(),
-        task: String(x.task || x.work || "").trim(),
-        material: String(x.material || "").trim(),
-        amount: String(x.amount || "").trim(),
-        note: String(x.note || "").trim(),
-        source: "TEDDY 3.5",
-        createdAt: new Date().toISOString()
+        date:String(x.date||teddyFarm51Today()),
+        zone:String(x.zone||"").trim(),
+        task:String(x.task||"").trim(),
+        material:String(x.material||"").trim(),
+        amount:String(x.amount||"").trim(),
+        quality:String(x.quality||"").trim().toUpperCase(),
+        note:String(x.note||"").trim(),
+        source:"TEDDY 3.5",
+        createdAt:new Date().toISOString()
       };
     }
 
-    function teddyFarm51BuildKey(draft) {
-      // V5.1 uses worklog:<zone>:<year>:<month> as an established family of keys.
-      // Keep Teddy entries namespaced below worklog so existing data is not overwritten.
-      const d = new Date(draft.date + "T12:00:00");
-      const y = Number.isNaN(d.getTime()) ? new Date().getFullYear() : d.getFullYear();
-      const m = Number.isNaN(d.getTime()) ? new Date().getMonth()+1 : d.getMonth()+1;
-      const zone = (draft.zone || "未指定").replace(/[:/\\#?]/g, "_");
-      return `worklog:${zone}:${y}:${String(m).padStart(2,"0")}`;
+    function teddyFarm51ExtractDraftFromText(message) {
+      const q=String(message||"").trim();
+      const dateReq=teddyFarm51ParseDateRequest(q);
+      const zone=teddyFarm51ZoneFromText(q);
+      const draft={
+        date:dateReq.ymd||teddyFarm51Today(),
+        zone:zone?zone.id:"",
+        task:"",
+        material:"",
+        amount:"",
+        quality:"",
+        note:q
+      };
+
+      const taskM=q.match(/(澆水|灌溉|溝灌|噴灌|施肥|噴藥|打藥|消毒|除草|修剪|剪枝|打高芽|打底芽|拉線|米糠|採收|巡田)/);
+      if(taskM) draft.task=taskM[1];
+
+      const amountM=q.match(/(\d+(?:\.\d+)?)\s*(公斤|kg|公克|克|g|公升|L|毫升|ml|包|份|分鐘|小時)/i);
+      if(amountM) draft.amount=amountM[1]+amountM[2];
+
+      const qualityM=q.match(/\b(A|B|D|NG)\s*級?\b/i);
+      if(qualityM) draft.quality=qualityM[1].toUpperCase();
+
+      const materialM=q.match(/(?:施肥|使用|用了?|加入|噴藥|打藥|消毒)\s*([^，。,.]+?)(?=\s*\d|，|。|,|$)/);
+      if(materialM) draft.material=materialM[1].trim();
+
+      return draft;
     }
 
-    async function teddyFarm51ReadKey(key) {
-      if (!window.storage || typeof window.storage.get !== "function") throw new Error("完全體 storage 尚未連線");
-      const r = await window.storage.get(key);
-      if (!r) return null;
-      try { return JSON.parse(r.value); } catch (_) { return r.value; }
+    function teddyFarm51WriteType(draft) {
+      const task=draft.task;
+      if(/施肥|米糠/.test(task)) return "fertilizer";
+      if(/噴藥|打藥|消毒/.test(task)) return "spray";
+      if(/採收/.test(task) && draft.quality && draft.amount) return "yield";
+      return "workmonth";
     }
 
-    async function teddyFarm51WriteKey(key, value) {
-      if (!window.storage || typeof window.storage.set !== "function") throw new Error("完全體 storage 尚未連線");
-      return await window.storage.set(key, JSON.stringify(value));
+    async function teddyFarm51ResolveMaterial(draft,type) {
+      const s=await teddyFarm51EnsureMainStorage();
+      const key=type==="fertilizer"?"fertilizerList":"sprayDrugList";
+      const r=await s.get(key);
+      const list=r?teddyFarm51SafeJson(r.value):[];
+      if(!Array.isArray(list)) return null;
+      const needle=(draft.material||"").toLowerCase();
+      if(!needle) return null;
+      return list.find(x =>
+        String(x.code||"").toLowerCase()===needle ||
+        String(x.name||"").toLowerCase()===needle ||
+        String(x.name||"").toLowerCase().includes(needle) ||
+        needle.includes(String(x.name||"").toLowerCase())
+      ) || null;
+    }
+
+    async function teddyFarm51CommitSprayLog(draft,type) {
+      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
+      if(!zone) throw new Error("找不到分區");
+      const d=new Date(draft.date+"T12:00:00");
+      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      const day=String(d.getDate());
+      const key=`spraylog:${zone.id}:${ym}`;
+      const existing=await teddyFarm51ReadKey(key) || {};
+      const arr=Array.isArray(existing[day])?[...existing[day]]:[];
+
+      const item=await teddyFarm51ResolveMaterial(draft,type);
+      if(!item) throw new Error(`V5.1 ${type==="fertilizer"?"肥料":"藥品"}清單找不到「${draft.material||"未指定材料"}」，先在 V5.1 清單建立後再寫入`);
+
+      let qty=1;
+      const n=parseFloat(draft.amount);
+      if(Number.isFinite(n)&&n>0) qty=n;
+
+      const entry={...item,qty,type:type==="fertilizer"?"fertilizer":"drug"};
+      const idx=arr.findIndex(x=>x.code===entry.code);
+      if(idx>=0) arr[idx]=entry; else arr.push(entry);
+      existing[day]=arr;
+      await teddyFarm51WriteKey(key,existing);
+      return {key,day,entry};
+    }
+
+    async function teddyFarm51CommitWorkMonth(draft) {
+      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
+      if(!zone) throw new Error("找不到分區");
+      const d=new Date(draft.date+"T12:00:00");
+      const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      const day=String(d.getDate());
+      const key=`workmonth:${zone.id}:${ym}`;
+      const existing=await teddyFarm51ReadKey(key) || {};
+
+      const s=await teddyFarm51EnsureMainStorage();
+      const listRes=await s.get("monthlyWorkItemsList");
+      let items=listRes?teddyFarm51SafeJson(listRes.value):[];
+      if(!Array.isArray(items)||!items.length) items=[
+        {code:"除",name:"除草"},{code:"剪",name:"剪枝"},{code:"高",name:"打高芽"},
+        {code:"底",name:"打底芽"},{code:"肥",name:"施肥"},{code:"溝",name:"溝灌"},
+        {code:"噴",name:"噴灌"},{code:"線",name:"拉線"},{code:"糠",name:"米糠"},{code:"藥",name:"噴藥"}
+      ];
+
+      const aliases={
+        "澆水":["溝灌","噴灌"],"灌溉":["溝灌","噴灌"],"修剪":["剪枝"],"施肥":["施肥"],
+        "除草":["除草"],"打高芽":["打高芽"],"打底芽":["打底芽"],"拉線":["拉線"],"米糠":["米糠"],
+        "噴藥":["噴藥"],"打藥":["噴藥"],"巡田":[]
+      };
+      const wanted=aliases[draft.task]||[draft.task];
+      let found=null;
+      for(const name of wanted){
+        found=items.find(x=>x.name===name||x.code===name);
+        if(found) break;
+      }
+
+      const prev=existing[day]&&typeof existing[day]==="object"?existing[day]:{items:[],note:""};
+      const codes=Array.isArray(prev.items)?[...prev.items]:[];
+      if(found && !codes.includes(found.code)) codes.push(found.code);
+
+      const noteParts=[prev.note||"",draft.note||""];
+      if(draft.amount) noteParts.push(`用量/時間：${draft.amount}`);
+      const note=[...new Set(noteParts.map(x=>String(x).trim()).filter(Boolean))].join("；");
+      existing[day]={items:codes,note};
+      await teddyFarm51WriteKey(key,existing);
+      return {key,day,entry:existing[day]};
+    }
+
+    async function teddyFarm51CommitYield(draft) {
+      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===draft.zone);
+      if(!zone) throw new Error("找不到分區");
+      const yieldZone=zone.name.replace("溫室","");
+      const quality=draft.quality;
+      if(!["A","B","D","NG"].includes(quality)) throw new Error("產能寫入需要 A/B/D/NG 品質分類");
+      const kg=parseFloat(draft.amount);
+      if(!Number.isFinite(kg)||kg<=0) throw new Error("產能寫入需要公斤數");
+
+      const s=await teddyFarm51EnsureYieldStorage();
+      let record={A:[],B:[],D:[],NG:[]};
+
+      if(draft.date<"2026-08-01"){
+        const year=draft.date.slice(0,4);
+        const key=`yieldArchive:${yieldZone}:${year}`;
+        const r=await s.get(key,false);
+        const archive=r?teddyFarm51SafeJson(r.value):{};
+        record=archive[draft.date]||record;
+        record[quality]=Array.isArray(record[quality])?record[quality]:[];
+        record[quality].push({gross:kg,baskets:0,net:kg,ts:"TEDDY 3.5 確認寫入"});
+        archive[draft.date]=record;
+        await s.set(key,JSON.stringify(archive),false);
+        return {key,date:draft.date,quality,kg};
+      } else {
+        const key=`yield:${yieldZone}:${draft.date}`;
+        const r=await s.get(key,false);
+        if(r) record=teddyFarm51SafeJson(r.value)||record;
+        record[quality]=Array.isArray(record[quality])?record[quality]:[];
+        record[quality].push({gross:kg,baskets:0,net:kg,ts:"TEDDY 3.5 確認寫入"});
+        await s.set(key,JSON.stringify(record),false);
+        return {key,date:draft.date,quality,kg};
+      }
     }
 
     function teddyFarm51StageWrite(draft) {
-      teddyFarm51Pending = teddyFarm51NormalizeDraft(draft);
-      localStorage.setItem(TEDDY_FARM51_PENDING_KEY, JSON.stringify(teddyFarm51Pending));
-      const panel = document.getElementById("teddyFarmBridgePanel");
-      const preview = document.getElementById("teddyFarmBridgePreview");
-      if (preview) preview.textContent =
-        `日期：${teddyFarm51Pending.date}\n` +
-        `分區：${teddyFarm51Pending.zone || "未指定"}\n` +
-        `格位：${teddyFarm51Pending.slot || "未指定"}\n` +
-        `工項：${teddyFarm51Pending.task || "未指定"}\n` +
-        `材料：${teddyFarm51Pending.material || "無"}\n` +
-        `用量：${teddyFarm51Pending.amount || "無"}\n` +
-        `備註：${teddyFarm51Pending.note || "無"}`;
-      if (panel) panel.style.display = "block";
+      teddyFarm51Pending=teddyFarm51NormalizeDraft(draft);
+      localStorage.setItem(TEDDY_FARM51_PENDING_KEY,JSON.stringify(teddyFarm51Pending));
+      const panel=document.getElementById("teddyFarmBridgePanel");
+      const preview=document.getElementById("teddyFarmBridgePreview");
+      const zone=TEDDY_FARM51_ZONES.find(z=>z.id===teddyFarm51Pending.zone);
+      if(preview) preview.textContent=
+        `日期：${teddyFarm51Pending.date}\n`+
+        `分區：${zone?zone.name:"未指定"}\n`+
+        `工項：${teddyFarm51Pending.task||"未指定"}\n`+
+        `材料：${teddyFarm51Pending.material||"無"}\n`+
+        `用量：${teddyFarm51Pending.amount||"無"}\n`+
+        `品質：${teddyFarm51Pending.quality||"無"}\n`+
+        `備註：${teddyFarm51Pending.note||"無"}`;
+      if(panel) panel.style.display="block";
       return teddyFarm51Pending;
     }
 
     function teddyFarm51CancelWrite() {
-      teddyFarm51Pending = null;
+      teddyFarm51Pending=null;
       localStorage.removeItem(TEDDY_FARM51_PENDING_KEY);
-      const panel = document.getElementById("teddyFarmBridgePanel");
-      if (panel) panel.style.display = "none";
+      const panel=document.getElementById("teddyFarmBridgePanel");
+      if(panel) panel.style.display="none";
     }
 
     async function teddyFarm51CommitPending() {
-      if (!teddyFarm51Pending) throw new Error("目前沒有待寫入的農場紀錄");
-      throw new Error("為保護完全體 V5.1 正確資料，目前 3.5 已開放完整讀取與分析；寫入先保留草稿確認，不直接寫入未知欄位。");
-    }
+      if(!teddyFarm51Pending) throw new Error("目前沒有待寫入紀錄");
+      const draft=teddyFarm51Pending;
+      if(!draft.zone) throw new Error("缺少分區");
+      if(!draft.task) throw new Error("缺少工項");
 
-    function teddyFarm51ExtractDraftFromText(message) {
-      const q = String(message || "").trim();
-      const draft = { date: teddyFarm51Today(), zone:"", slot:"", task:"", material:"", amount:"", note:q };
-      const dateM = q.match(/(\d{1,2})月(\d{1,2})日/);
-      if (dateM) {
-        const y = new Date().getFullYear();
-        draft.date = `${y}-${String(dateM[1]).padStart(2,"0")}-${String(dateM[2]).padStart(2,"0")}`;
-      }
-      const zoneM = q.match(/(?:在|於)?\s*([A-Za-z0-9一二三四五六七八九十東西南北甲乙丙丁]+(?:區|溫室|田|棚))/);
-      if (zoneM) draft.zone = zoneM[1];
-      const slotM = q.match(/(?:第)?([A-Za-z0-9一二三四五六七八九十]+)(?:格|畦|床)/);
-      if (slotM) draft.slot = slotM[1];
-      const amountM = q.match(/(\d+(?:\.\d+)?)\s*(公斤|公克|克|kg|g|公升|毫升|L|ml|分鐘|小時)/i);
-      if (amountM) draft.amount = amountM[1] + amountM[2];
-      const materialM = q.match(/(?:施肥|使用|用了?|噴(?:藥)?|加入)\s*([^\s，。,.]+)(?:\s|，|。|,|$)/);
-      if (materialM) draft.material = materialM[1];
-      const taskM = q.match(/(澆水|灌溉|施肥|噴藥|除草|修剪|採收|整枝|疏果|巡田|病蟲害檢查|打藥|換盆|定植|種植)/);
-      if (taskM) draft.task = taskM[1];
-      return draft;
+      const type=teddyFarm51WriteType(draft);
+      let result;
+      if(type==="fertilizer"||type==="spray") result=await teddyFarm51CommitSprayLog(draft,type);
+      else if(type==="yield") result=await teddyFarm51CommitYield(draft);
+      else result=await teddyFarm51CommitWorkMonth(draft);
+
+      teddyFarm51CancelWrite();
+      teddyFarm51CatalogCache.ts=0;
+      return {ok:true,type,...result};
     }
 
     function teddyFarm51ShouldStage(message) {
-      const x = teddyFarm51Intent(message);
-      return x.farm && x.wantsWrite;
+      const x=teddyFarm51Intent(message);
+      return x.farm&&x.wantsWrite;
     }
 
     async function teddyFarm51HandleNaturalWrite(message) {
-      if (!teddyFarm51ShouldStage(message)) return null;
-      const draft = teddyFarm51ExtractDraftFromText(message);
+      if(!teddyFarm51ShouldStage(message)) return null;
+      const draft=teddyFarm51ExtractDraftFromText(message);
       teddyFarm51StageWrite(draft);
-      const missing = [];
-      if (!draft.zone) missing.push("分區");
-      if (!draft.task) missing.push("工項");
-      if (missing.length) {
-        return `我先整理成完全體 V5.1 的待寫入草稿了，但還缺 ${missing.join("、")}。補上後再確認寫入。`;
-      }
-      return `我已整理成完全體 V5.1 的待寫入紀錄。請看下方內容；確認無誤後按「確認寫入」。`;
+      const missing=[];
+      if(!draft.zone) missing.push("分區");
+      if(!draft.task) missing.push("工項");
+      if((/施肥|噴藥|打藥|消毒/.test(draft.task))&&!draft.material) missing.push("材料名稱");
+      if(/採收/.test(draft.task)&&(!draft.quality||!draft.amount)) missing.push("品質等級與公斤數");
+      if(missing.length) return `我已先建立 V5.1 待寫入草稿，但還缺 ${missing.join("、")}。補齊後再確認寫入。`;
+      return "我已整理成 V5.1 待寫入草稿。請先看內容，確認無誤後按「確認寫入」。";
     }
 
     function teddyFarm51InitBridge() {
-      try {
-        const saved = localStorage.getItem(TEDDY_FARM51_PENDING_KEY);
-        if (saved) teddyFarm51StageWrite(JSON.parse(saved));
-      } catch (_) {}
-      const yes = document.getElementById("teddyFarmBridgeConfirm");
-      const no = document.getElementById("teddyFarmBridgeCancel");
-      if (no) no.onclick = () => {
+      try{
+        const saved=localStorage.getItem(TEDDY_FARM51_PENDING_KEY);
+        if(saved) teddyFarm51StageWrite(JSON.parse(saved));
+      }catch(_){}
+
+      const yes=document.getElementById("teddyFarmBridgeConfirm");
+      const no=document.getElementById("teddyFarmBridgeCancel");
+
+      if(no) no.onclick=()=>{
         teddyFarm51CancelWrite();
-        teddyAppendLog("teddy", "好，這筆沒有寫入完全體。");
+        teddyAppendLog("teddy","好，這筆沒有寫入完全體 V5.1。");
       };
-      if (yes) yes.onclick = async () => {
-        yes.disabled = true;
-        yes.textContent = "寫入中…";
-        try {
-          const r = await teddyFarm51CommitPending();
-          teddyAppendLog("teddy", `已寫入完全體 V5.1。紀錄位置：${r.key}。`);
-          teddySpeak("已經幫你寫進完全體了。", "sweet");
-        } catch (e) {
-          teddyAppendLog("teddy", "寫入失敗：" + e.message);
-        } finally {
-          yes.disabled = false;
-          yes.textContent = "確認寫入";
+
+      if(yes) yes.onclick=async()=>{
+        yes.disabled=true;
+        yes.textContent="寫入中…";
+        try{
+          const r=await teddyFarm51CommitPending();
+          teddyAppendLog("teddy",`已確認寫入完全體 V5.1。位置：${r.key}`);
+          teddySpeak("已經確認寫進完全體了。","sweet");
+        }catch(e){
+          teddyAppendLog("teddy","寫入失敗："+e.message);
+        }finally{
+          yes.disabled=false;
+          yes.textContent="確認寫入";
         }
       };
     }
