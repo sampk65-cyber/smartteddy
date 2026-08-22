@@ -2305,6 +2305,8 @@ ${parts}
   
     // ===== Explicit dual mode; original Teddy 3.5 memory/chat code untouched =====
     const GH_MAIN={apiKey:"AIzaSyDJXF_9jyibl5GsbJHEuPVBIOqQ2Eovjw4",projectId:"figapi-d24dc"};
+    // 「產能」資料實際存在完全不同的 Firebase 專案／集合（來自完全體 V5.1 功能3 的獨立內嵌模組）
+    const GH_YIELD={apiKey:"AIzaSyBoHlZFS3fuhuS6MjYH8cPE3djbA--lJLY",projectId:"figdata-d2737"};
 
     function setUiMode(mode){
       const farm=mode==="greenhouse";
@@ -2325,6 +2327,10 @@ ${parts}
       d.style.color=role==="user"?"#d8fff1":"#a9c3b9";
       d.textContent=(role==="user"?"你：":"Pongchi：")+text;
       box.appendChild(d); box.scrollTop=box.scrollHeight;
+      // 溫室模式先前完全沒接語音：assistant 訊息現在比照一般模式，用同一套 TTS 唸出來
+      if(role==="assistant"){
+        try{ teddySpeak(text, teddyAutoDetectVoiceStyle(text, [])); }catch(_){}
+      }
     }
 
     function ghDecode(v){
@@ -2368,9 +2374,23 @@ ${parts}
       return filtered;
     }
 
+    // ===== 產能資料查詢：獨立 Firebase 專案（figdata-d2737），跟主資料庫（figapi-d24dc）分開存放 =====
+    async function ghQueryYield(q){
+      const db=`projects/${GH_YIELD.projectId}/databases/(default)`;
+      const url=`https://firestore.googleapis.com/v1/${db}/documents:runQuery?key=${encodeURIComponent(GH_YIELD.apiKey)}`;
+      const rows=await ghFetchJson(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:{from:[{collectionId:"fbrfA_data"}],limit:500}})});
+      const docs=(rows||[]).filter(x=>x.document).map(x=>{
+        const d=ghDocDecode(x.document);
+        let val=d.value; try{if(typeof val==="string")val=JSON.parse(val);}catch(_){}
+        return{key:d.key,data:val};
+      });
+      // 產能模組把資料分成 shared__（全體共用）跟 priv__（各帳號私人），這裡只抓共用資料
+      return docs.filter(x=>x.key.startsWith("shared__")).slice(0,120);
+    }
+
     async function ghAskAI(q,records){
       const keys=loadKeys();
-      const system="你是農場溫室管理助理。以下 JSON 來自完全體 V5.1。只能依資料回答；沒查到就說沒查到。回答繁體中文、自然精簡。";
+      const system="你是農場溫室管理助理。以下 JSON 來自完全體 V5.1（含主資料庫與獨立的產能模組）。只能依資料回答；沒查到就說沒查到。回答繁體中文、自然精簡。";
       const content=`問題：${q}\n\nV5.1資料：\n${JSON.stringify(records,null,2).slice(0,90000)}`;
       const select=document.getElementById("teddyModelSelect"),pref=select?select.value:"auto";
       if((pref==="anthropic"||pref==="auto")&&keys.anthropic){
@@ -2410,8 +2430,15 @@ ${parts}
       input.value="";ghLog("user",q);btn.disabled=true;document.getElementById("greenhouseStatus").textContent="正在讀取 V5.1…";
       try{
         const rows=await ghQueryV51(q);
-        document.getElementById("greenhouseStatus").textContent=`V5.1 已讀取 ${rows.length} 筆資料，正在整理…`;
-        ghLog("assistant",await ghAskAI(q,rows));
+        let yieldRows=[];
+        // 只有問題像是在問產能/收成相關才多打一次 API，避免每次查詢都多打不必要的請求
+        if(/產能|收成|採收|收穫|產量|公斤|箱數|重量/.test(q)){
+          try{ yieldRows=await ghQueryYield(q); }
+          catch(e){ console.error("產能資料查詢失敗：",e); } // 產能庫查不到也不擋主查詢
+        }
+        const allRows=[...rows,...yieldRows];
+        document.getElementById("greenhouseStatus").textContent=`V5.1 已讀取 ${allRows.length} 筆資料，正在整理…`;
+        ghLog("assistant",await ghAskAI(q,allRows));
       }catch(e){ghLog("assistant","查詢失敗："+e.message);}
       finally{btn.disabled=false;document.getElementById("greenhouseStatus").textContent="獨立入口 · 不改 Pongchi 記憶";}
     }
