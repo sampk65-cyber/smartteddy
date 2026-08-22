@@ -397,7 +397,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-actual-schema-bridge</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-rest-direct-bridge</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -1798,33 +1798,143 @@
 
     async function teddyFarm51EnsureMainStorage() {
       if (teddyFarm51MainStorage) return teddyFarm51MainStorage;
-      let app;
-      try { app = firebase.app("farm51-main"); }
-      catch (_) { app = firebase.initializeApp(TEDDY_FARM51_MAIN_CONFIG, "farm51-main"); }
-      const db = app.firestore();
-      const C = "kv";
-      teddyFarm51MainStorage = {
-        async get(key) {
-          const doc = await db.collection(C).doc(key).get();
-          if (!doc.exists) return null;
-          const d = doc.data() || {};
-          return { key, value:d.value, updatedAt:d.updatedAt || null };
-        },
-        async set(key, value) {
-          await db.collection(C).doc(key).set({ key, value, updatedAt:Date.now() });
-          return { key, value };
-        },
-        async delete(key) {
-          await db.collection(C).doc(key).delete();
-          return { key, deleted:true };
-        },
-        async list(prefix="") {
-          const snap = await db.collection(C)
-            .where("key", ">=", prefix)
-            .where("key", "<", prefix + "\uf8ff")
-            .get();
-          return { keys:snap.docs.map(d => d.id), prefix };
+
+      const cfg = TEDDY_FARM51_MAIN_CONFIG;
+      const project = cfg.projectId;
+      const apiKey = cfg.apiKey;
+      const dbPath = `projects/${project}/databases/(default)`;
+      const base = `https://firestore.googleapis.com/v1/${dbPath}/documents`;
+      const runQueryUrl = `https://firestore.googleapis.com/v1/${dbPath}/documents:runQuery?key=${encodeURIComponent(apiKey)}`;
+
+      function decodeValue(v) {
+        if (!v || typeof v !== "object") return null;
+        if ("stringValue" in v) return v.stringValue;
+        if ("integerValue" in v) return Number(v.integerValue);
+        if ("doubleValue" in v) return Number(v.doubleValue);
+        if ("booleanValue" in v) return !!v.booleanValue;
+        if ("nullValue" in v) return null;
+        if ("timestampValue" in v) return v.timestampValue;
+        if ("arrayValue" in v) return (v.arrayValue.values || []).map(decodeValue);
+        if ("mapValue" in v) {
+          const o={};
+          const fields=v.mapValue.fields||{};
+          Object.keys(fields).forEach(k=>o[k]=decodeValue(fields[k]));
+          return o;
         }
+        return null;
+      }
+
+      function decodeDoc(doc) {
+        if (!doc) return null;
+        const f = doc.fields || {};
+        const id = decodeURIComponent(String(doc.name || "").split("/").pop() || "");
+        return {
+          key: decodeValue(f.key) || id,
+          value: decodeValue(f.value),
+          updatedAt: decodeValue(f.updatedAt)
+        };
+      }
+
+      async function restJson(url, options={}) {
+        const r = await fetch(url, options);
+        let d=null;
+        try { d=await r.json(); } catch (_) {}
+        if (!r.ok) {
+          const msg=d?.error?.message || `Firestore REST HTTP ${r.status}`;
+          throw new Error(msg);
+        }
+        return d;
+      }
+
+      async function restGet(key) {
+        const url = `${base}/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(apiKey)}`;
+        try {
+          const doc = await restJson(url);
+          return decodeDoc(doc);
+        } catch (e) {
+          if (/NOT_FOUND|404/i.test(e.message)) return null;
+          throw e;
+        }
+      }
+
+      async function restSet(key, value) {
+        const url = `${base}/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(apiKey)}`;
+        const body = {
+          fields: {
+            key: { stringValue: key },
+            value: { stringValue: String(value) },
+            updatedAt: { integerValue: String(Date.now()) }
+          }
+        };
+        await restJson(url, {
+          method:"PATCH",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify(body)
+        });
+        return { key, value };
+      }
+
+      async function restDelete(key) {
+        const url = `${base}/kv/${encodeURIComponent(key)}?key=${encodeURIComponent(apiKey)}`;
+        const r = await fetch(url, { method:"DELETE" });
+        if (!r.ok && r.status !== 404) {
+          let d=null; try { d=await r.json(); } catch (_) {}
+          throw new Error(d?.error?.message || `Firestore REST HTTP ${r.status}`);
+        }
+        return { key, deleted:true };
+      }
+
+      async function restList(prefix="") {
+        const filters = [];
+        if (prefix) {
+          filters.push({
+            fieldFilter:{
+              field:{ fieldPath:"key" },
+              op:"GREATER_THAN_OR_EQUAL",
+              value:{ stringValue:prefix }
+            }
+          });
+          filters.push({
+            fieldFilter:{
+              field:{ fieldPath:"key" },
+              op:"LESS_THAN",
+              value:{ stringValue:prefix + "\uf8ff" }
+            }
+          });
+        }
+
+        const structuredQuery = {
+          from:[{ collectionId:"kv" }],
+          select:{ fields:[{fieldPath:"key"}] },
+          limit:500
+        };
+        if (filters.length === 1) structuredQuery.where = filters[0];
+        else if (filters.length > 1) structuredQuery.where = {
+          compositeFilter:{ op:"AND", filters }
+        };
+
+        const rows = await restJson(runQueryUrl, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify({ structuredQuery })
+        });
+        const keys=[];
+        for (const row of (rows || [])) {
+          if (!row.document) continue;
+          const d=decodeDoc(row.document);
+          if (d?.key) keys.push(d.key);
+        }
+        keys.sort();
+        return { keys, prefix };
+      }
+
+      teddyFarm51MainStorage = {
+        get:restGet,
+        set:restSet,
+        delete:restDelete,
+        list:restList,
+        mode:"firestore-rest",
+        projectId:project
       };
       return teddyFarm51MainStorage;
     }
@@ -2459,8 +2569,36 @@ ${teddyFarm51DataContext}`;
 
 
 
+
+    async function teddyFarm51DirectConnectionTest() {
+      try {
+        const s = await teddyFarm51EnsureMainStorage();
+        const all = await s.list("");
+        const keys = all?.keys || [];
+        const north = keys.filter(k => k.startsWith("zonework:north4:")).sort();
+        let northLatest = null;
+        if (north.length) {
+          const key = north[north.length-1];
+          const r = await s.get(key);
+          northLatest = { key, data:r ? teddyFarm51SafeJson(r.value) : null };
+        }
+        return {
+          ok:true,
+          mode:s.mode || "unknown",
+          project:s.projectId || TEDDY_FARM51_MAIN_CONFIG.projectId,
+          keyCount:keys.length,
+          zoneworkNorth4Keys:north,
+          north4Latest:northLatest
+        };
+      } catch (e) {
+        return { ok:false, error:e.message };
+      }
+    }
+
     async function teddyFarm51BridgeDiagnostic() {
       try {
+        const direct = await teddyFarm51DirectConnectionTest();
+        if (!direct.ok) return direct;
         const main = await teddyFarm51EnsureMainStorage();
         const catalog = await main.list("");
         const mainKeys = catalog?.keys || [];
@@ -2486,6 +2624,7 @@ ${teddyFarm51DataContext}`;
         return {
           ok:true,
           mainProject: TEDDY_FARM51_MAIN_CONFIG.projectId,
+          mainMode: main.mode || "unknown",
           mainKeyCount: mainKeys.length,
           prefixes,
           mainSample: mainKeys.slice(0,12),
@@ -2496,6 +2635,23 @@ ${teddyFarm51DataContext}`;
       } catch (e) {
         return { ok:false, error:e.message };
       }
+    }
+
+
+    function teddyFarm51IsNorth4RiceTest(message) {
+      return /(四北.*米糠.*測試|測試.*四北.*米糠|直接查.*四北.*米糠)/i.test(String(message||""));
+    }
+
+    async function teddyFarm51North4RiceDirectReply() {
+      const d = await teddyFarm51DirectConnectionTest();
+      if (!d.ok) return `V5.1 直接讀取失敗：${d.error}`;
+      if (!d.north4Latest) return `已直接連到 ${d.project}，但目前找不到 zonework:north4 的資料。`;
+      const data=d.north4Latest.data || {};
+      const checks=data.checks || {};
+      const extra=data.extra || {};
+      const totals=data.confirmedTotals || {};
+      const hist=Array.isArray(data.confirmHistory)?data.confirmHistory:[];
+      return `已直接從 V5.1 讀到 ${d.north4Latest.key}。目前施肥選項：${checks[7] || "未設定"}；目前包數：${extra?.[7]?.bags ?? "未記錄"}；已確認累計：${JSON.stringify(totals)}；確認歷史 ${hist.length} 筆。`;
     }
 
     function teddyFarm51IsDiagnostic(message) {
@@ -2514,6 +2670,16 @@ ${teddyFarm51DataContext}`;
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
+      // Direct V5.1 schema test, independent of Claude/GPT.
+      if (teddyFarm51IsNorth4RiceTest(text)) {
+        const msg = await teddyFarm51North4RiceDirectReply();
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        teddyHistory.push({ role:"assistant", text:msg });
+        teddySaveHistory();
+        teddySpeak(msg, "sweet");
+        return;
+      }
+
       // Direct V5.1 bridge diagnostic, independent of Claude/GPT.
       if (teddyFarm51IsDiagnostic(text)) {
         const d = await teddyFarm51BridgeDiagnostic();
@@ -2521,7 +2687,7 @@ ${teddyFarm51DataContext}`;
         if (!d.ok) {
           msg = "V5.1 橋接失敗：" + d.error;
         } else {
-          msg = `V5.1 橋接正常。主資料庫 ${d.mainProject} 讀到 ${d.mainKeyCount} 個 key；` +
+          msg = `V5.1 橋接正常。主資料庫 ${d.mainProject}（${d.mainMode || "unknown"}）讀到 ${d.mainKeyCount} 個 key；` +
                 `worklog ${d.prefixes["worklog:"] || 0}、workmonth ${d.prefixes["workmonth:"] || 0}、` +
                 `zonework ${d.prefixes["zonework:"] || 0}、spraylog ${d.prefixes["spraylog:"] || 0}。` +
                 `產能資料庫 ${d.yieldProject}：${d.yield.ok ? "可連線，讀到 " + d.yield.count + " 個 key" : "連線失敗：" + d.yield.error}。`;
