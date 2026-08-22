@@ -397,7 +397,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 daily-first-v51</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-explicit-session-stable</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -757,7 +757,7 @@
     const _origTeddyPanelOpen = () => {};
 
     // ===== TEDDY Router：讓 TEDDY 自己判斷該用哪個工具 =====
-    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。  【完全體 V5.1 農場系統】 你知道使用者另有一套「完全體 V5.1」農場資訊管理系統。它目前使用 Firebase Firestore，透過 window.storage 的 get/set/delete/list 介面，把 key/value 資料存到 kv collection。 已確認的重要資料類型包括： - person: 人員與帳號 - attendance: 出勤／打卡 - attendancePref: 出勤偏好 - attendanceLeaveTypes: 假別 - worklog: 分區／格位工項紀錄 - zonework: 分區月份工項 - zonenotice: 分區提示 - calendar: 工項行事曆／年度計畫 - sprayDrugList: 藥品清單 - fertilizerList: 肥料清單 - monthlyWorkItemsList: 月份工項清單 - printlog: 列印紀錄  Teddy 的定位不是維護完全體程式碼，而是「農場秘書／自然語言操作入口」： 1. 使用者用口語說農場紀錄時，先整理成清楚的結構化草稿：日期、分區/格位、工項、材料/肥料/藥品、用量、備註。 2. 已建立安全寫入橋接。任何新增紀錄都必須先顯示草稿，使用者確認後才可寫入完全體 V5.1。 3. 不直接猜 Firestore key 或覆寫資料。 4. 未來若有專用 bridge/API，必須先讀取、驗證目標資料，再要求確認後才寫入；刪除與覆寫尤其要二次確認。 5. 使用者若要修改完全體程式本身，提醒可交給主要 ChatGPT 工程協助處理；Teddy 日常以資料整理與農業判斷為主。  【Teddy 3.5 執行順序】 你是陪伴型私人助理。你不需要炫耀模型或能力。 處理順序固定： 1. 日常聊天與陪伴：直接自然回答。 2. 使用者自己的農場工作：先讀完全體 V5.1；V5.1 是農場事實的唯一權威來源。 3. V5.1 已有資料時，不可回答「我看不到 V5.1」或要求使用者重新提供資料。 4. V5.1 原生 parser 能回答，就直接回答，不呼叫其他 AI。 5. 只有需要進一步專業解讀、推理、外部最新資訊時，才使用 Claude / ChatGPT / 搜尋工具。 6. 投資問題：依需要查最新市場資料再分析。 7. V5.1 寫入：永遠先顯示草稿，使用者確認後才寫。 ";
+    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。  【完全體 V5.1 農場系統】 你知道使用者另有一套「完全體 V5.1」農場資訊管理系統。它目前使用 Firebase Firestore，透過 window.storage 的 get/set/delete/list 介面，把 key/value 資料存到 kv collection。 已確認的重要資料類型包括： - person: 人員與帳號 - attendance: 出勤／打卡 - attendancePref: 出勤偏好 - attendanceLeaveTypes: 假別 - worklog: 分區／格位工項紀錄 - zonework: 分區月份工項 - zonenotice: 分區提示 - calendar: 工項行事曆／年度計畫 - sprayDrugList: 藥品清單 - fertilizerList: 肥料清單 - monthlyWorkItemsList: 月份工項清單 - printlog: 列印紀錄  Teddy 的定位不是維護完全體程式碼，而是「農場秘書／自然語言操作入口」： 1. 使用者用口語說農場紀錄時，先整理成清楚的結構化草稿：日期、分區/格位、工項、材料/肥料/藥品、用量、備註。 2. 已建立安全寫入橋接。任何新增紀錄都必須先顯示草稿，使用者確認後才可寫入完全體 V5.1。 3. 不直接猜 Firestore key 或覆寫資料。 4. 未來若有專用 bridge/API，必須先讀取、驗證目標資料，再要求確認後才寫入；刪除與覆寫尤其要二次確認。 5. 使用者若要修改完全體程式本身，提醒可交給主要 ChatGPT 工程協助處理；Teddy 日常以資料整理與農業判斷為主。  【Teddy 3.5 執行順序】 你是陪伴型私人助理。你不需要炫耀模型或能力。 處理順序固定： 1. 日常聊天與陪伴：直接自然回答。 2. 使用者自己的農場工作：先讀完全體 V5.1；V5.1 是農場事實的唯一權威來源。 3. V5.1 已有資料時，不可回答「我看不到 V5.1」或要求使用者重新提供資料。 4. V5.1 原生 parser 能回答，就直接回答，不呼叫其他 AI。 5. 只有需要進一步專業解讀、推理、外部最新資訊時，才使用 Claude / ChatGPT / 搜尋工具。 6. 投資問題：依需要查最新市場資料再分析。 7. V5.1 寫入：永遠先顯示草稿，使用者確認後才寫。  【V5.1 工作階段】 只有使用者主動進入 V5.1 農場工作階段後，才把後續問題視為 V5.1 查詢。 工作階段中，V5.1 是農場事實唯一來源。若已有 V5.1 context，必須依資料回答，不得說看不到 V5.1。 若 V5.1 parser 已能回答，就直接回答；只有需要進一步推理時才呼叫 Claude/ChatGPT。 離開工作階段後，回一般陪伴助理。 ";
 
     // ===== TEDDY v2 Skills：專業能力模組 + 自動路由 =====
     const TEDDY_SKILLS = {
@@ -1263,7 +1263,7 @@
 
     function teddyFarm51Intent(message) {
       const q = String(message || "");
-      const farmWords = /(農場|田區|分區|溫室|無花果|工項|工作紀錄|工作月表|施肥|肥料|噴藥|農藥|藥品|打卡|出勤|行事曆|年度計畫|採收|澆水|灌溉|補水|產能|產量|生產量|採收量|收成|品質|A級|B級|D級|NG|六個溫室|一期|二期|三期|四南|四北|五期|V5\.?1|完全體)/i;
+      const farmWords = /(農場|田區|分區|溫室|無花果|工項|工作紀錄|工作月表|施肥|肥料|米糠|金旺|其他資材|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素|黃豆|水果|噴藥|農藥|藥品|打卡|出勤|行事曆|年度計畫|採收|澆水|灌溉|補水|產能|產量|生產量|採收量|收成|品質|A級|B級|D級|NG|六個溫室|一期|二期|三期|四南|四北|五期|V5\.?1|完全體)/i;
       const writeWords = /(記一下|記錄|登記|新增|存起來|寫進|上傳|更新|改成|刪除|幫我記|幫我存)/i;
       return { farm: farmWords.test(q), wantsWrite: writeWords.test(q) };
     }
@@ -2191,7 +2191,7 @@
       const relevant=parsedRows.filter(x=>x && (!zone || x.zoneId===zone.id));
       const facts=teddyFarm51V51MaterialFacts(relevant,material);
 
-      if(material && /(最近|最近一次|上次|最後一次|用了多少|使用.*多少|多少)/.test(q)){
+      if(material && /(最近|最近一次|上次|最後一次|用了多少|使用.*多少|多少|看得到|看到|有沒有|資料嗎|紀錄嗎)/.test(q)){
         if(!facts.length) {
           const current=relevant.find(x=>x.currentInstruction?.fertilizer?.material===material);
           if(current) {
@@ -2788,7 +2788,9 @@ ${teddyFarm51DataContext}`;
     function teddyDailyFirstClassify(message) {
       const q = String(message || "").trim();
 
-      const farm = teddyFarm51Intent(q).farm;
+      const explicitFarm = teddyFarm51Intent(q).farm;
+      const operationalFarm = teddyFarm51IsOperationalQuestion(q);
+      const farm = explicitFarm || operationalFarm;
       const v51 = /(V5\.?1|5\.1|完全體|農場資料|六個溫室)/i.test(q);
       const simpleCompanion = !farm && !v51 && q.length <= 80 &&
         !/(最新|新聞|股價|財報|投資|股票|ETF|利率|天氣|程式|HTML|JavaScript|Firebase|API|分析|比較|研究)/i.test(q);
@@ -2891,6 +2893,146 @@ ${teddyFarm51DataContext}`;
     }
 
 
+
+    // ===== V5.1 QUERY ENTRY =====
+    // 唯一農場查詢入口：
+    // Teddy 理解自然語言 -> Query Entry 讀 V5.1 -> Teddy 組織答案。
+    // V5.1 本體不修改；其他 AI 只在 Query Entry 無法直接回答時使用。
+    async function teddyV51Query(message) {
+      const q = String(message || "").trim();
+      if (!q) return { handled:false, reason:"empty" };
+
+      const intent = teddyFarm51Intent(q);
+      const isV51 = intent.farm || /(V5\.?1|5\.1|完全體|六個溫室|一期|二期|三期|四北|四南|五期)/i.test(q);
+      if (!isV51) return { handled:false, reason:"not-v51" };
+
+      // 1. 先由既有 V5.1 bridge 讀真實資料。
+      const read = await teddyFarm51BuildReadContext(q);
+      if (!read.ok) {
+        return { handled:true, ok:false, text:read.error || "V5.1 查詢失敗。" };
+      }
+      if (!read.required || !teddyFarm51DataContext) {
+        return { handled:true, ok:false, text:"已進入 V5.1 查詢入口，但這次沒有取得可用資料。" };
+      }
+
+      let ctx = null;
+      try { ctx = JSON.parse(teddyFarm51DataContext); }
+      catch (_) {
+        return { handled:true, ok:false, text:"V5.1 已回傳資料，但資料格式無法解析。" };
+      }
+
+      // 2. 先使用 V5.1 schema/parser 回答可確定的營運問題。
+      const parsed = Array.isArray(ctx.v51ParsedZonework) ? ctx.v51ParsedZonework : [];
+      const native = teddyFarm51NativeAnswer(q, parsed);
+      if (native) {
+        return { handled:true, ok:true, text:native, source:"v51-native" };
+      }
+
+      // 3. 若既有 daily parser 有答案，也直接採用。
+      try {
+        const op = await teddyFarm51TryNativeOperationalAnswer(q);
+        if (op && op.handled && op.text) {
+          return { handled:true, ok:true, text:op.text, source:"v51-operational" };
+        }
+      } catch (_) {}
+
+      // 4. Query Entry 已取得 V5.1 真實資料，但需要語意分析：
+      // 不假裝沒有資料；把 context 留給後續 AI。
+      return {
+        handled:false,
+        ok:true,
+        source:"v51-context",
+        hasV51Context:true,
+        context:teddyFarm51DataContext
+      };
+    }
+
+
+    const TEDDY_V51_QUERY_RULE = "【V5.1 查詢入口】農場事實一律以 V5.1 Query Entry 回傳的即時資料為準；若 context 已存在，禁止回答「看不到 V5.1」、「無法存取 V5.1」或要求使用者重新提供資料。";
+
+
+    // ===== Teddy 3.5 · V5.1 EXPLICIT SESSION =====
+    // 使用者主動說要看農場 / V5.1，才進入農場工作階段。
+    // 進入後，後續問題都沿用 V5.1，直到使用者明確離開。
+    const TEDDY_V51_SESSION_KEY = "teddy_v51_session_active";
+
+    function teddyV51SessionActive() {
+      return localStorage.getItem(TEDDY_V51_SESSION_KEY) === "1";
+    }
+
+    function teddyV51SetSession(active) {
+      localStorage.setItem(TEDDY_V51_SESSION_KEY, active ? "1" : "0");
+    }
+
+    function teddyV51SessionCommand(message) {
+      const q = String(message || "").trim();
+      const enter = /(去看.*農場|看.*農場.*資料|進入.*農場|進入.*V5\.?1|看.*V5\.?1|打開.*V5\.?1|我們去看農場|農場最近資料)/i.test(q);
+      const leave = /(離開.*農場|退出.*農場|離開.*V5\.?1|退出.*V5\.?1|回一般模式|回聊天|先不看農場)/i.test(q);
+      if (enter) return "enter";
+      if (leave) return "leave";
+      return null;
+    }
+
+    async function teddyV51SessionReply(message) {
+      const cmd = teddyV51SessionCommand(message);
+
+      if (cmd === "enter") {
+        teddyV51SetSession(true);
+        const d = await teddyFarm51DirectConnectionTest();
+        if (!d.ok) {
+          teddyV51SetSession(false);
+          return { handled:true, text:`V5.1 連線失敗：${d.error}` };
+        }
+        return {
+          handled:true,
+          text:`好，我們現在進入 V5.1 農場工作。已連到 ${d.project}，讀到 ${d.keyCount} 個資料 key。接下來你直接問四北、施肥、澆水、產量都可以。`
+        };
+      }
+
+      if (cmd === "leave") {
+        teddyV51SetSession(false);
+        teddyFarm51DataContext = "";
+        return { handled:true, text:"好，先離開 V5.1 農場工作，回一般聊天。" };
+      }
+
+      if (!teddyV51SessionActive()) return { handled:false };
+
+      // Session active: every follow-up is treated as a V5.1 farm query.
+      const read = await teddyFarm51BuildReadContext("農場 V5.1 " + String(message || ""));
+      if (!read.ok) {
+        return { handled:true, text:read.error || "V5.1 讀取失敗。" };
+      }
+
+      if (!teddyFarm51DataContext) {
+        return { handled:true, text:"V5.1 已連線，但這次沒有查到可用資料。" };
+      }
+
+      try {
+        const ctx = JSON.parse(teddyFarm51DataContext);
+        const parsed = Array.isArray(ctx.v51ParsedZonework) ? ctx.v51ParsedZonework : [];
+
+        // Native V5.1 parser first.
+        const native = teddyFarm51NativeAnswer(String(message || ""), parsed);
+        if (native) return { handled:true, text:native };
+
+        // Common operation fallback using the same V5.1 context.
+        const op = await teddyFarm51TryNativeOperationalAnswer("農場 " + String(message || ""));
+        if (op && op.handled && op.text) {
+          return { handled:true, text:op.text };
+        }
+
+        // We have real V5.1 data but need semantic analysis.
+        return {
+          handled:false,
+          hasV51Context:true,
+          context:teddyFarm51DataContext
+        };
+      } catch (e) {
+        return { handled:true, text:"V5.1 資料已讀到，但解析失敗：" + e.message };
+      }
+    }
+
+
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       const text = input.value.trim();
@@ -2902,11 +3044,38 @@ ${teddyFarm51DataContext}`;
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
+      // Explicit V5.1 session runs before every other router.
+      const v51Session = await teddyV51SessionReply(text);
+      if (v51Session.handled) {
+        teddyUpdateLogDiv(thinkingDiv, v51Session.text);
+        teddyHistory.push({ role:"assistant", text:v51Session.text });
+        teddySaveHistory();
+        teddySpeak(v51Session.text, "sweet");
+        return;
+      }
+      const v51ContextReady = !!v51Session.hasV51Context;
+
+
+      // V5.1 單一查詢入口：所有農場/V5.1 問題先走這裡。
+      const v51QueryResult = { handled:false, hasV51Context:v51ContextReady }; // disabled: explicit session owns V5.1 routing
+      if (v51QueryResult.handled) {
+        const msg = v51QueryResult.text;
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        teddyHistory.push({ role:"assistant", text:msg });
+        teddySaveHistory();
+        return;
+      }
+      // 若 Query Entry 已讀到 V5.1，但需要更高階理解，
+      // 保留真實 context 給後續 Claude/ChatGPT；不得重新讀或聲稱看不到。
+      // v51ContextReady already set by explicit V5.1 session.
+
+
       // DAILY-FIRST：Teddy 先處理陪伴 / V5.1 日常，真的需要才找其他 AI。
       const dailyRoute = teddyDailyFirstClassify(text);
+      // Query Entry 已先處理 V5.1；dailyRoute 僅供後續能力判斷。
 
       // V5.1 寫入：先產生草稿，仍然必須使用者確認。
-      if (dailyRoute.farm || dailyRoute.v51) {
+      if ((dailyRoute.farm || dailyRoute.v51) && teddyV51SessionActive()) {
         const farmBridgeReply = await teddyFarm51HandleNaturalWrite(text);
         if (farmBridgeReply) {
           teddyUpdateLogDiv(thinkingDiv, farmBridgeReply);
@@ -2918,7 +3087,7 @@ ${teddyFarm51DataContext}`;
       }
 
       // V5.1 查詢：先用 V5.1 自己的資料與 parser 解決，不浪費 AI 呼叫。
-      if (dailyRoute.farm || dailyRoute.v51) {
+      if ((dailyRoute.farm || dailyRoute.v51) && teddyV51SessionActive() && !v51ContextReady) {
         const op = await teddyFarm51TryNativeOperationalAnswer(text);
         if (op.handled) {
           teddyUpdateLogDiv(thinkingDiv, op.text);
@@ -2992,7 +3161,7 @@ ${teddyFarm51DataContext}`;
       }
       // V5.1 full read bridge: farm questions first read the user's live farm databases.
 
-const hasFarmV51Context = (dailyRoute.farm || dailyRoute.v51) && !!teddyFarm51DataContext;
+const hasFarmV51Context = v51ContextReady || ((dailyRoute.farm || dailyRoute.v51) && !!teddyFarm51DataContext);
       let freshCheck = { ok:true, required:false };
       if (!hasFarmV51Context) {
         freshCheck = await teddyFreshDataPreflight(text);
