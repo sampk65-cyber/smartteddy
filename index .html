@@ -2519,7 +2519,8 @@ ${parts}
         zone:meta.zone?{id:meta.zone.id,name:meta.zone.name}:null,
         period:meta.period,
         facts:ghFlattenFacts(row.data).slice(0,36),
-        preview:ghSafePreview(row.data,1400)
+        preview:ghSafePreview(row.data,1400),
+        rawData:row.data
       };
     }
 
@@ -2553,20 +2554,126 @@ ${parts}
       return selected.slice(0,180).map(ghNormalizeMainRecord);
     }
 
+    let ghYieldApp=null;
+    async function ghYieldStorage(){
+      if(!ghYieldApp){
+        try{ghYieldApp=firebase.app("greenhouse-v51-yield");}
+        catch(_){
+          ghYieldApp=firebase.initializeApp({
+            apiKey:GH_YIELD.apiKey,
+            authDomain:"figdata-d2737.firebaseapp.com",
+            projectId:GH_YIELD.projectId,
+            appId:"1:46163670891:web:c496942014d47ea19c7e2e"
+          },"greenhouse-v51-yield");
+        }
+      }
+      const auth=ghYieldApp.auth();
+      if(!auth.currentUser)await auth.signInAnonymously();
+      const db=ghYieldApp.firestore();
+      const marker="fbrfA_priv__";
+      return{
+        async get(key){
+          const doc=await db.collection(GH_YIELD_COLLECTION).doc(marker+key).get();
+          if(!doc.exists)return null;
+          const d=doc.data()||{};
+          let value=d.value;
+          if(typeof value==="string"){try{value=JSON.parse(value);}catch(_){}}
+          return{key,value,updatedAt:d.updatedAt||null};
+        },
+        async list(prefix){
+          const fp=marker+prefix;
+          const snap=await db.collection(GH_YIELD_COLLECTION)
+            .where(firebase.firestore.FieldPath.documentId(),">=",fp)
+            .where(firebase.firestore.FieldPath.documentId(),"<",fp+"\uf8ff").get();
+          return snap.docs.map(d=>d.id.slice(marker.length));
+        }
+      };
+    }
+
+    function ghYieldMonthsForQuestion(q){
+      const req=ghDateRequest(q),now=new Date(),out=[];
+      if(req.year&&req.month)return[{year:req.year,month:req.month}];
+      if(req.year){for(let m=1;m<=12;m++)out.push({year:req.year,month:m});return out;}
+      // 「最近／目前／看得到產量嗎」先查本月，再往前兩個月。
+      for(let i=0;i<3;i++){
+        const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+        out.push({year:d.getFullYear(),month:d.getMonth()+1});
+      }
+      return out;
+    }
+
     async function ghQueryYield(q){
-      const docs=await ghFetchCollection(GH_YIELD.projectId,GH_YIELD.apiKey,GH_YIELD_COLLECTION,1000);
-      const zone=ghFindZone(q),req=ghDateRequest(q);
+      const s=await ghYieldStorage();
+      const zone=ghFindZone(q);
+      const zones=zone?[zone]:GH_ZONES;
+      const periods=ghYieldMonthsForQuestion(q);
+      const rows=[];
 
-      let selected=docs.filter(r=>{
-        if(!/^fbrfA_/.test(r.key))return false;
-        const meta=ghYieldRecordMeta(r.key);
-        if(zone&&meta.zone&&meta.zone.id!==zone.id)return false;
-        if(req.ym&&meta.period&&String(meta.period).length>=7&&!String(meta.period).startsWith(req.ym))return false;
-        if(req.year&&meta.period&&!String(meta.period).startsWith(String(req.year)))return false;
-        return true;
-      });
+      for(const p of periods){
+        const ym=`${p.year}-${String(p.month).padStart(2,"0")}`;
+        for(const z of zones){
+          if(`${ym}-01`<"2026-08-01"){
+            const key=`yieldArchive:${z.yield}:${p.year}`;
+            const r=await s.get(key);
+            if(!r)continue;
+            const archive=r.value&&typeof r.value==="object"?r.value:{};
+            const monthData={};
+            Object.keys(archive).filter(d=>d.startsWith(ym)).sort().forEach(d=>monthData[d]=archive[d]);
+            if(Object.keys(monthData).length){
+              rows.push(ghNormalizeYieldRecord({key,data:monthData,updatedAt:r.updatedAt}));
+            }
+          }else{
+            const prefix=`yield:${z.yield}:${ym}`;
+            const keys=await s.list(prefix);
+            for(const key of keys){
+              const r=await s.get(key);
+              if(r)rows.push(ghNormalizeYieldRecord({key,data:r.value,updatedAt:r.updatedAt}));
+            }
+          }
+        }
+      }
+      return rows;
+    }
 
-      return selected.slice(0,180).map(ghNormalizeYieldRecord);
+    function ghYieldTotals(rows){
+      let total=0,entries=0;
+      const byZone={},byGrade={A:0,B:0,D:0,NG:0};
+      const add=(zone,record)=>{
+        if(!record||typeof record!=="object")return;
+        for(const grade of["A","B","D","NG"]){
+          const arr=Array.isArray(record[grade])?record[grade]:[];
+          for(const x of arr){
+            const kg=Number(x?.net ?? x?.gross ?? 0);
+            if(!Number.isFinite(kg)||kg<=0)continue;
+            total+=kg;entries++;
+            byGrade[grade]+=kg;
+            byZone[zone]=(byZone[zone]||0)+kg;
+          }
+        }
+      };
+      for(const row of rows){
+        const zone=row.zone?.name||"未分區";
+        // preview is only display text; recover the normalized source by reading facts is unreliable.
+        // ghNormalizeYieldRecord is therefore extended below to retain rawData.
+        const raw=row.rawData;
+        if(row.category==="yield_archive"&&raw&&typeof raw==="object"){
+          Object.values(raw).forEach(day=>add(zone,day));
+        }else add(zone,raw);
+      }
+      return{total,entries,byZone,byGrade};
+    }
+
+    function ghYieldDirectAnswer(rows,q){
+      if(!rows.length)return null;
+      const x=ghYieldTotals(rows);
+      if(!x.entries)return null;
+      const zoneParts=Object.entries(x.byZone).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v.toFixed(1)}kg`);
+      const gradeParts=Object.entries(x.byGrade).filter(([,v])=>v>0).map(([k,v])=>`${k}級 ${v.toFixed(1)}kg`);
+      const period=ghDateRequest(q);
+      const label=period.ym?period.ym:(period.year?String(period.year):"最近資料");
+      return `${label}產量 ${x.total.toFixed(1)}kg`+
+        (zoneParts.length?`；${zoneParts.join("、")}`:"")+
+        (gradeParts.length?`。等級：${gradeParts.join("、")}`:"。");
     }
 
     function ghBuildSummaryPayload(q,mainRows,yieldRows){
@@ -2620,7 +2727,8 @@ ${parts}
 4. 問某分區，只使用該分區紀錄；全場問題才可跨區彙整。
 5. 農場現場數字只能依提供資料回答，找不到就明確說「V5.1 目前沒有查到這項紀錄」，不可編造。
 6. 若問題是一般農業知識而非現場紀錄，可使用農藝知識正常回答，不要因資料庫沒記錄就拒答。
-7. 請先回答結論，再列必要依據；繁體中文、自然、精簡。`;
+7. 回答必須短：一般問題 1～3 句；需要列數字時最多 4 個短項目。先講結論，不重述問題，不寫長篇背景。
+8. 若使用者只問「看得到嗎／有沒有嗎」，直接回答有或沒有，再給最重要數字。繁體中文、自然。`;
 
       let body=JSON.stringify(payload,null,2);
       if(body.length>52000)body=body.slice(0,52000)+"\n...[已截斷較低優先紀錄]";
@@ -2634,7 +2742,7 @@ ${parts}
             "Content-Type":"application/json","x-api-key":keys.anthropic,
             "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"
           },
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,system,messages:[{role:"user",content}]})
+          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,system,messages:[{role:"user",content}]})
         },30000);
         const d=await r.json();
         if(!r.ok)throw new Error(d?.error?.message||`Claude HTTP ${r.status}`);
@@ -2644,7 +2752,7 @@ ${parts}
         const r=await teddyFetch("https://api.openai.com/v1/chat/completions",{
           method:"POST",
           headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},
-          body:JSON.stringify({model:"gpt-4o",messages:[{role:"system",content:system},{role:"user",content}],max_tokens:1200})
+          body:JSON.stringify({model:"gpt-4o",messages:[{role:"system",content:system},{role:"user",content}],max_tokens:500})
         },30000);
         const d=await r.json();
         if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);
@@ -2690,6 +2798,11 @@ ${parts}
         }
         const payload=ghBuildSummaryPayload(q,mainRows,yieldRows);
         status.textContent=`V5.1 已整理 ${payload.coverage.totalRecords} 筆結構化資料，正在解讀…`;
+        if(/產能|收成|採收|收穫|產量|公斤|箱數|重量/.test(q)){
+          const direct=ghYieldDirectAnswer(yieldRows,q);
+          if(direct){ghLog("assistant",direct);return;}
+          if(!yieldRows.length){ghLog("assistant","目前沒有讀到符合期間／分區的產量紀錄。");return;}
+        }
         ghLog("assistant",await ghAskAI(q,payload));
       }catch(e){
         ghLog("assistant","查詢失敗："+e.message);
