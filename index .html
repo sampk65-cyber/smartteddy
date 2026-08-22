@@ -463,6 +463,7 @@
             <select id="teddyVoiceStyleSelect" title="選擇 TEDDY 的語調（自動判斷會依內容自己換語氣）" style="background:#141a18;border:1px solid #2a3532;color:#c8d4ce;border-radius:6px;padding:3px 6px;font-size:11px;">
               <option value="auto">🤖 自動判斷</option>
               <option value="sweet">🍬 甜美可愛</option>
+              <option value="childlike">🧒 童趣活潑</option>
               <option value="gentle">🌙 溫柔哄睡</option>
               <option value="playful">😄 調皮活潑</option>
               <option value="storyteller">📖 說書人</option>
@@ -1398,6 +1399,7 @@
 
     // ===== TEDDY 多種語調（可手動選，預設由內容自動判斷）=====
     const TEDDY_VOICE_STYLES = {
+      childlike: "使用童趣、明亮、輕盈的合成聲線表達；語速稍快、咬字清楚、句子短、帶自然好奇與活力。聲音可以顯得稚氣可愛，但不要模仿任何真實兒童或特定人物，也不要刻意裝娃娃音。",
       sweet: "說話聲音年輕、明亮、有活力，像十幾歲的小女孩，甜美可愛、語氣輕快纖細，語速稍快、語尾帶一點俏皮上揚，但不要浮誇或做作。",
       gentle: "說話聲音放得很輕、很慢，溫柔安撫的語氣，像哄人入睡一樣，音量感覺較低、語尾拉長，給人放鬆平靜的感覺。",
       playful: "說話帶點調皮惡作劇的語氣，語速稍快、偶爾停頓賣關子，像在跟好朋友開玩笑，但不要太浮誇。",
@@ -1415,6 +1417,18 @@
       return "sweet";
     }
 
+
+    const TEDDY_VOICE_STYLE_KEY = "teddy_voice_style_v3";
+    function teddyInitVoiceStylePreference() {
+      const sel = document.getElementById("teddyVoiceStyleSelect");
+      if (!sel) return;
+      const saved = localStorage.getItem(TEDDY_VOICE_STYLE_KEY);
+      if (saved && Array.from(sel.options).some(o => o.value === saved)) sel.value = saved;
+      sel.addEventListener("change", () => {
+        localStorage.setItem(TEDDY_VOICE_STYLE_KEY, sel.value);
+      });
+    }
+
     function teddyResolveVoiceStyle(autoHint) {
       const sel = document.getElementById("teddyVoiceStyleSelect");
       const val = sel ? sel.value : "auto";
@@ -1430,6 +1444,17 @@
       if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
       const styleKey = teddyResolveVoiceStyle(autoStyleHint);
       const instructions = TEDDY_VOICE_STYLES[styleKey];
+      // V3 語音角色：不只改提示詞，也切換實際 TTS voice。
+      // 童趣活潑使用較輕亮的合成聲線；若 API 不支援則自動 fallback。
+      const voiceByStyle = {
+        childlike: "shimmer",
+        sweet: "nova",
+        gentle: "nova",
+        playful: "shimmer",
+        storyteller: "onyx",
+        excited: "shimmer"
+      };
+      const selectedTtsVoice = voiceByStyle[styleKey] || "nova";
       if (keys.openai) {
         try {
           const r = await fetch("https://api.openai.com/v1/audio/speech", {
@@ -1437,9 +1462,9 @@
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
             body: JSON.stringify({
               model: "gpt-4o-mini-tts",
-              voice: "nova",
+              voice: selectedTtsVoice,
               input: clean,
-              speed: styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05,
+              speed: styleKey === "childlike" ? 1.12 : (styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05),
               instructions,
             }),
           });
@@ -1458,8 +1483,8 @@
           window.speechSynthesis.cancel();
           const utter = new SpeechSynthesisUtterance(clean);
           utter.lang = "zh-TW";
-          utter.pitch = styleKey === "gentle" || styleKey === "storyteller" ? 1.05 : 1.3;
-          utter.rate = styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05;
+          utter.pitch = styleKey === "childlike" ? 1.48 : (styleKey === "gentle" || styleKey === "storyteller" ? 1.05 : 1.3);
+          utter.rate = styleKey === "childlike" ? 1.12 : (styleKey === "gentle" || styleKey === "storyteller" ? 0.95 : 1.05);
           const voices = window.speechSynthesis.getVoices();
           const femaleVoice =
             voices.find((v) => /zh/i.test(v.lang) && /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao/i.test(v.name)) ||
