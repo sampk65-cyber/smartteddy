@@ -397,7 +397,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-rest-direct-bridge</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.5 V5.1-force-bridge</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.5</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -2296,7 +2296,7 @@
     function teddyFarm51ContextPrompt() {
       if(!teddyFarm51DataContext) return "";
       return `\n\n【完全體 V5.1 即時資料｜資料庫直讀】
-以下 JSON 是剛從 V5.1 真實資料庫讀出的資料與欄位。必須以這些資料回答，不要要求使用者重新提供 V5.1 已存在的資料。 若 recordCount > 0，先直接整理答案；不得以「請提供資料／我看不到資料」作為回覆。
+以下 JSON 是剛從 V5.1 真實資料庫讀出的資料與欄位。必須以這些資料回答，不要要求使用者重新提供 V5.1 已存在的資料。 若 recordCount > 0，先直接整理答案；不得以「請提供資料／我看不到資料」作為回覆。若已存在【完全體 V5.1 即時資料｜資料庫直讀】，禁止回答「無法直接查詢 V5.1」。
 若某期間沒有紀錄，只能說「沒有查到紀錄」，不能推論成「沒有做」。
 六個溫室：一期、二期、三期、四南、四北、五期。
 V5.1 真實規則：補水/施肥/其他資材在 zonework:{zoneId}:{YYYY-MM}，不是 spraylog。
@@ -2638,6 +2638,18 @@ ${teddyFarm51DataContext}`;
     }
 
 
+
+    function teddyFarm51MentionsV51(message) {
+      return /(V5\.?1|5\.1|完全體|農場資料|六個溫室|四北|四南|一期|二期|三期|五期)/i.test(String(message||""));
+    }
+
+    async function teddyFarm51StatusReply() {
+      const d = await teddyFarm51DirectConnectionTest();
+      if (!d.ok) return `V5.1 直接連線失敗：${d.error}`;
+      const latest = d.north4Latest ? d.north4Latest.key : "目前未找到 zonework:north4";
+      return `我現在已直接連到 V5.1 主資料庫 ${d.project}，模式 ${d.mode}，共讀到 ${d.keyCount} 個 key；四北最新 zonework：${latest}。`;
+    }
+
     function teddyFarm51IsNorth4RiceTest(message) {
       return /(四北.*米糠.*測試|測試.*四北.*米糠|直接查.*四北.*米糠)/i.test(String(message||""));
     }
@@ -2652,6 +2664,18 @@ ${teddyFarm51DataContext}`;
       const totals=data.confirmedTotals || {};
       const hist=Array.isArray(data.confirmHistory)?data.confirmHistory:[];
       return `已直接從 V5.1 讀到 ${d.north4Latest.key}。目前施肥選項：${checks[7] || "未設定"}；目前包數：${extra?.[7]?.bags ?? "未記錄"}；已確認累計：${JSON.stringify(totals)}；確認歷史 ${hist.length} 筆。`;
+    }
+
+
+    function teddyFarm51IsHardBridgeTest(message) {
+      return /(V5\.?1\s*硬測試|硬測試\s*V5\.?1|直接測試\s*V5\.?1)/i.test(String(message||""));
+    }
+
+    async function teddyFarm51HardBridgeReply() {
+      const d = await teddyFarm51DirectConnectionTest();
+      return d.ok
+        ? `V5.1 硬測試成功：${d.project}，${d.mode}，讀到 ${d.keyCount} 個 key；north4 zonework ${d.zoneworkNorth4Keys.length} 筆。`
+        : `V5.1 硬測試失敗：${d.error}`;
     }
 
     function teddyFarm51IsDiagnostic(message) {
@@ -2669,6 +2693,25 @@ ${teddyFarm51DataContext}`;
       teddyHistory.push({ role: "user", text });
       teddySaveHistory();
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
+
+      if (teddyFarm51IsHardBridgeTest(text)) {
+        const msg = await teddyFarm51HardBridgeReply();
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        teddyHistory.push({ role:"assistant", text:msg });
+        teddySaveHistory();
+        teddySpeak(msg, "sweet");
+        return;
+      }
+
+      // Any explicit V5.1 / complete-system question first checks the real bridge.
+      if (teddyFarm51MentionsV51(text) && /(看到|看得到|連線|讀到|讀取|進入|有沒有|可以看|現在能|內容嗎|資料嗎)/i.test(text)) {
+        const msg = await teddyFarm51StatusReply();
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        teddyHistory.push({ role:"assistant", text:msg });
+        teddySaveHistory();
+        teddySpeak(msg, "sweet");
+        return;
+      }
 
       // Direct V5.1 schema test, independent of Claude/GPT.
       if (teddyFarm51IsNorth4RiceTest(text)) {
@@ -2722,20 +2765,30 @@ ${teddyFarm51DataContext}`;
         return;
       }
       // V5.1 full read bridge: farm questions first read the user's live farm databases.
+
+      // V5.1 authoritative farm read: if this is a farm/V5.1 question, database access must succeed before AI answers.
       const farmRead = await teddyFarm51BuildReadContext(text);
       if (!farmRead.ok) {
-        teddyUpdateLogDiv(thinkingDiv, farmRead.error);
-        teddyHistory.push({ role:"assistant", text:farmRead.error });
+        const msg = farmRead.error || "完全體 V5.1 讀取失敗";
+        teddyUpdateLogDiv(thinkingDiv, msg);
+        teddyHistory.push({ role:"assistant", text:msg });
         teddySaveHistory();
-        teddySpeak(farmRead.error, "sweet");
+        teddySpeak(msg, "sweet");
         return;
       }
-      if (farmRead.required) teddyUpdateLogDiv(thinkingDiv, "🌱 已讀取完全體 V5.1，正在整理…");
+      if (farmRead.required) {
+        if (!teddyFarm51DataContext) {
+          const msg = "V5.1 Bridge 有被觸發，但沒有讀到資料。我不會改用舊模型知識硬答。";
+          teddyUpdateLogDiv(thinkingDiv, msg);
+          teddyHistory.push({ role:"assistant", text:msg });
+          teddySaveHistory();
+          teddySpeak(msg, "sweet");
+          return;
+        }
+        teddyUpdateLogDiv(thinkingDiv, "🌱 已直接讀取完全體 V5.1，正在分析…");
+      }
 
-      // Freshness routing:
-      // V5.1 is the authoritative fresh source for the user's own farm data.
-      // Only non-farm/current-public questions need web freshness verification.
-      let freshCheck = { ok:true, required:false };
+let freshCheck = { ok:true, required:false };
       if (!farmRead.required) {
         freshCheck = await teddyFreshDataPreflight(text);
         if (!freshCheck.ok) {
