@@ -3031,26 +3031,29 @@ ${parts}
       const periods=ghYieldMonthsForQuestion(q);
       const rows=[];
 
+      // 之前這裡用「早於本月＝只查封存、本月以後＝只查即時」二選一，
+      // 但封存是不定期手動批次做的，不代表「早於本月」就一定已經進封存。
+      // 五期／一期／二期在「最近資料」查不到，就是這個假設造成的漏抓——
+      // 兩邊都查、合併起來，才不會漏掉還沒被批次封存進去的即時資料。
       for(const p of periods){
         const ym=`${p.year}-${String(p.month).padStart(2,"0")}`;
         for(const z of zones){
-          if(`${ym}-01`<"2026-08-01"){
-            const key=`yieldArchive:${z.yield}:${p.year}`;
-            const r=await s.get(key);
-            if(!r)continue;
-            const archive=r.value&&typeof r.value==="object"?r.value:{};
+          const archiveKey=`yieldArchive:${z.yield}:${p.year}`;
+          const archiveRes=await s.get(archiveKey).catch(()=>null);
+          if(archiveRes){
+            const archive=archiveRes.value&&typeof archiveRes.value==="object"?archiveRes.value:{};
             const monthData={};
             Object.keys(archive).filter(d=>d.startsWith(ym)).sort().forEach(d=>monthData[d]=archive[d]);
             if(Object.keys(monthData).length){
-              rows.push(ghNormalizeYieldRecord({key,data:monthData,updatedAt:r.updatedAt}));
+              rows.push(ghNormalizeYieldRecord({key:archiveKey,data:monthData,updatedAt:archiveRes.updatedAt}));
             }
-          }else{
-            const prefix=`yield:${z.yield}:${ym}`;
-            const keys=await s.list(prefix);
-            for(const key of keys){
-              const r=await s.get(key);
-              if(r)rows.push(ghNormalizeYieldRecord({key,data:r.value,updatedAt:r.updatedAt}));
-            }
+          }
+
+          const livePrefix=`yield:${z.yield}:${ym}`;
+          const liveKeys=await s.list(livePrefix).catch(()=>[]);
+          for(const key of liveKeys){
+            const r=await s.get(key);
+            if(r)rows.push(ghNormalizeYieldRecord({key,data:r.value,updatedAt:r.updatedAt}));
           }
         }
       }
@@ -3199,6 +3202,28 @@ ${parts}
         (zoneParts.length?`；${zoneParts.join("、")}`:"")+
         (gradeParts.length?`。等級：${gradeParts.join("、")}`:"。");
     }
+
+    // 「為什麼沒看到／查不到某區」是在問資料缺口的原因，不是在問總表——
+    // 跟一般歷史查詢分開處理，不然會被 ghYieldDirectAnswer 的固定範本蓋掉，答非所問。
+    function ghYieldMissingZoneAnswer(rows,q){
+      const t=String(q||"");
+      if(!/為什麼|為何|怎麼(?:會)?沒|沒看到|看不到|找不到|查不到/.test(t))return null;
+
+      const zone=ghFindZone(t);
+      if(!zone)return null; // 沒指名哪一區，交給其他邏輯處理
+
+      const x=ghYieldTotals(rows);
+      const period=ghDateRequest(q);
+      const periodLabel=period.ym?`${period.year}年${period.month}月`:period.year?`${period.year}年`:"目前查詢的期間";
+
+      if(x.byZone[zone.name])return null; // 其實有資料，不是缺口問題，交給其他邏輯回答
+
+      const seenZones=Object.keys(x.byZone);
+      return `${periodLabel}沒有查到${zone.name}的產能紀錄（即時資料跟歷史封存都查過了）。`+
+        (seenZones.length?`同期間有資料的是：${seenZones.join("、")}；`:"")+
+        `可能是這段時間${zone.name}還沒有人回報產量、或那段期間${zone.name}的歷史封存本來就沒收錄——如果現場確認${zone.name}其實已經有輸入資料，麻煩告訴我，可能是查詢邏輯還有沒抓到的地方。`;
+    }
+
 
     function ghBuildSummaryPayload(q,mainRows,yieldRows){
       const rows=[...mainRows,...yieldRows];
@@ -3765,6 +3790,8 @@ ${parts}
             ghLog("assistant",noData);await ghSpeak(noData);return;
           }
           if(route.id==="history"){
+            const missing=ghYieldMissingZoneAnswer(yieldRows,effectiveQ);
+            if(missing){ghLog("assistant",missing);await ghSpeak(missing);return;}
             const direct=ghYieldDirectAnswer(yieldRows,effectiveQ);
             if(direct){ghLog("assistant",direct);await ghSpeak(direct);return;}
           }
