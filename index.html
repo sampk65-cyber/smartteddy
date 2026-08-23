@@ -2978,7 +2978,8 @@ ${parts}
     function ghNormalizeMainRecord(row){
       const schema=ghSchemaForKey(row.key);
       const zone=ghFindZone(row.key);
-      const ym=(row.key.match(/20\d{2}-\d{2}/)||[])[0]||null;
+      const compactYm=(row.key.match(/20\d{2}(?:0[1-9]|1[0-2])/ )||[])[0]||null;
+      const ym=(row.key.match(/20\d{2}-\d{2}/)||[])[0]||(compactYm?`${compactYm.slice(0,4)}-${compactYm.slice(4,6)}`:null);
       const date=(row.key.match(/20\d{2}-\d{2}-\d{2}/)||[])[0]||null;
       const normalized={
         sourceKey:row.key,
@@ -4150,13 +4151,59 @@ ${parts}
 
     function ghCalendarNormalize(data){
       data=data||{};
-      const color=data.color||"none";
+      let color=data.color||data.status||data.type||data.category||"none";
+      // 功能表5有些舊資料直接存中文狀態，而不是色碼；統一轉回色碼。
+      if(GH_CAL_KEYWORD_TO_COLOR[color]) color=GH_CAL_KEYWORD_TO_COLOR[color];
       return{
         color,
-        colorLabel:GH_CAL_COLORS[color]||color,
-        date:data.date||null,
-        text:data.text||""
+        colorLabel:GH_CAL_COLORS[color]||String(data.label||data.name||color||""),
+        date:data.date||data.startDay||data.day||null,
+        text:data.text||data.note||data.content||""
       };
+    }
+
+    function ghCalendarPeriodFromText(text){
+      const t=String(text||"");
+      let m=t.match(/(20\d{2})[-_/](0?[1-9]|1[0-2])/);
+      if(m)return `${m[1]}-${String(Number(m[2])).padStart(2,"0")}`;
+      m=t.match(/(20\d{2})(0[1-9]|1[0-2])/);
+      if(m)return `${m[1]}-${m[2]}`;
+      return null;
+    }
+
+    function ghCalendarZoneFromText(text){
+      const t=String(text||"");
+      return ghFindZone(t) || GH_ZONES.find(z=>t.includes(z.id)||t.includes(z.yield)) || null;
+    }
+
+    // 功能表5歷史版本不一定都是 calendar:zone:YYYY-MM 的單筆格式。
+    // 這個展開器同時支援：單格、YYYYMM key、中文溫室 key，以及巢狀「年/月/溫室」矩陣。
+    function ghExpandCalendarDocument(doc){
+      const out=[];
+      const seen=new Set();
+      const push=(zone,period,value,path)=>{
+        if(!zone||!period||!value||typeof value!=="object")return;
+        const cal=ghCalendarNormalize(value);
+        const meaningful=cal.color!=="none" || !!cal.date || !!cal.text;
+        if(!meaningful)return;
+        const sig=`${zone.id}|${period}|${cal.color}|${cal.date||""}|${cal.text||""}`;
+        if(seen.has(sig))return; seen.add(sig);
+        out.push({sourceKey:doc.key+(path?`#${path}`:""),category:"calendar",meaning:"功能表5年度計畫",zone:{id:zone.id,name:zone.name},period,function5Calendar:cal,facts:[],preview:"",updatedAt:doc.updatedAt||null});
+      };
+      const baseZone=ghCalendarZoneFromText(doc.key);
+      const basePeriod=ghCalendarPeriodFromText(doc.key);
+      push(baseZone,basePeriod,doc.data,"");
+      const walk=(v,path,zone,period,depth)=>{
+        if(depth>6||!v||typeof v!=="object")return;
+        const here=path.join(":");
+        const z=ghCalendarZoneFromText(here)||zone;
+        const per=ghCalendarPeriodFromText(here)||period;
+        push(z,per,v,here);
+        if(Array.isArray(v)){v.forEach((x,i)=>walk(x,[...path,String(i)],z,per,depth+1));return;}
+        Object.entries(v).forEach(([k,x])=>walk(x,[...path,k],z,per,depth+1));
+      };
+      walk(doc.data,[doc.key],baseZone,basePeriod,0);
+      return out;
     }
 
     function ghCalendarDaysInMonth(y,m){return new Date(y,m,0).getDate();}
@@ -4590,7 +4637,9 @@ ${parts}
         }catch(e){
           console.warn('calendar 前綴查詢失敗，改用完整 kv 後篩選',e);
           const fallback=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,'kv',1000);
-          return fallback.map(ghNormalizeMainRecord)
+          const calDocs=fallback.filter(r=>String(r.key||'').startsWith('calendar:'));
+          const expanded=calDocs.flatMap(ghExpandCalendarDocument);
+          return expanded.length ? expanded : calDocs.map(ghNormalizeMainRecord)
             .filter(r=>r.category==='calendar' && r.function5Calendar);
         }
         const docs=snap.docs.map(doc=>{
@@ -4599,7 +4648,8 @@ ${parts}
           if(typeof value==='string'){try{value=JSON.parse(value);}catch(_){}}
           return {key:raw.key||doc.id,data:value,updatedAt:raw.updatedAt||null};
         });
-        return docs.map(ghNormalizeMainRecord)
+        const expanded=docs.flatMap(ghExpandCalendarDocument);
+        return expanded.length ? expanded : docs.map(ghNormalizeMainRecord)
           .filter(r=>r.category==='calendar' && r.function5Calendar);
       }
 
