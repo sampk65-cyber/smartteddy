@@ -403,7 +403,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Teddy 3.7 V5.1 strict five-entry router 2026-08-23</div>
+  <div id="deployStamp" style="display:none;">deploy: Teddy 3.7 V5.1 greenhouse hard-fix 2026-08-23 21xx</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.7</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -3924,30 +3924,31 @@ ${parts}
     }
 
     function ghWork68DirectAnswer(q,rows){
-      const text=String(q||"");
+      const text=String(q||"").trim();
+      const zone=ghFindZone(text);
       const hits=GH_MATERIAL_PATTERNS.filter(([name])=>text.includes(name));
-      const asks68=ghIsMaterialsQuestion(text);
+      // 已按「施肥」功能鍵後，允許「四南」「最近」「哪裡」這種短追問；
+      // 不要求每一句都再次出現「施肥／肥料」關鍵字。
+      const inMaterials=ghSelectedEntry==="materials";
+      const asks68=ghIsMaterialsQuestion(text) || (inMaterials && (!!zone || /最近|目前|現在|哪裡|哪一區|哪些區|哪幾區|何時|哪天|什麼|多少|紀錄|情況|狀態/.test(text)));
       if(!asks68)return null;
 
-      const zone=ghFindZone(text);
-      const req=ghDateRequest(text);
-
-      // 先判斷使用者問的是工作6、7、8中的哪一類。
-      // 「肥料／施肥」只看工作7；「補水／澆水」只看工作6；
-      // 明確材料名稱則以該材料為最高優先，不讓「耗材」這種大詞把其他類別混進來。
+      const req=ghDateRequest(text)||{};
       let requestedItemId=null;
-      if(!hits.length){
-        if(/補水|澆水|灌水|灌溉/.test(text))requestedItemId=6;
-        else if(/施肥|肥料|肥份/.test(text))requestedItemId=7;
-        else if(/其他資材|資材/.test(text) && !/耗材/.test(text))requestedItemId=8;
-      }
+      if(/補水|澆水|灌水|灌溉|溝灌|噴灌/.test(text)) requestedItemId=6;
+      else if(/其他資材|黃豆|水果|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素/.test(text)) requestedItemId=8;
+      else if(/施肥|肥料|肥份|米糠|金旺/.test(text)) requestedItemId=7;
+      // 功能鍵名稱就是「施肥」：沒有明確說補水/其他資材時，預設只分析工作7。
+      else if(inMaterials) requestedItemId=7;
 
-      const wantsByZone=!zone && /那區|哪一區|哪個區|哪幾區|哪些區|各區/.test(text);
+      const asksWhere=/哪裡|哪一區|哪個區|哪幾區|哪些區|哪個溫室|哪些溫室|哪幾個溫室/.test(text);
+      const asksRecent=/最近|最新|上一次|最後一次/.test(text);
       const asksWhen=/哪天|哪日|哪幾天|什麼時候|何時|幾號|哪次/.test(text);
       const asksWhat=/用了什麼|用什麼|有哪些|有什麼|什麼肥料|哪些肥料|什麼資材|哪些資材|內容/.test(text);
-      const histories=[];
+      const asksAmount=/多少|幾包|幾公斤|幾kg|幾噸|幾分鐘|總量|總共|合計/.test(text);
 
-      rows.filter(r=>r.category==="zonework").forEach(r=>{
+      const histories=[];
+      (rows||[]).filter(r=>r.category==="zonework").forEach(r=>{
         const hs=r.function3Work6to8?.confirmedHistory||[];
         hs.forEach(h=>{
           if(zone && r.zone?.id!==zone.id)return;
@@ -3962,42 +3963,34 @@ ${parts}
       });
 
       const zoneLabel=zone?zone.name:"全區";
-      const periodLabel=req.date?req.date:req.ym?`${req.year}年${req.month}月`:req.year?`${req.year}年`:"目前已確認紀錄";
+      const periodLabel=req.date?req.date:req.ym?`${req.year}年${req.month}月`:req.year?`${req.year}年`:"";
       const materialLabel=hits.map(([name])=>name).join("、");
-      const classLabel=requestedItemId===6?"補水":requestedItemId===7?"肥料":requestedItemId===8?"其他資材":"工作6～8";
+      const classLabel=requestedItemId===6?"補水":requestedItemId===7?"施肥":requestedItemId===8?"其他資材":"工作6～8";
 
       if(!histories.length){
-        if(hits.length)return `${zoneLabel}${periodLabel}沒有查到已確認的${materialLabel}使用紀錄。`;
-        return `${zoneLabel}${periodLabel}沒有查到${classLabel}的已確認使用紀錄。`;
+        const scope=[zoneLabel,periodLabel].filter(Boolean).join("");
+        return `${scope||"目前"}沒有查到已確認的${materialLabel||classLabel}紀錄。`;
+      }
+
+      // 「最近哪裡有施肥」：先找最新確認時間，再回答區域；不回包數。
+      if(asksWhere){
+        let pool=[...histories];
+        if(asksRecent || (!req.year && !req.month && !req.date)){
+          const latest=pool.map(h=>String(h.confirmedAt||"")).sort().pop();
+          if(latest)pool=pool.filter(h=>String(h.confirmedAt||"")===latest);
+        }
+        const latestDate=pool.map(h=>String(h.confirmedAt||"").slice(0,10)).sort().pop()||"";
+        const zones=[...new Set(pool.map(h=>h.zone?.name).filter(Boolean))];
+        if(!zones.length)return "抱歉，我不知道。";
+        return `${asksRecent?"最近":"符合條件的"}${classLabel}${latestDate?`（${latestDate}）`:""}：${zones.join("、")}。`;
       }
 
       if(asksWhen){
         const sorted=[...histories].sort((a,b)=>String(a.confirmedAt).localeCompare(String(b.confirmedAt)));
-        const parts=sorted.map(h=>{
-          const day=String(h.confirmedAt||"").slice(0,10);
-          const n=Number.isInteger(h.quantity)?String(h.quantity):String(Math.round(h.quantity*100)/100);
-          return `${day} ${n}${h.unit}${h.material}`;
-        });
-        return `${zoneLabel}${periodLabel}已確認的${materialLabel||classLabel}使用紀錄：${parts.join("、")}。`;
+        const dates=[...new Set(sorted.map(h=>String(h.confirmedAt||"").slice(0,10)).filter(Boolean))];
+        return `${zoneLabel}${periodLabel}${classLabel}已確認日期：${dates.join("、")}。`;
       }
 
-      if(wantsByZone){
-        const byZone={};
-        histories.forEach(h=>{
-          const zn=h.zone?.name||"未分區";
-          const key=`${zn}|${h.material}|${h.unit}`;
-          byZone[key]=(byZone[key]||0)+(Number(h.quantity)||0);
-        });
-        const parts=Object.entries(byZone).map(([key,val])=>{
-          const [zn,material,unit]=key.split("|");
-          const n=Number.isInteger(val)?String(val):String(Math.round(val*100)/100);
-          return `${zn} ${material} ${n}${unit}`;
-        });
-        return `${periodLabel}各區已確認：${parts.join("、")}。`;
-      }
-
-      // 「用了什麼肥料／資材」要回答品項，不是只判斷有沒有資料。
-      // 同一品項有多筆時先加總，避免回答成一長串重複紀錄。
       const totals={};
       histories.forEach(h=>{
         const key=`${h.material}|${h.unit}`;
@@ -4010,17 +4003,26 @@ ${parts}
       });
 
       if(asksWhat && !hits.length){
-        return `${zoneLabel}${periodLabel}已確認使用的${classLabel}：${allParts.map(x=>`${x.material} ${x.n}${x.unit}`).join("、")}。`;
+        return `${zoneLabel}${periodLabel}已確認使用：${allParts.map(x=>`${x.material} ${x.n}${x.unit}`).join("、")}。`;
+      }
+      if(hits.length || asksAmount){
+        const wanted=hits.length?new Set(hits.map(([name])=>name)):null;
+        const parts=allParts.filter(x=>!wanted||wanted.has(x.material)).map(x=>`${x.material} ${x.n}${x.unit}`);
+        return `${zoneLabel}${periodLabel}${classLabel}：${parts.join("、")}。`;
       }
 
-      if(hits.length){
-        const wanted=new Set(hits.map(([name])=>name));
-        const parts=allParts.filter(x=>wanted.has(x.material)).map(x=>`${x.n}${x.unit}${x.material}`);
-        if(!parts.length)return `${zoneLabel}${periodLabel}沒有查到已確認的${materialLabel}使用紀錄。`;
-        return `${zoneLabel}${periodLabel}共用了 ${parts.join("、")}。`;
+      // 單獨輸入「四南」：回四南最近已確認的施肥摘要，讓短追問有實際答案。
+      if(zone){
+        const latest=histories.map(h=>String(h.confirmedAt||"")).sort().pop();
+        const latestPool=latest?histories.filter(h=>String(h.confirmedAt||"")===latest):histories;
+        const d=latest?latest.slice(0,10):"";
+        const t2={};
+        latestPool.forEach(h=>{const k=`${h.material}|${h.unit}`;t2[k]=(t2[k]||0)+(Number(h.quantity)||0);});
+        const parts=Object.entries(t2).map(([k,v])=>{const [m,u]=k.split('|');const n=Number.isInteger(v)?v:Math.round(v*100)/100;return `${m} ${n}${u}`;});
+        return `${zone.name}${d?`最近一次（${d}）`:""}施肥：${parts.join("、")}。`;
       }
 
-      return `${zoneLabel}${periodLabel}已確認：${allParts.map(x=>`${x.material} ${x.n} ${x.unit}`).join("、")}。`;
+      return `已確認${classLabel}：${allParts.map(x=>`${x.material} ${x.n}${x.unit}`).join("、")}。`;
     }
 
     // ===== 功能表4・工作1-5（打芽/除草/剪葉/覆蓋）唯一入口 =====
@@ -4298,7 +4300,8 @@ ${parts}
     }
     function ghCalendarEntryReadyText(rows){
       const calRows=(rows||[]).filter(r=>r.category==="calendar"&&r.function5Calendar);
-      return calRows.length ? "資料已讀取。想分析節氣、月份、區域還是溫室？" : "功能表5目前沒有讀到計畫資料。";
+      if(!calRows.length)return "功能表5目前沒有讀到計畫資料。";
+      return "資料已讀取。想查月份、溫室、計畫動作，還是節氣？";
     }
 
     function ghCalendarDirectAnswer(q,rows){
@@ -4370,7 +4373,7 @@ ${parts}
         const y=req.year||cy,m=req.month||cm;
         const parts=zoneOrder.map(z=>{
           const r=rowFor(z,y,m);
-          if(!r)return `${z.name}：無計畫`;
+          if(!r)return `${z.name}：無資料`;
           if(action && !ghCalendarActionMatches(r.function5Calendar,action))return `${z.name}：無${action}`;
           const cal=r.function5Calendar,act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
           let x=`${z.name}：${act}`;
@@ -4396,7 +4399,7 @@ ${parts}
         const parts=[];
         for(let i=0;i<5;i++){
           const d=addMonth(cy,cm,i),r=rowFor(zone,d.y,d.m);
-          if(!r){parts.push(`${d.y}年${d.m}月：無計畫`);continue;}
+          if(!r){parts.push(`${d.y}年${d.m}月：無資料`);continue;}
           const cal=r.function5Calendar,act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
           let x=`${d.y}年${d.m}月：${act}`;
           if(cal.date)x+=`，${d.m}月${cal.date}日開始`;
@@ -4410,7 +4413,7 @@ ${parts}
       if(/計畫|溫室|目前|現在|有什麼|安排|行事曆/.test(t) || ghSelectedEntry==="calendar"){
         const parts=zoneOrder.map(z=>{
           const r=rowFor(z,cy,cm);
-          if(!r)return `${z.name}：無計畫`;
+          if(!r)return `${z.name}：無資料`;
           const cal=r.function5Calendar,act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
           let x=`${z.name}：${act}`;
           if(cal.date)x+=`，${cm}月${cal.date}日開始`;
@@ -4421,6 +4424,11 @@ ${parts}
       }
 
       return "抱歉，我不知道。";
+    }
+
+    function ghHasExplicitTime(q){
+      const t=String(q||"");
+      return /今天|今日|昨天|明天|本週|這週|本月|這個月|上個月|上月|下個月|下月|今年|明年|後年|去年|前年|20\d{2}\s*年|(?:^|[^0-9])(?:1[0-2]|[1-9])\s*月/.test(t);
     }
 
     function ghIsCalendarQuestion(q){
@@ -4435,7 +4443,7 @@ ${parts}
       // 功能表5三軸：時間 × 溫室 × 內容。
       // 「四北11月」也視為計畫查詢，因為其他入口若有明確詞已在上面先被排除。
       const hasZone=!!ghFindZone(t);
-      const hasTime=ghHasMonthOrTime(t);
+      const hasTime=ghHasExplicitTime(t);
       const asksContent=/做什麼|在做什麼|要做什麼|有什麼|內容|事項|工項|哪一項|什麼工作|怎麼安排|安排什麼|進度|時程|階段|開始日|開始時間|幾號開始|何時開始|什麼時候開始/.test(t);
       return hasZone && hasTime && (asksContent || true);
     }
@@ -4558,6 +4566,116 @@ ${parts}
     let ghSelectedEntry=null;
     let ghEntryCache={};
 
+    // ===== Greenhouse conversational context =====
+    // Each of the five functions keeps its own state. A short follow-up only changes
+    // the field the user mentioned; all other conditions remain from the previous turn.
+    const ghEntryContext={yield:{},work:{},calendar:{},materials:{},attendance:{}};
+
+    function ghResetEntryContext(entry){
+      if(entry && ghEntryContext[entry]) ghEntryContext[entry]={};
+    }
+
+    function ghContextIntent(entry,t){
+      t=String(t||'');
+      if(entry==='materials'){
+        if(/哪裡|哪一區|哪個區|哪些區|哪幾區|哪個溫室|哪些溫室/.test(t))return 'where';
+        if(/何時|什麼時候|哪天|哪日|幾號|最近一次|上一次/.test(t))return 'when';
+        if(/用了什麼|用什麼|什麼肥料|哪些肥料|什麼資材|內容|有哪些|有什麼/.test(t))return 'what';
+        if(/多少|幾包|幾公斤|幾kg|幾噸|幾分鐘|總量|總共|合計|量/.test(t))return 'amount';
+      }
+      if(entry==='yield'){
+        if(/比較|對比|差異|排名|最高|最低|趨勢/.test(t))return 'compare';
+        if(/品質|A級|B級|D級|NG|良率|比例|占比/.test(t))return 'quality';
+        if(/產量|產能|公斤|收成|採收|多少|總量/.test(t))return 'amount';
+      }
+      if(entry==='work'){
+        if(/誰負責|誰在做|指派/.test(t))return 'assignee';
+        if(/進度|狀態|完成|待確認/.test(t))return 'progress';
+        if(/報告|情況|全部|總覽/.test(t))return 'summary';
+      }
+      if(entry==='calendar'){
+        if(/節氣/.test(t))return 'solar';
+        if(/何時|什麼時候|幾月|哪月|開始/.test(t))return 'when';
+        if(/有哪些|有什麼|做什麼|計畫|安排|內容/.test(t))return 'summary';
+      }
+      if(entry==='attendance'){
+        if(/誰|哪些人/.test(t))return 'who';
+        if(/工時|幾小時|多久/.test(t))return 'hours';
+        if(/打卡|出勤|請假|加班|遲到/.test(t))return 'status';
+      }
+      return null;
+    }
+
+    function ghContextItem(entry,t){
+      t=String(t||'');
+      if(entry==='materials'){
+        if(/補水|澆水|灌水|灌溉|溝灌|噴灌/.test(t))return '補水';
+        if(/其他資材|黃豆|水果|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素/.test(t))return '其他資材';
+        if(/施肥|肥料|米糠|金旺/.test(t))return '施肥';
+      }
+      if(entry==='work'){
+        for(const id of [1,2,3,4,5]){
+          const name=GH_WORK_ITEMS[id];
+          if(name && t.includes(name))return name;
+        }
+        if(/打芽底|地芽/.test(t))return '打芽(地)';
+        if(/打芽/.test(t))return '打芽(側)';
+      }
+      if(entry==='calendar'){
+        const a=ghCalendarActionFromQuestion(t,[]);
+        if(a)return a;
+      }
+      if(entry==='yield'){
+        if(/A級|A\s*級/i.test(t))return 'A級';
+        if(/B級|B\s*級/i.test(t))return 'B級';
+        if(/D級|D\s*級/i.test(t))return 'D級';
+        if(/NG/i.test(t))return 'NG';
+      }
+      return null;
+    }
+
+    function ghContextualizeEntryQuestion(entry,q){
+      const raw=String(q||'').trim();
+      const ctx={...(ghEntryContext[entry]||{})};
+      const zones=ghFindZones(raw);
+      const time=ghDateRequest(raw)||{};
+      const item=ghContextItem(entry,raw);
+      const intent=ghContextIntent(entry,raw);
+
+      if(zones.length)ctx.zones=zones.map(z=>({id:z.id,name:z.name}));
+      if(time.date||time.ym||time.year||time.month)ctx.time=time;
+      if(item)ctx.item=item;
+      if(intent)ctx.intent=intent;
+      ctx.lastRaw=raw;
+
+      // Build a resolved question. Explicit fields from this turn always win; omitted fields
+      // are inherited. This is what makes "四北" after "二期澆水量" mean "四北澆水量".
+      const parts=[];
+      const hasZone=zones.length>0;
+      const hasTime=!!(time.date||time.ym||time.year||time.month);
+      const hasItem=!!item;
+      const hasIntent=!!intent;
+      if(!hasZone && ctx.zones?.length)parts.push(ctx.zones.map(z=>z.name).join('、'));
+      if(!hasTime && ctx.time){
+        const x=ctx.time;
+        if(x.date)parts.push(x.date);
+        else if(x.ym)parts.push(`${x.year}年${x.month}月`);
+        else if(x.year&&x.month)parts.push(`${x.year}年${x.month}月`);
+        else if(x.year)parts.push(`${x.year}年`);
+        else if(x.month)parts.push(`${x.month}月`);
+      }
+      if(!hasItem && ctx.item)parts.push(ctx.item);
+      if(!hasIntent && ctx.intent){
+        const map={where:'哪裡',when:'何時',what:'用了什麼',amount:'多少',compare:'比較',quality:'品質',assignee:'誰負責',progress:'進度',summary:'計畫內容',solar:'節氣',who:'誰',hours:'工時',status:'狀態'};
+        if(map[ctx.intent])parts.push(map[ctx.intent]);
+      }
+      parts.push(raw);
+      const effective=parts.filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+      ctx.lastEffective=effective;
+      ghEntryContext[entry]=ctx;
+      return {raw,effective,ctx};
+    }
+
     function ghSetEntryButtonState(entry){
       document.querySelectorAll('.gh-entry-btn').forEach(btn=>{
         const on=btn.dataset.entry===entry;
@@ -4614,36 +4732,55 @@ ${parts}
     async function ghLoadMainEntryRows(entry){
       const allow=new Set(GH_ENTRY_META[entry].categories);
 
-      // 功能表5特別處理：不要先抓整個 kv 再期待 calendar 剛好落在前 1000 筆。
-      // 直接依 key 前綴讀 calendar:*，確認「計畫」按鍵真的能把功能表5完整載入。
       if(entry==='calendar'){
         const db=await ghMainFirestore();
-        let snap;
-        try{
-          snap=await db.collection('kv')
-            .where('key','>=','calendar:')
-            .where('key','<=','calendar:\uf8ff')
-            .get();
-        }catch(e){
-          console.warn('calendar 前綴查詢失敗，改用完整 kv 後篩選',e);
-          const fallback=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,'kv',1000);
-          const calDocs=fallback.filter(r=>String(r.key||'').startsWith('calendar:'));
-          const expanded=calDocs.flatMap(ghExpandCalendarDocument);
-          return expanded.length ? expanded : calDocs.map(ghNormalizeMainRecord)
-            .filter(r=>r.category==='calendar' && r.function5Calendar);
-        }
-        const docs=snap.docs.map(doc=>{
-          const raw=doc.data()||{};
+        // 功能表5不能只假設 key 一定叫 calendar:*。
+        // 直接讀 kv，再從 calendar / plan / 年度計畫 / function5 類 key 中展開矩陣。
+        // 同時保留 calendar:* 前綴查詢作為快速路徑，最後去重合併。
+        const docs=[];
+        const addDoc=doc=>{
+          const raw=doc.data?doc.data():(doc||{});
+          const id=doc.id||raw.id||'';
           let value=raw.value;
-          if(typeof value==='string'){try{value=JSON.parse(value);}catch(_){}}
-          return {key:raw.key||doc.id,data:value,updatedAt:raw.updatedAt||null};
+          if(typeof value==='string'){try{value=JSON.parse(value);}catch(_){} }
+          docs.push({key:raw.key||id,data:value,updatedAt:raw.updatedAt||null});
+        };
+        try{
+          const snap=await db.collection('kv').get();
+          snap.docs.forEach(addDoc);
+        }catch(e){
+          console.warn('功能表5完整 kv 讀取失敗，改用 REST fallback',e);
+          const fallback=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,'kv',5000);
+          fallback.forEach(r=>docs.push(r));
+        }
+
+        const planWord=/calendar|plan|annual|年度|行事曆|功能5|function5/i;
+        const actionWord=/產季|剪枝|座果|度冬|備註|重要|預估/;
+        const candidates=docs.filter(d=>{
+          const k=String(d.key||'');
+          if(k.startsWith('calendar:')||planWord.test(k))return true;
+          let txt='';try{txt=JSON.stringify(d.data||'');}catch(_){txt=String(d.data||'');}
+          // 非典型 key 只有同時出現「計畫動作 + 可辨識溫室 + 年月」才納入，避免誤抓工作表4/7。
+          return actionWord.test(txt) && !!ghCalendarZoneFromText(k+' '+txt) && !!ghCalendarPeriodFromText(k+' '+txt);
         });
-        const expanded=docs.flatMap(ghExpandCalendarDocument);
-        return expanded.length ? expanded : docs.map(ghNormalizeMainRecord)
+
+        let expanded=candidates.flatMap(ghExpandCalendarDocument);
+        // 去重：同一溫室、月份、動作只保留資訊最完整的一筆。
+        const best=new Map();
+        expanded.forEach(r=>{
+          const cal=r.function5Calendar||{};
+          const key=`${r.zone?.id}|${r.period}|${ghCalendarActionOf(cal)}`;
+          const score=(cal.date?2:0)+(cal.text?1:0)+(cal.action?1:0);
+          const prev=best.get(key);
+          if(!prev||score>prev.score)best.set(key,{row:r,score});
+        });
+        expanded=[...best.values()].map(x=>x.row);
+        if(expanded.length)return expanded;
+
+        return candidates.map(ghNormalizeMainRecord)
           .filter(r=>r.category==='calendar' && r.function5Calendar);
       }
 
-      // 其他功能鍵維持既有讀取方式；進入後只保留該入口允許的資料類別。
       const docs=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,"kv",1000);
       return docs.map(ghNormalizeMainRecord).filter(r=>allow.has(r.category));
     }
@@ -4673,7 +4810,9 @@ ${parts}
     }
 
     async function ghSelectEntry(entry){
+      const switching=ghSelectedEntry!==entry;
       ghSelectedEntry=entry;
+      if(switching)ghResetEntryContext(entry);
       ghSetEntryButtonState(entry);
       const status=document.getElementById('greenhouseStatus');
       const hint=document.getElementById('ghEntryHint');
@@ -4720,37 +4859,39 @@ ${parts}
 
     async function ghAnswerSelectedEntry(entry,q){
       const meta=GH_ENTRY_META[entry];
-      const understood=ghUnderstandQuestion(entry,q);
+      const resolved=ghContextualizeEntryQuestion(entry,q);
+      const effectiveQ=resolved.effective;
+      const understood=ghUnderstandQuestion(entry,effectiveQ);
       let rows=[]; let yieldRows=[]; let direct='';
 
       // Step 1: 使用「按下功能鍵時已主動讀入」的資料池，不重新跨表猜資料來源。
       const cache=await ghReadEntry(entry,false);
       if(entry==='yield'){
-        yieldRows=ghFilterYieldCache(cache.rows,q);
+        yieldRows=ghFilterYieldCache(cache.rows,effectiveQ);
         // 若背景資料池剛好沒有命中（例如資料在回答前才新增），再做一次即時精準查詢補強。
-        if(!yieldRows.length)yieldRows=await ghQueryYield(q);
+        if(!yieldRows.length)yieldRows=await ghQueryYield(effectiveQ);
       }else{
         rows=cache.rows.slice();
       }
 
       // Step 2 + 3: Understand and organize using domain-specific deterministic functions first.
       if(entry==='yield'){
-        const route=ghYieldRoute(q);
+        const route=ghYieldRoute(effectiveQ);
         if(route.id==='import'){
           ghOpenYieldImport();
           return '請選擇 CSV、TSV 或 JSON。';
         }
         if(route.id==='input'||route.id==='audit') return ghYieldRouteIntro(route);
         if(!yieldRows.length)return '沒有查到符合你條件的產能資料。';
-        direct= route.id==='analysis' ? ghYieldCompositeAnswer(yieldRows,q) : ghYieldDirectAnswer(yieldRows,q);
-        if(!direct) direct=ghYieldCompositeAnswer(yieldRows,q);
+        direct= route.id==='analysis' ? ghYieldCompositeAnswer(yieldRows,effectiveQ) : ghYieldDirectAnswer(yieldRows,effectiveQ);
+        if(!direct) direct=ghYieldCompositeAnswer(yieldRows,effectiveQ);
       }else if(entry==='work'){
-        direct=ghWork45DirectAnswer(q,rows);
+        direct=ghWork45DirectAnswer(effectiveQ,rows);
       }else if(entry==='calendar'){
         // 功能表5已在按鍵進入時完整預載；回答只允許使用 calendar 資料。
         // 月份／區域／狀態／節氣／開始日／累積天數先由固定函式計算。
         if(!rows.length)return '功能表5目前沒有讀到計畫資料。';
-        direct=ghCalendarDirectAnswer(q,rows);
+        direct=ghCalendarDirectAnswer(effectiveQ,rows);
         // 計畫入口禁止「無回覆」。只要資料已成功讀入，但問題沒有命中細分類，
         // 就以今天年月橫向讀六區，讓使用者至少得到目前計畫，而不是掉進空白或 AI 猜測。
         if(!direct){
@@ -4758,19 +4899,19 @@ ${parts}
           direct=ghCalendarDirectAnswer(`${yy}年${mm}月有什麼計畫`,rows);
         }
       }else if(entry==='materials'){
-        direct=ghWork68DirectAnswer(q,rows);
+        direct=ghWork68DirectAnswer(effectiveQ,rows);
       }else if(entry==='attendance'){
-        direct=ghAttendanceDirectAnswer(rows,q);
+        direct=ghAttendanceDirectAnswer(rows,effectiveQ);
       }
 
       // Step 4: If a deterministic calculation/list can answer, return it immediately.
       if(direct && !understood.wantsWhy)return direct;
 
       // Only now call AI; the AI receives one domain only and may not switch tables.
-      const payload=ghOrganizeForAI(entry,q,rows,yieldRows);
+      const payload=ghOrganizeForAI(entry,effectiveQ,rows,yieldRows);
       payload.selectedEntry={id:entry,label:meta.label,table:meta.table};
       payload.questionUnderstanding=understood;
-      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室×計畫動作」矩陣；計畫動作包含資料格內實際設定的動作（例如產季、剪枝、座果、度冬，也包含未來新增的動作名稱）。問月份就依一期、二期、三期、四南、四北、五期順序垂直回答；問溫室就從本月起橫向回答連續5個月；問計畫動作就反向搜尋符合的溫室與月份；問溫室+月份或溫室+動作就做交叉查詢，只回答指定範圍；節氣使用月份節氣列；沒有資料支持就只回答「抱歉，我不知道」，禁止猜測或延伸。`;
+      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n原句：${q}\n承接上下文後：${effectiveQ}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室×計畫動作」矩陣；計畫動作包含資料格內實際設定的動作（例如產季、剪枝、座果、度冬，也包含未來新增的動作名稱）。問月份就依一期、二期、三期、四南、四北、五期順序垂直回答；問溫室就從本月起橫向回答連續5個月；問計畫動作就反向搜尋符合的溫室與月份；問溫室+月份或溫室+動作就做交叉查詢，只回答指定範圍；節氣使用月份節氣列；沒有資料支持就只回答「抱歉，我不知道」，禁止猜測或延伸。`;
       return await ghAskAI(aiQ,payload);
     }
 
@@ -4794,6 +4935,11 @@ ${parts}
           ghLog("assistant",reply); await ghSpeak(reply); return;
         }
 
+        if(/^(?:重新開始|清除條件|重設條件|清空條件)$/.test(q)){
+          ghResetEntryContext(ghSelectedEntry);
+          const reply='條件已清除。想讓我分析什麼事？';
+          ghLog('assistant',reply); await ghSpeak(reply); return;
+        }
         const meta=GH_ENTRY_META[ghSelectedEntry];
         status.textContent=`${meta.label}｜理解問題、整理資料中…`;
         const answer=await ghAnswerSelectedEntry(ghSelectedEntry,q);
