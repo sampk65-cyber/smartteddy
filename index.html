@@ -1219,6 +1219,79 @@
     let teddySummary = ""; // 長期記憶摘要（很久以前聊過的重點，濃縮成一段文字）
     const TEDDY_HISTORY_KEY = "teddy_chat_history";
     const TEDDY_SUMMARY_KEY = "teddy_chat_summary";
+    // 稱呼單獨開一個欄位，不跟一大段自由文字的長期摘要混在一起——
+    // 這樣溫室模式只讀這一個小欄位就好，不用整份摘要（家人、心情、興趣）都帶進去，
+    // 維持「工作歸工作、聊天歸聊天」的分隔，同時兩邊都認得同一個稱呼。
+    const TEDDY_NAME_KEY = "teddy_preferred_name";
+    let teddyPreferredName = "";
+    // 溫室模式專用筆記：只有明確說「記住：」才會寫進來，跟一般模式那一大段自由摘要分開存，
+    // 不會因為聊天內容被自動摘要進來，也不會被一般模式讀到——維持「工作歸工作」的界線。
+    const TEDDY_GREENHOUSE_NOTES_KEY = "teddy_greenhouse_notes";
+    let teddyGreenhouseNotes = [];
+    const GH_NOTES_MAX = 30;
+
+    async function ghSaveNotes(){
+      localStorage.setItem(TEDDY_GREENHOUSE_NOTES_KEY, JSON.stringify(teddyGreenhouseNotes));
+      if(!teddyEnsureFirebase())return;
+      try{
+        const db=firebase.firestore();
+        await db.collection("teddy_memory").doc(teddyGetDeviceId()).set({greenhouseNotes:teddyGreenhouseNotes},{merge:true});
+      }catch(e){console.warn("溫室筆記儲存失敗，僅保留本機：",e.message);}
+    }
+
+    // 回傳值：matched=true 代表這句話是記憶指令（不管成功與否），呼叫端應該直接用 reply 回覆、不要再進其他路由。
+    function ghHandleMemoryCommand(q){
+      const t=String(q||"").trim();
+
+      const remember=t.match(/^(?:幫我)?記住[:：]\s*(.+)$/);
+      if(remember){
+        const note=remember[1].trim();
+        if(!note)return{matched:true,reply:"要記住什麼內容？「記住：」後面請接你要我記的事。"};
+        teddyGreenhouseNotes.push(note);
+        if(teddyGreenhouseNotes.length>GH_NOTES_MAX)teddyGreenhouseNotes=teddyGreenhouseNotes.slice(-GH_NOTES_MAX);
+        ghSaveNotes();
+        return{matched:true,reply:`記住了：${note}`};
+      }
+
+      const forget=t.match(/^(?:忘記|刪除記憶)[:：]?\s*(.*)$/);
+      if(forget){
+        const key=forget[1].trim();
+        if(!key){
+          if(!teddyGreenhouseNotes.length)return{matched:true,reply:"目前沒有記住任何溫室筆記。"};
+          return{matched:true,reply:`要忘記哪一條？目前記得：${teddyGreenhouseNotes.map((n,i)=>`${i+1}.${n}`).join("；")}`};
+        }
+        const before=teddyGreenhouseNotes.length;
+        teddyGreenhouseNotes=teddyGreenhouseNotes.filter(n=>!n.includes(key));
+        if(teddyGreenhouseNotes.length===before)return{matched:true,reply:`沒有找到包含「${key}」的筆記，不確定要忘記哪一條。`};
+        ghSaveNotes();
+        return{matched:true,reply:`已忘記跟「${key}」有關的筆記。`};
+      }
+
+      if(/^(?:你|妳)?(?:在溫室模式)?記得什麼|溫室筆記|列出.*筆記/.test(t)){
+        if(!teddyGreenhouseNotes.length)return{matched:true,reply:"目前沒有記住任何溫室筆記，可以說「記住：內容」讓我記下來。"};
+        return{matched:true,reply:`目前記得：${teddyGreenhouseNotes.map((n,i)=>`${i+1}.${n}`).join("；")}`};
+      }
+
+      return{matched:false};
+    }
+
+    function teddyDetectPreferredName(text){
+      const t=String(text||"").trim();
+      const m=t.match(/^(?:以後|請|麻煩)?叫我([\u4e00-\u9fa5A-Za-z0-9]{1,8})(?:就好|就可以|吧|喔|唷)?[。！!～~]*$/)
+        || t.match(/^我是([\u4e00-\u9fa5A-Za-z0-9]{1,8})[，,]?\s*(?:不是|不用).{0,10}$/);
+      if(m && m[1])return m[1];
+      return null;
+    }
+
+    async function teddySavePreferredName(name){
+      teddyPreferredName=name;
+      localStorage.setItem(TEDDY_NAME_KEY,name);
+      if(!teddyEnsureFirebase())return;
+      try{
+        const db=firebase.firestore();
+        await db.collection("teddy_memory").doc(teddyGetDeviceId()).set({preferredName:name},{merge:true});
+      }catch(e){console.warn("稱呼儲存失敗，僅保留本機：",e.message);}
+    }
     const TEDDY_HISTORY_RAW_MAX = 30; // 近期完整逐字記錄上限，超過會把最舊一批濃縮成摘要
     const TEDDY_SUMMARIZE_CHUNK = 14; // 每次濃縮多少則舊訊息
 
@@ -1315,6 +1388,9 @@
       try { teddyHistory = JSON.parse(localStorage.getItem(TEDDY_HISTORY_KEY) || "[]"); }
       catch (_) { teddyHistory = []; }
       teddySummary = localStorage.getItem(TEDDY_SUMMARY_KEY) || "";
+      teddyPreferredName = localStorage.getItem(TEDDY_NAME_KEY) || "";
+      try{ teddyGreenhouseNotes = JSON.parse(localStorage.getItem(TEDDY_GREENHOUSE_NOTES_KEY) || "[]"); }
+      catch(_){ teddyGreenhouseNotes = []; }
       teddyRenderHistoryLog();
 
       // 再嘗試從 Firestore 讀取雲端版本（換裝置也能看到同一份記憶）
@@ -1326,6 +1402,14 @@
           const data = doc.data();
           teddyHistory = data.history || [];
           teddySummary = data.summary || "";
+          if(data.preferredName){
+            teddyPreferredName=data.preferredName;
+            localStorage.setItem(TEDDY_NAME_KEY,teddyPreferredName);
+          }
+          if(Array.isArray(data.greenhouseNotes)){
+            teddyGreenhouseNotes=data.greenhouseNotes;
+            localStorage.setItem(TEDDY_GREENHOUSE_NOTES_KEY,JSON.stringify(teddyGreenhouseNotes));
+          }
           localStorage.setItem(TEDDY_HISTORY_KEY, JSON.stringify(teddyHistory));
           localStorage.setItem(TEDDY_SUMMARY_KEY, teddySummary);
           teddyRenderHistoryLog();
@@ -1750,6 +1834,8 @@
       teddyAppendLog("user", text);
       teddyHistory.push({ role: "user", text });
       teddySaveHistory();
+      const nameHit=teddyDetectPreferredName(text);
+      if(nameHit)teddySavePreferredName(nameHit);
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
       // V3.1 Core abilities run locally first: faster and cannot be lost by model routing.
@@ -2470,7 +2556,7 @@ ${parts}
       if(/人員|員工|帳號|誰負責|人事/.test(q))cats.add("people");
       if(/權限|角色|登入|帳號權限|管理員/.test(q))cats.add("access");
       if(/通知|留言|公告|分區通知/.test(q))cats.add("notice");
-      if(/行事曆|年度計畫|產季|排程/.test(q))cats.add("calendar");
+      if(/行事曆|年度計畫|產季|排程|節氣|剪枝|座果|度冬/.test(q))cats.add("calendar");
       if(/噴藥|農藥|藥劑|病蟲害紀錄/.test(q))cats.add("spray");
       if(/工作|工項|修剪|剪枝|除草|打芽|補水|澆水|施肥|肥料|資材|米糠|金旺|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂|微量元素/.test(q))cats.add("work");
       if(/報表|統計|摘要|趨勢/.test(q))cats.add("report");
@@ -2492,7 +2578,7 @@ ${parts}
 
     function ghKeyMatchesZone(key,zone){
       if(!zone)return true;
-      if(/^(zonework|worklog|workmonth|spraylog|zonenotice):/.test(key))return key.includes(`:${zone.id}:`)||key.startsWith(`zonenotice:${zone.id}`);
+      if(/^(zonework|worklog|workmonth|spraylog|zonenotice|calendar):/.test(key))return key.includes(`:${zone.id}:`)||key.startsWith(`zonenotice:${zone.id}`);
       return true;
     }
 
@@ -2623,6 +2709,9 @@ ${parts}
         // 功能表3的6-8只暴露已確認歷史，避免 pending/checks/extra 被誤判為已使用。
         normalized.facts=[];
         normalized.preview="";
+      }
+      if(schema.category==="calendar"){
+        normalized.function5Calendar=ghCalendarNormalize(row.data);
       }
       return normalized;
     }
@@ -3280,7 +3369,9 @@ ${parts}
 
     async function ghAskAI(q,payload){
       const keys=loadKeys();
-      const system=`你是 Pongchi 的溫室管理／農業顧問模式。你現在收到的是「已正規化」的 V5.1 資料，不是原始 JSON 垃圾堆。
+      const nameLine=teddyPreferredName?`使用者偏好被稱呼為「${teddyPreferredName}」，回答時可以這樣稱呼他/她；除此之外不要引用任何其他一般模式的個人資訊（家人、心情、興趣等），維持溫室模式只談工作資料的定位。\n\n`:"";
+      const notesLine=teddyGreenhouseNotes.length?`使用者在溫室模式明確要求記住的筆記（僅供參考，不要當成 V5.1 的結構化資料，兩者衝突時以結構化資料為準）：\n${teddyGreenhouseNotes.map((n,i)=>`${i+1}. ${n}`).join("\n")}\n\n`:"";
+      const system=`${nameLine}${notesLine}你是 Pongchi 的溫室管理／農業顧問模式。你現在收到的是「已正規化」的 V5.1 資料，不是原始 JSON 垃圾堆。
 
 工作資料的唯一判讀規則（最高優先，不能混用）：
 - 工作項目1-5：1=打芽(側)、2=打芽(地)、3=除草、4=剪葉、5=覆蓋。
@@ -3548,6 +3639,18 @@ ${parts}
           :`${zoneLabel}${periodLabel}沒有查到工作 6～8 的已確認使用紀錄。`;
       }
 
+      // 問「哪天／什麼時候」是要日期，不是要加總數字——之前不管怎麼換句話問都只會回總量，
+      // 就是因為這個意圖從沒被判斷過，直接掉進下面的加總邏輯。
+      if(/哪天|哪日|哪幾天|什麼時候|何時|幾號|哪次/.test(q)){
+        const sorted=[...histories].sort((a,b)=>String(a.confirmedAt).localeCompare(String(b.confirmedAt)));
+        const parts=sorted.map(h=>{
+          const day=String(h.confirmedAt||"").slice(0,10);
+          const n=Number.isInteger(h.quantity)?String(h.quantity):String(Math.round(h.quantity*100)/100);
+          return `${day} ${n}${h.unit}${h.material}`;
+        });
+        return `${zoneLabel}${periodLabel}已確認的${materialLabel||"耗材"}使用紀錄：${parts.join("、")}。`;
+      }
+
       if(wantsByZone){
         const byZone={};
         histories.forEach(h=>{
@@ -3668,7 +3771,131 @@ ${parts}
       return `${zoneLabel}${periodLabel}功能表4共查到 ${items.length} 筆${itemLabel}指派，已完成 ${done} 筆、待確認 ${pendingCount} 筆。`;
     }
 
-    // ===== TEDDY 背景主題 + 上下文 =====
+    // ===== 功能表5・工項行事曆／年度計畫 =====
+    // 資料結構跟耗材(zonework)完全不同：不是逐筆確認紀錄，是「每區每月一筆」，
+    // 存 {text,color,date}：color是分類(產季/剪枝/座果/度冬…)，date是那個月第幾號開始，text是備註。
+    const GH_CAL_COLORS={
+      season:"產季",beige:"備註",green:"座果",purple:"剪枝",
+      red:"重要",cyan:"預估",alert:"度冬",none:"清空"
+    };
+    const GH_CAL_KEYWORD_TO_COLOR={
+      產季:"season",剪枝:"purple",座果:"green",度冬:"alert",備註:"beige",重要:"red",預估:"cyan"
+    };
+    const GH_SOLAR_TERMS_BY_MONTH={
+      1:"小寒／大寒",2:"立春／雨水",3:"驚蟄／春分",4:"清明／穀雨",
+      5:"立夏／小滿",6:"芒種／夏至",7:"小暑／大暑",8:"立秋／處暑",
+      9:"白露／秋分",10:"寒露／霜降",11:"立冬／小雪",12:"大雪／冬至"
+    };
+
+    function ghCalendarNormalize(data){
+      data=data||{};
+      const color=data.color||"none";
+      return{
+        color,
+        colorLabel:GH_CAL_COLORS[color]||color,
+        date:data.date||null,
+        text:data.text||""
+      };
+    }
+
+    function ghCalendarDaysInMonth(y,m){return new Date(y,m,0).getDate();}
+
+    // 累計天數要先往回找到「真正的起始月」，再從起始月往前累加到你問的那個月為止——
+    // 不是每次都把你問的月份當成起點往後算（那樣算出來的數字會整個對不上畫面）。
+    function ghCalendarCumulativeDays(calRows,zoneId,targetY,targetM){
+      const find=(y,m)=>calRows.find(r=>r.zone?.id===zoneId&&r.period===`${y}-${String(m).padStart(2,"0")}`)?.function5Calendar;
+      const targetCal=find(targetY,targetM);
+      if(!targetCal)return 0;
+      const color=targetCal.color;
+
+      let y0=targetY,m0=targetM;
+      for(let i=0;i<24;i++){
+        const py=m0===1?y0-1:y0, pm=m0===1?12:m0-1;
+        const prev=find(py,pm);
+        if(!prev||prev.color!==color)break;
+        y0=py;m0=pm;
+      }
+      const startDate=find(y0,m0)?.date||1;
+
+      let total=0,y=y0,m=m0,firstDay=startDate;
+      for(let i=0;i<24;i++){
+        const dim=ghCalendarDaysInMonth(y,m);
+        const dayStart=(y===y0&&m===m0)?firstDay:1;
+        total+=dim-dayStart+1;
+        if(y===targetY&&m===targetM)break;
+        m++;if(m>12){m=1;y++;}
+      }
+      return total;
+    }
+
+    function ghCalendarDirectAnswer(q,rows){
+      const t=String(q||"");
+      const calRows=rows.filter(r=>r.category==="calendar"&&r.function5Calendar);
+      const isCalQuestion=/節氣|產季|剪枝|座果|度冬|行事曆|年度計畫|下次.*(?:剪枝|座果|度冬|產季)|什麼時候.*(?:剪枝|座果|度冬|產季)/.test(t);
+      if(!isCalQuestion)return null;
+
+      const now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1;
+      const zone=ghFindZone(t);
+      const req=ghDateRequest(t);
+
+      // 1. 現在／某月是什麼節氣——不需要區，純粹月份對照表。
+      if(/節氣/.test(t) && !/剪枝|座果|度冬|產季/.test(t)){
+        const m=req.month||cm;
+        return `${req.year||cy}年${m}月的節氣是${GH_SOLAR_TERMS_BY_MONTH[m]}。`;
+      }
+
+      // 2. 下次／什麼時候要剪枝（或其他分類）——掃描未來月份，找每一區最早出現的那一筆。
+      const wantsNext=/下次|下一次|什麼時候|何時|接下來/.test(t);
+      const keywordHit=Object.keys(GH_CAL_KEYWORD_TO_COLOR).find(k=>t.includes(k));
+      if(wantsNext && keywordHit){
+        const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
+        const zones=zone?[zone]:GH_ZONES;
+        const hits=[];
+        zones.forEach(z=>{
+          const future=calRows
+            .filter(r=>r.zone?.id===z.id && r.function5Calendar.color===color && r.period>=`${cy}-${String(cm).padStart(2,"0")}`)
+            .sort((a,b)=>a.period.localeCompare(b.period));
+          if(future.length)hits.push({zone:z.name,period:future[0].period,date:future[0].function5Calendar.date});
+        });
+        if(!hits.length)return `目前查到的行事曆裡，${zone?zone.name:"各區"}接下來沒有排定${keywordHit}。`;
+        hits.sort((a,b)=>a.period.localeCompare(b.period));
+        const parts=hits.map(h=>{
+          const [y,m]=h.period.split("-");
+          return `${h.zone} ${y}年${Number(m)}月${h.date?h.date+"日":""}`;
+        });
+        return `下一次${keywordHit}：${parts.join("、")}。`;
+      }
+
+      // 3. 某月某區在做什麼——組合月份+分區講記事，有累計天數的話一併帶出。
+      if(zone && (req.ym||req.year)){
+        const ym=req.ym||`${req.year}-${String(cm).padStart(2,"0")}`;
+        const rec=calRows.find(r=>r.zone?.id===zone.id && r.period===ym);
+        const [y,m]=ym.split("-").map(Number);
+        if(!rec)return `${zone.name} ${y}年${m}月的行事曆沒有標記任何事項。`;
+        const cal=rec.function5Calendar;
+        const days=ghCalendarCumulativeDays(calRows,zone.id,y,m);
+        let out=`${zone.name} ${y}年${m}月：${cal.colorLabel}`;
+        if(cal.date)out+=`（${cal.date}日開始）`;
+        if(days>1)out+=`，累計 ${days} 天`;
+        if(cal.text)out+=`，備註：${cal.text}`;
+        out+="。";
+        return out;
+      }
+
+      // 4. 只問某區現況（沒指定月份）——用目前月份回答。
+      if(zone){
+        const ym=`${cy}-${String(cm).padStart(2,"0")}`;
+        const rec=calRows.find(r=>r.zone?.id===zone.id && r.period===ym);
+        if(!rec)return `${zone.name} 目前（${cy}年${cm}月）行事曆沒有標記任何事項。`;
+        const cal=rec.function5Calendar;
+        const days=ghCalendarCumulativeDays(calRows,zone.id,cy,cm);
+        return `${zone.name} 目前是${cal.colorLabel}${cal.date?`（${cal.date}日開始）`:""}${days>1?`，累計 ${days} 天`:""}。目前節氣是${GH_SOLAR_TERMS_BY_MONTH[cm]}。`;
+      }
+
+      return null;
+    }
+
+
     // 不把「切換模式」說給使用者聽；只在背景保存目前主題與最近查詢。
     const GH_TOPIC_KEY="teddy_greenhouse_topic_v7";
     const GH_CONTEXT_KEY="teddy_greenhouse_context_v7";
@@ -3695,20 +3922,24 @@ ${parts}
       // 耗材（工作表七・分區耗材統計）跟工作1-5是分開的入口，即使背後都讀 zonework，
       // 也要分開判斷，狀態列跟直接回答函式才會對得上你實際點進去的畫面。
       if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(t) || ghIsMaterialsQuestion(t))return "materials";
+      if(/節氣|行事曆|年度計畫|剪枝|座果|度冬/.test(t))return "calendar";
       if(/工作|工項|指派|除草|打芽|剪葉/.test(t))return "work";
       return null;
     }
 
     function ghTopicAckOnly(q){
       const t=String(q||"").replace(/\s+/g,"");
-      return /^(?:teddy|泰迪|松鼠|pongchi)?(?:我們|今天|現在|先|來)*(?:談|聊|看|處理)(?:一下)?(?:產能|產量|收成|採收|品質|工作|工項|打卡|出勤|耗材|資材)(?:吧|好了|好嗎)?[。！!？?]*$/i.test(t);
+      return /^(?:teddy|泰迪|松鼠|pongchi)?(?:我們|今天|現在|先|來)*(?:談|聊|看|處理)(?:一下)?(?:產能|產量|收成|採收|品質|工作|工項|打卡|出勤|耗材|資材|行事曆|年度計畫|節氣)(?:吧|好了|好嗎)?[。！!？?]*$/i.test(t);
     }
 
     function ghLooksLikeFollowup(q){
       const t=String(q||"").trim();
       if(!t)return false;
       if(/^(那|那麼|那個|那今年|那去年|那上個月|那這個月|那四北|那四南|那一期|那二期|那三期|那五期|不是|改成|換成|再看|再查|還有|以及|跟|和|平均|最高|最低|最多|最少|A級|B級|D級|NG)/.test(t))return true;
-      if(t.length<=14 && /今年|去年|前年|本月|這個月|上個月|今天|昨天|四北|四南|一期|二期|三期|五期|A級|B級|D級|NG|平均|最高|最低|最多|最少/.test(t))return true;
+      if(t.length<=14 && /今年|去年|前年|本月|這個月|上個月|今天|昨天|四北|四南|一期|二期|三期|五期|A級|B級|D級|NG|平均|最高|最低|最多|最少|哪天|哪日|哪幾天|什麼時候|何時|幾號|哪個人|誰/.test(t))return true;
+      // 極短問句（≤6字，通常是單一疑問詞：哪天/多少/為什麼…）本身沒有任何主題線索，
+      // 幾乎一定是承接上一句在追問細節，不該被當成全新話題洗掉主題狀態。
+      if(t.length<=6 && /^(哪|誰|何|多少|為何|為什麼|怎麼|幾)/.test(t))return true;
       return false;
     }
 
@@ -3744,6 +3975,7 @@ ${parts}
         if(ghIsAttendanceQuestion(q))topic="attendance";
         else if(ghIsYieldQuestion(q))topic="yield";
         else if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(String(q||"")) || ghIsMaterialsQuestion(q))topic="materials";
+        else if(/節氣|行事曆|年度計畫|剪枝|座果|度冬/.test(String(q||"")))topic="calendar";
         else if(/工作|工項|指派|除草|打芽|剪葉/.test(String(q||"")))topic="work";
         // 三個模組都對不上、又不是延續上一句的追問，就是全新話題（包含單純聊天），
         // 不該沿用舊主題——這就是之前「hi teddy」被硬套進產能查詢的根本原因。
@@ -3773,7 +4005,19 @@ ${parts}
       input.value="";ghLog("user",q);btn.disabled=true;
       const status=document.getElementById("greenhouseStatus");
       status.textContent="正在結構化讀取 V5.1…";
+      const ghNameHit=teddyDetectPreferredName(q);
+      if(ghNameHit)teddySavePreferredName(ghNameHit);
       try{
+        // 記憶指令（記住：／忘記：／你記得什麼）優先攔截，不進任何模組路由，
+        // 也不該被「這句話跟哪個工作表有關」的判斷混進去。
+        const mem=ghHandleMemoryCommand(q);
+        if(mem.matched){
+          status.textContent="V5.1 即時資料 · 支援語音提問與朗讀";
+          ghLog("assistant",mem.reply);
+          await ghSpeak(mem.reply);
+          btn.disabled=false;
+          return;
+        }
         // 純打招呼：不進任何模組路由，也把黏住的舊主題清掉，避免下一句被誤套進舊主題。
         if(ghIsGreetingOnly(q)){
           const state=ghLoadConversationState();
@@ -3795,7 +4039,9 @@ ${parts}
         const isYield=conv.topic==="yield" || ghIsYieldQuestion(effectiveQ);
         const isAttendance=conv.topic==="attendance" || ghIsAttendanceQuestion(effectiveQ);
         const isMaterials=!isYield && !isAttendance && conv.topic==="materials";
-        const isWork=!isYield && !isAttendance && !isMaterials && (conv.topic==="work" || ghIsWorkQuestion(effectiveQ));
+        const isCalendar=!isYield && !isAttendance && !isMaterials &&
+          (conv.topic==="calendar" || /節氣|行事曆|年度計畫|下次.*(?:剪枝|座果|度冬|產季)|什麼時候.*(?:剪枝|座果|度冬|產季)/.test(effectiveQ));
+        const isWork=!isYield && !isAttendance && !isMaterials && !isCalendar && (conv.topic==="work" || ghIsWorkQuestion(effectiveQ));
         let mainRows=[];
         let yieldRows=[];
 
@@ -3808,6 +4054,20 @@ ${parts}
           ghLog("assistant",answer);
           await ghSpeak(answer);
           return;
+        }
+
+        // 功能表5・工項行事曆／年度計畫：節氣、產季、剪枝、座果、度冬的唯一入口。
+        if(isCalendar){
+          status.textContent="功能表5・年度計畫";
+          const allRows=await ghQueryV51(effectiveQ);
+          mainRows=allRows;
+          const answer=ghCalendarDirectAnswer(effectiveQ,mainRows);
+          if(answer){
+            ghLog("assistant",answer);
+            await ghSpeak(answer);
+            return;
+          }
+          // 超出固定模板的行事曆問題，仍只把 calendar 資料交給 AI 解讀。
         }
 
         // 工作表七・分區耗材統計：跟功能表4的工作1-5是分開的入口，
@@ -3917,6 +4177,9 @@ ${parts}
     }
 
     document.addEventListener("DOMContentLoaded",()=>{
+      // 稱呼要在任一模式都讀得到，不能只靠打開一般聊天面板才觸發載入——
+      // 不然直接點進溫室模式的人，第一句話永遠讀不到已經存過的稱呼。
+      teddyLoadHistory();
       const p=document.getElementById("btnPongchiMode"),g=document.getElementById("btnGreenhouseMode"),
         close=document.getElementById("btnGreenhouseClose"),send=document.getElementById("btnGreenhouseSend"),
         input=document.getElementById("greenhouseInput"),scan=document.getElementById("btnGreenhouseScan");
