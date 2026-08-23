@@ -4400,10 +4400,25 @@ ${parts}
         return out+"。";
       }
 
-      // 6. 沒指定分區/月份/關鍵字的籠統問題（例如「能查到年度計畫嗎」）——
-      // 之前這種問法四個分支全部對不上，會直接掉進通用 AI、變成一堆條列原始資料。
-      // 改成：只挑「接下來有排定事項」的部分，依分區彙整成一句話，不逐月全部列出。
-      // 功能表5找不到明確資料時不猜、不延伸。
+      // 7. 計畫入口的缺省日期規則：已進入功能表5後，若使用者只問
+      // 「溫室有什麼計畫／目前有什麼計畫／現在的計畫」而沒有指定年月，
+      // 自動以今天的年月為查詢基準，橫向讀取六個溫室；不是資料不足，不能回答不知道。
+      const asksCurrentPlan=/計畫|安排|行事曆|溫室/.test(t) && /有什麼|什麼|目前|現在|最近|今日|今天|溫室/.test(t);
+      if(asksCurrentPlan){
+        const ym=`${cy}-${String(cm).padStart(2,"0")}`;
+        const parts=ghCalendarZonesInOrder().map(z=>{
+          const rec=calRows.find(r=>r.zone?.id===z.id && r.period===ym);
+          if(!rec || !rec.function5Calendar || rec.function5Calendar.color==="none")return `${z.name}：無計畫`;
+          const cal=rec.function5Calendar;
+          let x=`${z.name}：${cal.colorLabel}`;
+          if(cal.date)x+=`，${cm}月${cal.date}日開始`;
+          if(cal.text)x+=`，${cal.text}`;
+          return x;
+        });
+        return `${cy}年${cm}月各區計畫：${parts.join("；")}。`;
+      }
+
+      // 真正沒有足夠條件、且功能表5也無法由今天日期合理補足時，才明確說不知道。
       return '抱歉，我不知道。';
     }
 
