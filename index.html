@@ -4208,15 +4208,39 @@ ${parts}
       const zone=ghFindZone(t);
       const req=ghDateRequest(t);
 
-      // 1. 現在／某月是什麼節氣——不需要區，純粹月份對照表。
+      // 1. 日期觀念：今天／現在＋節氣，只回答日期附近的節氣；不把「接近」誤解成接近的計畫。
       if(/節氣/.test(t) && !/剪枝|座果|度冬|產季/.test(t)){
         const m=req.month||cm;
         return `${req.year||cy}年${m}月的節氣是${GH_SOLAR_TERMS_BY_MONTH[m]}。`;
+      }
+      if(/今天|今日|現在/.test(t) && /接近|附近|前後|什麼/.test(t) && !/剪枝|座果|度冬|產季|計畫/.test(t)){
+        return `${cy}年${cm}月${now.getDate()}日，接近的節氣是${GH_SOLAR_TERMS_BY_MONTH[cm]}。`;
       }
 
       // 2. 下次／什麼時候要剪枝（或其他分類）——掃描未來月份，找每一區最早出現的那一筆。
       const wantsNext=/下次|下一次|什麼時候|何時|接下來/.test(t);
       const keywordHit=Object.keys(GH_CAL_KEYWORD_TO_COLOR).find(k=>t.includes(k));
+      const requestedZones=ghFindZones(t);
+
+      // 計畫＋一個或多個溫室，例如「一期二期何時剪枝」：逐區找該計畫，不混入其他區。
+      if(keywordHit && requestedZones.length){
+        const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
+        const hits=[];
+        requestedZones.forEach(z=>{
+          let recs=calRows.filter(r=>r.zone?.id===z.id && r.function5Calendar.color===color);
+          if(req.ym)recs=recs.filter(r=>r.period===req.ym);
+          else if(req.year)recs=recs.filter(r=>String(r.period).startsWith(`${req.year}-`));
+          recs.sort((a,b)=>String(a.period).localeCompare(String(b.period)));
+          if(wantsNext) recs=recs.filter(r=>r.period>=`${cy}-${String(cm).padStart(2,"0")}`);
+          if(recs.length)hits.push({z,r:recs[0]});
+        });
+        if(!hits.length)return '抱歉，我不知道。';
+        const parts=hits.map(({z,r})=>{
+          const [y,m]=String(r.period).split('-').map(Number), cal=r.function5Calendar;
+          return `${z.name}：${y}年${m}月${cal.date?`${m}月${cal.date}日開始`:''}`.replace(/月月/g,'月');
+        });
+        return `${keywordHit}：${parts.join('；')}。`;
+      }
       if(wantsNext && keywordHit){
         const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
         const zones=zone?[zone]:GH_ZONES;
@@ -4332,26 +4356,8 @@ ${parts}
       // 6. 沒指定分區/月份/關鍵字的籠統問題（例如「能查到年度計畫嗎」）——
       // 之前這種問法四個分支全部對不上，會直接掉進通用 AI、變成一堆條列原始資料。
       // 改成：只挑「接下來有排定事項」的部分，依分區彙整成一句話，不逐月全部列出。
-      if(calRows.length){
-        const now2=`${cy}-${String(cm).padStart(2,"0")}`;
-        const byZone={};
-        calRows.forEach(r=>{
-          if(r.function5Calendar.color==="none")return;
-          if(r.period<now2)return; // 只看現在跟未來，過去的不用講
-          const zn=r.zone?.name||"未分區";
-          if(!byZone[zn])byZone[zn]=[];
-          byZone[zn].push(r);
-        });
-        const parts=Object.entries(byZone).map(([zn,recs])=>{
-          recs.sort((a,b)=>a.period.localeCompare(b.period));
-          const first=recs[0];
-          const [y,m]=first.period.split("-");
-          return `${zn}${Number(m)}月${first.function5Calendar.colorLabel}${first.function5Calendar.date?first.function5Calendar.date+"日":""}`;
-        });
-        if(parts.length)return `目前查到的年度計畫，接下來：${parts.join("、")}。想知道特定分區或月份的細節，可以直接問「四北11月在做什麼」這種問法。`;
-      }
-
-      return null;
+      // 功能表5找不到明確資料時不猜、不延伸。
+      return '抱歉，我不知道。';
     }
 
 
@@ -4718,7 +4724,7 @@ ${parts}
       const payload=ghOrganizeForAI(entry,q,rows,yieldRows);
       payload.selectedEntry={id:entry,label:meta.label,table:meta.table};
       payload.questionUnderstanding=understood;
-      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室」矩陣；問月份就依一期、二期、三期、四南、四北、五期順序回答；問溫室就依月份順序回答；問計畫類型就反向回答符合的溫室與月份；節氣使用月份節氣列。`;
+      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室」矩陣；問月份就依一期、二期、三期、四南、四北、五期順序回答；問溫室就依月份順序回答；問計畫類型就反向回答符合的溫室與月份；節氣使用月份節氣列；沒有資料支持就只回答「抱歉，我不知道」，禁止猜測或延伸。`;
       return await ghAskAI(aiQ,payload);
     }
 
