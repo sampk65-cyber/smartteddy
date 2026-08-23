@@ -4154,22 +4154,38 @@ ${parts}
       let color=data.color||data.status||data.type||data.category||"none";
       // 功能表5有些舊資料直接存中文狀態，而不是色碼；統一轉回色碼。
       if(GH_CAL_KEYWORD_TO_COLOR[color]) color=GH_CAL_KEYWORD_TO_COLOR[color];
+      const explicitAction=data.action||data.planAction||data.plan_action||data.activity||data.task||data.planType||data.plan_type||data.label||data.name||"";
+      const colorLabel=GH_CAL_COLORS[color]||String(explicitAction||color||"");
       return{
         color,
-        colorLabel:GH_CAL_COLORS[color]||String(data.label||data.name||color||""),
-        date:data.date||data.startDay||data.day||null,
-        text:data.text||data.note||data.content||""
+        colorLabel,
+        action:String(explicitAction||colorLabel||"").trim(),
+        date:data.date||data.startDay||data.startDate||data.day||null,
+        text:data.text||data.note||data.content||data.detail||data.description||""
       };
     }
 
-    // 原始資料裡常常「分類」跟「備註」填了同一個字（例如色碼=剪枝、text 也填「剪枝」），
-    // 兩個都印出來就會變成「剪枝，剪枝」。這裡統一判斷：備註沒有補充新資訊時，就不重複顯示。
-    function ghCalendarExtraText(cal){
-      const text=String(cal.text||"").trim();
-      if(!text)return "";
-      const label=String(cal.colorLabel||"").trim();
-      if(text===label || label.includes(text) || text.includes(label))return "";
-      return text;
+    function ghCalendarActionOf(cal){
+      if(!cal)return "";
+      const a=String(cal.action||cal.colorLabel||"").trim();
+      return a && a!=="清空" && a!=="none" ? a : "";
+    }
+
+    function ghCalendarActionFromQuestion(text,calRows=[]){
+      const t=String(text||"").trim();
+      // 先辨識既有固定動作，再從已讀到的功能表5動作中反向比對。
+      const fixed=Object.keys(GH_CAL_KEYWORD_TO_COLOR).find(k=>t.includes(k));
+      if(fixed)return fixed;
+      const actions=[...new Set((calRows||[]).map(r=>ghCalendarActionOf(r.function5Calendar)).filter(Boolean))]
+        .sort((a,b)=>b.length-a.length);
+      return actions.find(a=>t.includes(a))||"";
+    }
+
+    function ghCalendarActionMatches(cal,action){
+      if(!action)return true;
+      const a=ghCalendarActionOf(cal);
+      if(!a)return false;
+      return a===action || a.includes(action) || action.includes(a);
     }
 
     function ghCalendarPeriodFromText(text){
@@ -4256,199 +4272,125 @@ ${parts}
     }
 
     function ghCalendarDirectAnswer(q,rows){
-      const t=String(q||"");
-      const calRows=rows.filter(r=>r.category==="calendar"&&r.function5Calendar);
-      const isCalQuestion=ghIsCalendarQuestion(t);
-      if(!isCalQuestion)return null;
+      const t=String(q||"").trim();
+      const calRows=(rows||[]).filter(r=>r.category==="calendar"&&r.function5Calendar);
+      if(ghSelectedEntry!=="calendar" && !ghIsCalendarQuestion(t))return null;
+      if(!calRows.length)return "抱歉，我不知道。";
 
       const now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1;
-      const zone=ghFindZone(t);
-      const req=ghDateRequest(t);
+      const req=ghDateRequest(t)||{};
+      const zones=ghFindZones(t);
+      const zone=zones[0]||ghFindZone(t);
+      const action=ghCalendarActionFromQuestion(t,calRows);
+      const zoneOrder=ghCalendarZonesInOrder();
+      const ym=(y,m)=>`${y}-${String(m).padStart(2,"0")}`;
+      const addMonth=(y,m,n)=>{const d=new Date(y,m-1+n,1);return {y:d.getFullYear(),m:d.getMonth()+1,ym:ym(d.getFullYear(),d.getMonth()+1)};};
+      const rowFor=(z,y,m)=>calRows.find(r=>r.zone?.id===z.id && r.period===ym(y,m));
+      const describe=(r,withZone=true,withMonth=true)=>{
+        if(!r)return "";
+        const cal=r.function5Calendar,[y,m]=String(r.period).split("-").map(Number);
+        const act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
+        let x="";
+        if(withZone)x+=(r.zone?.name||"未分區");
+        if(withMonth)x+=(x?" ":"")+`${y}年${m}月`;
+        x+=(x?"：":"")+act;
+        if(cal.date)x+=`，${m}月${cal.date}日開始`;
+        if(cal.text)x+=`，${cal.text}`;
+        return x;
+      };
 
-      // 1. 日期觀念：今天／現在＋節氣，只回答日期附近的節氣；不把「接近」誤解成接近的計畫。
-      if(/節氣/.test(t) && !/剪枝|座果|度冬|產季/.test(t)){
-        const m=req.month||cm;
-        return `${req.year||cy}年${m}月的節氣是${GH_SOLAR_TERMS_BY_MONTH[m]}。`;
-      }
-      if(/今天|今日|現在/.test(t) && /接近|靠近|附近|前後|什麼/.test(t) && !/剪枝|座果|度冬|產季|計畫/.test(t)){
-        return `${cy}年${cm}月${now.getDate()}日，接近的節氣是${GH_SOLAR_TERMS_BY_MONTH[cm]}。`;
-      }
-
-      // 2. 下次／什麼時候要剪枝（或其他分類）——掃描未來月份，找每一區最早出現的那一筆。
-      const wantsNext=/下次|下一次|什麼時候|何時|接下來/.test(t);
-      const keywordHit=Object.keys(GH_CAL_KEYWORD_TO_COLOR).find(k=>t.includes(k));
-      const requestedZones=ghFindZones(t);
-
-      // 計畫＋一個或多個溫室，例如「一期二期何時剪枝」：逐區找該計畫，不混入其他區。
-      if(keywordHit && requestedZones.length){
-        const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
-        const hits=[];
-        requestedZones.forEach(z=>{
-          let recs=calRows.filter(r=>r.zone?.id===z.id && r.function5Calendar.color===color);
-          if(req.ym)recs=recs.filter(r=>r.period===req.ym);
-          else if(req.year)recs=recs.filter(r=>String(r.period).startsWith(`${req.year}-`));
-          recs.sort((a,b)=>String(a.period).localeCompare(String(b.period)));
-          if(wantsNext) recs=recs.filter(r=>r.period>=`${cy}-${String(cm).padStart(2,"0")}`);
-          if(recs.length)hits.push({z,r:recs[0]});
-        });
-        if(!hits.length)return '抱歉，我不知道。';
-        const parts=hits.map(({z,r})=>{
-          const [y,m]=String(r.period).split('-').map(Number), cal=r.function5Calendar;
-          return `${z.name}：${y}年${m}月${cal.date?`${m}月${cal.date}日開始`:''}`.replace(/月月/g,'月');
-        });
-        return `${keywordHit}：${parts.join('；')}。`;
-      }
-      if(wantsNext && keywordHit){
-        const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
-        const zones=zone?[zone]:GH_ZONES;
-        const hits=[];
-        zones.forEach(z=>{
-          const future=calRows
-            .filter(r=>r.zone?.id===z.id && r.function5Calendar.color===color && r.period>=`${cy}-${String(cm).padStart(2,"0")}`)
-            .sort((a,b)=>a.period.localeCompare(b.period));
-          if(future.length)hits.push({zone:z.name,period:future[0].period,date:future[0].function5Calendar.date});
-        });
-        if(!hits.length)return `目前查到的行事曆裡，${zone?zone.name:"各區"}接下來沒有排定${keywordHit}。`;
-        hits.sort((a,b)=>a.period.localeCompare(b.period));
-        const parts=hits.map(h=>{
-          const [y,m]=h.period.split("-");
-          return `${h.zone} ${y}年${Number(m)}月${h.date?h.date+"日":""}`;
-        });
-        return `下一次${keywordHit}：${parts.join("、")}。`;
+      // 日期／節氣：日期是溫室模式的全域基準，不能轉成「最近計畫」。
+      if(/節氣/.test(t) || (/今天|今日|現在/.test(t)&&/接近|附近|前後/.test(t))){
+        const m=req.month||cm, y=req.year||cy;
+        return `${y}年${m}月的節氣是${GH_SOLAR_TERMS_BY_MONTH[m]}。`;
       }
 
-      // 3. 月份 × 溫室 × 內容：先鎖定該月該區，再回答，不讓 AI 自己猜。
-      if(zone && (req.ym||req.year||req.month)){
-        const ym=req.ym||`${req.year||cy}-${String(req.month||cm).padStart(2,"0")}`;
-        const rec=calRows.find(r=>r.zone?.id===zone.id && r.period===ym);
-        const [y,m]=ym.split("-").map(Number);
-        if(!rec)return `${zone.name}${y}年${m}月沒有查到功能表5計畫。`;
-        const cal=rec.function5Calendar;
-        const keywordHit=Object.keys(GH_CAL_KEYWORD_TO_COLOR).find(k=>t.includes(k));
-        if(keywordHit && GH_CAL_KEYWORD_TO_COLOR[keywordHit]!==cal.color){
-          return `${zone.name}${y}年${m}月的功能表5不是${keywordHit}，目前標記為${cal.colorLabel}${cal.text?`，內容：${cal.text}`:""}。`;
+      // 交叉查詢 A：溫室 + 月份。只回答指定格，不延伸其他溫室或月份。
+      if(zone && (req.ym||req.month)){
+        const y=req.year||cy,m=req.month||cm;
+        const r=rowFor(zone,y,m);
+        if(!r)return "抱歉，我不知道。";
+        if(action && !ghCalendarActionMatches(r.function5Calendar,action)){
+          return `${zone.name}${y}年${m}月不是${action}，是${ghCalendarActionOf(r.function5Calendar)||r.function5Calendar.colorLabel}。`;
         }
-        const days=ghCalendarCumulativeDays(calRows,zone.id,y,m);
-        const asksDetail=/內容|做什麼|在做什麼|要做什麼|有什麼|事項|工項|安排|時程|階段/.test(t);
-        let out=`${zone.name} ${y}年${m}月：${cal.colorLabel}`;
-        if(cal.date)out+=`，${m}月${cal.date}日開始`;
-        const extra1=ghCalendarExtraText(cal);
-        if(asksDetail && extra1)out+=`，${extra1}`;
-        if(/累計|幾天|多久/.test(t) && days>1)out+=`，累計${days}天`;
-        out+="。";
-        return out;
+        return describe(r,true,true)+"。";
       }
 
-      // 4. 指定月份但沒指定區：一次整理各分區的「狀態＋開始日＋累計天數」。
+      // 交叉查詢 B：指定一個或多個溫室 + 動作，例如「一期二期何時剪枝」。
+      if(zones.length && action){
+        const answers=[];
+        for(const z of zones){
+          let hits=calRows.filter(r=>r.zone?.id===z.id && ghCalendarActionMatches(r.function5Calendar,action));
+          if(req.year)hits=hits.filter(r=>String(r.period).startsWith(`${req.year}-`));
+          hits.sort((a,b)=>String(a.period).localeCompare(String(b.period)));
+          // 「何時／幾月／下次」優先找今天以後最近的一筆；沒有「下次」則列所有命中月份，最多5筆。
+          if(/何時|什麼時候|幾月|下次|下一次|接下來/.test(t)){
+            const future=hits.filter(r=>String(r.period)>=ym(cy,cm));
+            const pick=(future[0]||hits[0]);
+            if(pick)answers.push(describe(pick,true,true));
+          }else{
+            hits.slice(0,5).forEach(r=>answers.push(describe(r,true,true)));
+          }
+        }
+        return answers.length?`${action}：${answers.join("；")}。`:`抱歉，我不知道。`;
+      }
+
+      // 問月份：垂直讀表，固定依一期→二期→三期→四南→四北→五期回答。
       if(!zone && (req.ym||req.month)){
-        const yy=req.year||cy, mm=req.month||cm;
-        const ym=req.ym||`${yy}-${String(mm).padStart(2,"0")}`;
-        const parts=ghCalendarZonesInOrder().map(z=>{
-          const rec=calRows.find(r=>r.zone?.id===z.id && r.period===ym);
-          if(!rec)return `${z.name}：無計畫`;
-          const cal=rec.function5Calendar;
-          const days=ghCalendarCumulativeDays(calRows,z.id,yy,mm);
-          let x=`${z.name}：${cal.colorLabel}`;
-          if(cal.date)x+=`，${mm}月${cal.date}日開始`;
-          if(/累計|幾天|多久|狀態|階段/.test(t) && days>0)x+=`，累計${days}天`;
-          const extraM=ghCalendarExtraText(cal);
-          if(/內容|做什麼|在做什麼|要做什麼|有什麼|事項|工項|安排|時程|階段/.test(t) && extraM)x+=`，${extraM}`;
+        const y=req.year||cy,m=req.month||cm;
+        const parts=zoneOrder.map(z=>{
+          const r=rowFor(z,y,m);
+          if(!r)return `${z.name}：無計畫`;
+          if(action && !ghCalendarActionMatches(r.function5Calendar,action))return `${z.name}：無${action}`;
+          const cal=r.function5Calendar,act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
+          let x=`${z.name}：${act}`;
+          if(cal.date)x+=`，${m}月${cal.date}日開始`;
+          if(cal.text)x+=`，${cal.text}`;
           return x;
         });
-        let out=`${yy}年${mm}月各區計畫：${parts.join("；")}。`;
-        if(/節氣/.test(t))out+=`節氣：${GH_SOLAR_TERMS_BY_MONTH[mm]}。`;
-        return out;
+        return `${y}年${m}月：${parts.join("；")}。`;
       }
 
-      // 5. 問「計畫內容」本身：反向搜尋哪個溫室、哪個月份在做該計畫。
-      // 例如「哪裡在剪枝」「產季計畫」「度冬有哪些」；只回符合的溫室＋月份＋開始日/累積天數。
-      if(keywordHit && !zone && !(req.ym||req.month)){
-        const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
-        const order=new Map(ghCalendarZonesInOrder().map((z,i)=>[z.id,i]));
-        const hits=calRows.filter(r=>r.function5Calendar.color===color).sort((a,b)=>{
-          const za=order.get(a.zone?.id)??99, zb=order.get(b.zone?.id)??99;
-          return za-zb || String(a.period).localeCompare(String(b.period));
-        });
-        if(!hits.length)return `功能表5目前沒有查到${keywordHit}計畫。`;
-        const parts=hits.map(r=>{
-          const [y,m]=String(r.period).split('-').map(Number), cal=r.function5Calendar;
-          const days=ghCalendarCumulativeDays(calRows,r.zone?.id,y,m);
-          let x=`${r.zone?.name||"未分區"} ${y}年${m}月`;
-          if(cal.date)x+=`，${m}月${cal.date}日開始`;
-          if(days>0)x+=`，累計${days}天`;
-          return x;
-        });
-        return `${keywordHit}：${parts.join("；")}。`;
+      // 問特定動作：反向掃描完整矩陣，找「哪個溫室、哪個月份、內容」。
+      if(action && !zone){
+        let hits=calRows.filter(r=>ghCalendarActionMatches(r.function5Calendar,action));
+        if(req.year)hits=hits.filter(r=>String(r.period).startsWith(`${req.year}-`));
+        const order=new Map(zoneOrder.map((z,i)=>[z.id,i]));
+        hits.sort((a,b)=>String(a.period).localeCompare(String(b.period)) || (order.get(a.zone?.id)??99)-(order.get(b.zone?.id)??99));
+        if(!hits.length)return "抱歉，我不知道。";
+        return `${action}：${hits.slice(0,12).map(r=>describe(r,true,true)).join("；")}。`;
       }
 
-      // 6. 只問某區/溫室計畫（沒指定月份）：橫向唸出最近5個月的動作，不是把整個歷史全部倒出來。
-      // 「最近5個月」＝本月往前推4個月，共5個月，跟畫面上實際能編輯的月份顆粒對齊。
-      if(zone && !(req.ym||req.year||req.month)){
-        const recentPeriods=[];
-        {let y=cy,m=cm;for(let i=0;i<5;i++){recentPeriods.push(`${y}-${String(m).padStart(2,"0")}`);m--;if(m<1){m=12;y--;}}}
-        const recentSet=new Set(recentPeriods);
-        const recs=calRows.filter(r=>r.zone?.id===zone.id && r.function5Calendar.color!=="none" && recentSet.has(r.period))
-          .sort((a,b)=>String(a.period).localeCompare(String(b.period)));
-        if(!recs.length)return `${zone.name}最近5個月（${recentPeriods[4]}～${recentPeriods[0]}）沒有查到功能表5計畫。`;
-        const parts=recs.map(r=>{
-          const [y,m]=String(r.period).split('-').map(Number), cal=r.function5Calendar;
-          const days=ghCalendarCumulativeDays(calRows,zone.id,y,m);
-          let x=`${y}年${m}月：${cal.colorLabel}`;
-          if(cal.date)x+=`，${m}月${cal.date}日開始`;
-          if(days>0)x+=`，累計${days}天`;
-          const extraZ=ghCalendarExtraText(cal);
-          if(extraZ)x+=`，${extraZ}`;
-          return x;
-        });
+      // 問溫室：橫向讀「本月起連續5個月」的計畫動作，沒有動作的月份也明確標示。
+      if(zone){
+        const parts=[];
+        for(let i=0;i<5;i++){
+          const d=addMonth(cy,cm,i),r=rowFor(zone,d.y,d.m);
+          if(!r){parts.push(`${d.y}年${d.m}月：無計畫`);continue;}
+          const cal=r.function5Calendar,act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
+          let x=`${d.y}年${d.m}月：${act}`;
+          if(cal.date)x+=`，${d.m}月${cal.date}日開始`;
+          if(cal.text)x+=`，${cal.text}`;
+          parts.push(x);
+        }
         return `${zone.name}最近5個月計畫：${parts.join("；")}。`;
       }
 
-      // 5. 只問某區現況（沒指定月份）——用目前月份回答。
-      if(zone){
-        const ym=`${cy}-${String(cm).padStart(2,"0")}`;
-        const rec=calRows.find(r=>r.zone?.id===zone.id && r.period===ym);
-        if(!rec)return `${zone.name} 目前（${cy}年${cm}月）行事曆沒有標記任何事項。`;
-        const cal=rec.function5Calendar;
-        const days=ghCalendarCumulativeDays(calRows,zone.id,cy,cm);
-        let out=`${zone.name} ${cy}年${cm}月：${cal.colorLabel}${cal.date?`，${cm}月${cal.date}日開始`:""}`;
-        const extraS=ghCalendarExtraText(cal);
-        if(/內容|做什麼|在做什麼|要做什麼|有什麼|事項|工項|安排|時程|階段/.test(t) && extraS)out+=`，${extraS}`;
-        if(/累計|幾天|多久/.test(t) && days>1)out+=`，累計${days}天`;
-        if(/節氣/.test(t))out+=`，節氣是${GH_SOLAR_TERMS_BY_MONTH[cm]}`;
-        return out+"。";
+      // 沒指定條件：以今天月份橫向讀六個溫室，回答「目前有什麼計畫」。
+      if(/計畫|溫室|目前|現在|有什麼|安排|行事曆/.test(t) || ghSelectedEntry==="calendar"){
+        const parts=zoneOrder.map(z=>{
+          const r=rowFor(z,cy,cm);
+          if(!r)return `${z.name}：無計畫`;
+          const cal=r.function5Calendar,act=ghCalendarActionOf(cal)||cal.colorLabel||"計畫";
+          let x=`${z.name}：${act}`;
+          if(cal.date)x+=`，${cm}月${cal.date}日開始`;
+          if(cal.text)x+=`，${cal.text}`;
+          return x;
+        });
+        return `${cy}年${cm}月：${parts.join("；")}。`;
       }
 
-      // 6. 沒指定分區/月份/關鍵字的籠統問題（例如「能查到年度計畫嗎」）——
-      // 之前這種問法四個分支全部對不上，會直接掉進通用 AI、變成一堆條列原始資料。
-      // 改成：只挑「接下來有排定事項」的部分，依分區彙整成一句話，不逐月全部列出。
-      // 功能表5找不到明確資料時不猜、不延伸。
-      return '抱歉，我不知道。';
-    }
-
-
-    // 不把「切換模式」說給使用者聽；只在背景保存目前主題與最近查詢。
-    const GH_TOPIC_KEY="teddy_greenhouse_topic_v7";
-    const GH_CONTEXT_KEY="teddy_greenhouse_context_v7";
-
-    function ghLoadConversationState(){
-      let topic=null,ctx={};
-      try{topic=localStorage.getItem(GH_TOPIC_KEY)||null;}catch(_){}
-      try{ctx=JSON.parse(localStorage.getItem(GH_CONTEXT_KEY)||"{}")||{};}catch(_){ctx={};}
-      return {topic,ctx};
-    }
-    function ghSaveConversationState(topic,ctx){
-      try{
-        if(topic)localStorage.setItem(GH_TOPIC_KEY,topic); else localStorage.removeItem(GH_TOPIC_KEY);
-        localStorage.setItem(GH_CONTEXT_KEY,JSON.stringify(ctx||{}));
-      }catch(_){}
-    }
-
-    // ===== V5.1 五個固定入口：先決定入口，再讀資料，再回答 =====
-    // 固定優先序：1產能/功能表3 → 5打卡/功能表11 → 4耗材6-8/功能表7內層表3 → 3計畫/功能表5 → 2工作1-5/功能表4。
-    // 行為規則：入口只在背景鎖定，不播入口說明；先解析分區/時間/項目/意圖；能直接算就直接短答，最後才交 AI。
-    // 優先順序是使用者指定的固定規則；一般模式完全不使用這套路由。
-    function ghHasMonthOrTime(q){
-      return /今天|昨天|本週|這週|本月|這個月|上個月|上月|下個月|下月|今年|明年|後年|去年|前年|20\d{2}\s*年|(?:^|[^0-9])(?:1[0-2]|[1-9])\s*月/.test(String(q||""));
+      return "抱歉，我不知道。";
     }
 
     function ghIsCalendarQuestion(q){
@@ -4459,12 +4401,6 @@ ${parts}
       if(explicitWork15)return false;
 
       if(/節氣|行事曆|年度計畫|計畫|預計|安排|排程|時程|階段|開始日|開始時間|何時開始|什麼時候開始|產季|剪枝|座果|度冬/.test(t))return true;
-
-      // 「今天/現在 + 接近/靠近/附近/前後」是在問「現在是年曆上的哪個時間點」，
-      // 意圖跟節氣一樣，但沒講「節氣」兩個字、也沒有溫室或月份數字——
-      // 之前四個判斷條件全部對不上，這句話連功能表5的大門都進不去，
-      // 才會被丟到別的地方，亂猜出「接近的計畫」這種不存在的答案。
-      if(/今天|今日|現在/.test(t) && /接近|靠近|附近|前後/.test(t))return true;
 
       // 功能表5三軸：時間 × 溫室 × 內容。
       // 「四北11月」也視為計畫查詢，因為其他入口若有明確詞已在上面先被排除。
@@ -4783,8 +4719,14 @@ ${parts}
       }else if(entry==='calendar'){
         // 功能表5已在按鍵進入時完整預載；回答只允許使用 calendar 資料。
         // 月份／區域／狀態／節氣／開始日／累積天數先由固定函式計算。
-        direct=ghCalendarDirectAnswer(q,rows);
         if(!rows.length)return '功能表5目前沒有讀到計畫資料。';
+        direct=ghCalendarDirectAnswer(q,rows);
+        // 計畫入口禁止「無回覆」。只要資料已成功讀入，但問題沒有命中細分類，
+        // 就以今天年月橫向讀六區，讓使用者至少得到目前計畫，而不是掉進空白或 AI 猜測。
+        if(!direct){
+          const now=new Date(), yy=now.getFullYear(), mm=now.getMonth()+1;
+          direct=ghCalendarDirectAnswer(`${yy}年${mm}月有什麼計畫`,rows);
+        }
       }else if(entry==='materials'){
         direct=ghWork68DirectAnswer(q,rows);
       }else if(entry==='attendance'){
@@ -4798,7 +4740,7 @@ ${parts}
       const payload=ghOrganizeForAI(entry,q,rows,yieldRows);
       payload.selectedEntry={id:entry,label:meta.label,table:meta.table};
       payload.questionUnderstanding=understood;
-      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室」矩陣；問月份就依一期、二期、三期、四南、四北、五期順序回答；問溫室就依月份順序回答；問計畫類型就反向回答符合的溫室與月份；節氣使用月份節氣列；沒有資料支持就只回答「抱歉，我不知道」，禁止猜測或延伸。`;
+      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室×計畫動作」矩陣；計畫動作包含資料格內實際設定的動作（例如產季、剪枝、座果、度冬，也包含未來新增的動作名稱）。問月份就依一期、二期、三期、四南、四北、五期順序垂直回答；問溫室就從本月起橫向回答連續5個月；問計畫動作就反向搜尋符合的溫室與月份；問溫室+月份或溫室+動作就做交叉查詢，只回答指定範圍；節氣使用月份節氣列；沒有資料支持就只回答「抱歉，我不知道」，禁止猜測或延伸。`;
       return await ghAskAI(aiQ,payload);
     }
 
