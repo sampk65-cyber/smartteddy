@@ -3493,8 +3493,16 @@ ${parts}
 
     async function ghSpeak(text, force=false){
       if ((!ghVoiceEnabled && !force) || !text) return;
-      const clean = ghStripEmojiForSpeech(text);
+      let clean = ghStripEmojiForSpeech(text);
       if (!clean) return;
+      // 回答太長時只唸重點、不要整段照唸——文字內容還是完整顯示在畫面上，
+      // 語音只是輔助，唸太長反而讓人抓不到重點，也拖時間。
+      const SPEAK_MAX = 140;
+      if (clean.length > SPEAK_MAX) {
+        const cut = clean.slice(0, SPEAK_MAX);
+        const lastBreak = Math.max(cut.lastIndexOf("。"), cut.lastIndexOf("；"), cut.lastIndexOf("，"));
+        clean = (lastBreak > SPEAK_MAX * 0.5 ? cut.slice(0, lastBreak + 1) : cut) + "，詳細內容我打在畫面上了。";
+      }
       // 共用 Teddy 原本的聲音選擇、OpenAI TTS 與瀏覽器 TTS fallback
       try { await teddySpeak(clean, "sweet", true); } catch (_) {}
     }
@@ -3890,6 +3898,28 @@ ${parts}
         const cal=rec.function5Calendar;
         const days=ghCalendarCumulativeDays(calRows,zone.id,cy,cm);
         return `${zone.name} 目前是${cal.colorLabel}${cal.date?`（${cal.date}日開始）`:""}${days>1?`，累計 ${days} 天`:""}。目前節氣是${GH_SOLAR_TERMS_BY_MONTH[cm]}。`;
+      }
+
+      // 5. 沒指定分區/月份/關鍵字的籠統問題（例如「能查到年度計畫嗎」）——
+      // 之前這種問法四個分支全部對不上，會直接掉進通用 AI、變成一堆條列原始資料。
+      // 改成：只挑「接下來有排定事項」的部分，依分區彙整成一句話，不逐月全部列出。
+      if(calRows.length){
+        const now2=`${cy}-${String(cm).padStart(2,"0")}`;
+        const byZone={};
+        calRows.forEach(r=>{
+          if(r.function5Calendar.color==="none")return;
+          if(r.period<now2)return; // 只看現在跟未來，過去的不用講
+          const zn=r.zone?.name||"未分區";
+          if(!byZone[zn])byZone[zn]=[];
+          byZone[zn].push(r);
+        });
+        const parts=Object.entries(byZone).map(([zn,recs])=>{
+          recs.sort((a,b)=>a.period.localeCompare(b.period));
+          const first=recs[0];
+          const [y,m]=first.period.split("-");
+          return `${zn}${Number(m)}月${first.function5Calendar.colorLabel}${first.function5Calendar.date?first.function5Calendar.date+"日":""}`;
+        });
+        if(parts.length)return `目前查到的年度計畫，接下來：${parts.join("、")}。想知道特定分區或月份的細節，可以直接問「四北11月在做什麼」這種問法。`;
       }
 
       return null;
