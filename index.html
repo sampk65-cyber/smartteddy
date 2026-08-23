@@ -2958,7 +2958,9 @@ ${parts}
           const target=archive[date]&&typeof archive[date]==="object"?archive[date]:{A:[],B:[],D:[],NG:[]};
           for(const grade of ["A","B","D","NG"]){
             target[grade]=Array.isArray(target[grade])?target[grade]:[];
-            target[grade].push(...day[grade]);
+            // 同一匯入檔重新執行時，先移除該檔先前匯入的資料，避免重複加總。
+            target[grade]=target[grade].filter(x=>!(x&&x.imported===true&&x.importFile===d.name));
+            target[grade].push(...day[grade].map(x=>({...x,importFile:d.name})));
           }
           archive[date]=target;
         }
@@ -3505,6 +3507,167 @@ ${parts}
       return `${zoneLabel}${periodLabel}已確認：${parts.join("、")}。`;
     }
 
+    // ===== 功能表4・工作1-5（打芽/除草/剪葉/覆蓋）唯一入口 =====
+    // 跟功能表3（產能）、功能表11（打卡）同一套流程：先判斷是不是這類問題，
+    // 再從已匯入的 worklog 資料裡，只挑 function4Work1to5 出來統計，不混讀其他工作表。
+    function ghIsWorkQuestion(q){
+      const t=String(q||"");
+      return /打芽|除草|剪葉|覆蓋|工項|工作指派|指派給|受文|待確認|回報進度|工作進度|完成了嗎|做完了嗎|誰負責|誰在做|誰要做/.test(t);
+    }
+
+    function ghWork45Intent(q){
+      const t=String(q||"");
+      if(/誰負責|誰在做|誰要做|指派給|受文/.test(t))return "assignee";
+      if(/待確認|還沒確認|尚未確認/.test(t))return "pending";
+      if(/進度|完成了嗎|做完了嗎|完成了沒|做完了沒/.test(t))return "progress";
+      return "summary";
+    }
+
+    function ghWork45MatchItem(q){
+      const t=String(q||"");
+      for(const id of [1,2,3,4,5]){
+        if(t.includes(GH_WORK_ITEMS[id]))return id;
+      }
+      return null;
+    }
+
+    function ghWork45DirectAnswer(q,rows){
+      if(!ghIsWorkQuestion(q))return null;
+
+      const zone=ghFindZone(q);
+      const req=ghDateRequest(q);
+      const itemId=ghWork45MatchItem(q);
+      const onlyBudding=/打芽/.test(q) && itemId===null; // 「打芽」沒分側/地時，1跟2都算
+
+      const items=[];
+      rows.filter(r=>r.category==="worklog").forEach(r=>{
+        if(zone && r.zone?.id!==zone.id)return;
+        if(req.ym && !String(r.period||"").startsWith(req.ym))return;
+        if(req.date && r.period!==req.date)return;
+        (r.function4Work1to5||[]).forEach(item=>{
+          if(itemId && item.itemId!==itemId)return;
+          if(onlyBudding && item.itemId!==1 && item.itemId!==2)return;
+          items.push({...item,zone:r.zone,period:r.period});
+        });
+      });
+
+      const zoneLabel=zone?zone.name:"全區";
+      const periodLabel=req.ym?`${req.year}年${req.month}月`:req.date?req.date:"目前";
+      const itemLabel=itemId?GH_WORK_ITEMS[itemId]:onlyBudding?"打芽":"工作";
+
+      if(!items.length)return `功能表4在${zoneLabel}${periodLabel}沒有查到${itemLabel}的指派紀錄。`;
+
+      const intent=ghWork45Intent(q);
+
+      if(intent==="assignee"){
+        const parts=items.filter(i=>i.recipients?.length).map(i=>
+          `${i.zone?.name||"未標區"}${i.itemName}：${i.recipients.map(r=>r.name).join("、")}`
+        );
+        if(!parts.length)return `${zoneLabel}${periodLabel}的${itemLabel}目前沒有指派受文對象。`;
+        return `${periodLabel}${parts.join("；")}。`;
+      }
+
+      if(intent==="pending"){
+        const pending=items.filter(i=>i.pendingConfirmation);
+        if(!pending.length)return `${zoneLabel}${periodLabel}的${itemLabel}沒有待確認的項目。`;
+        const parts=pending.map(i=>`${i.zone?.name||"未標區"}${i.itemName}`);
+        return `${periodLabel}待確認：${parts.join("、")}。`;
+      }
+
+      if(intent==="progress"){
+        const parts=items.map(i=>`${i.zone?.name||"未標區"}${i.itemName}：${i.progressMeaning}`);
+        return `${periodLabel}${parts.join("；")}。`;
+      }
+
+      // summary：給整體概況，不逐筆列，避免語音唸起來太長
+      const done=items.filter(i=>i.progress===1).length;
+      const pendingCount=items.filter(i=>i.pendingConfirmation).length;
+      return `${zoneLabel}${periodLabel}功能表4共查到 ${items.length} 筆${itemLabel}指派，已完成 ${done} 筆、待確認 ${pendingCount} 筆。`;
+    }
+
+    // ===== TEDDY 背景主題 + 上下文 =====
+    // 不把「切換模式」說給使用者聽；只在背景保存目前主題與最近查詢。
+    const GH_TOPIC_KEY="teddy_greenhouse_topic_v7";
+    const GH_CONTEXT_KEY="teddy_greenhouse_context_v7";
+
+    function ghLoadConversationState(){
+      let topic=null,ctx={};
+      try{topic=localStorage.getItem(GH_TOPIC_KEY)||null;}catch(_){}
+      try{ctx=JSON.parse(localStorage.getItem(GH_CONTEXT_KEY)||"{}")||{};}catch(_){ctx={};}
+      return {topic,ctx};
+    }
+    function ghSaveConversationState(topic,ctx){
+      try{
+        if(topic)localStorage.setItem(GH_TOPIC_KEY,topic); else localStorage.removeItem(GH_TOPIC_KEY);
+        localStorage.setItem(GH_CONTEXT_KEY,JSON.stringify(ctx||{}));
+      }catch(_){}
+    }
+
+    function ghExplicitTopic(q){
+      const t=String(q||"").replace(/\s+/g,"");
+      const addressed=/teddy|泰迪|松鼠|pongchi/i.test(t);
+      if(!addressed)return null;
+      if(/產能|產量|收成|採收|品質/.test(t))return "yield";
+      if(/打卡|出勤|上下班|工時|請假/.test(t))return "attendance";
+      if(/工作|工項|指派|除草|打芽|剪葉|補水|施肥|資材/.test(t))return "work";
+      return null;
+    }
+
+    function ghTopicAckOnly(q){
+      const t=String(q||"").replace(/\s+/g,"");
+      return /^(?:teddy|泰迪|松鼠|pongchi)?(?:我們|今天|現在|先|來)*(?:談|聊|看|處理)(?:一下)?(?:產能|產量|收成|採收|品質|工作|工項|打卡|出勤)(?:吧|好了|好嗎)?[。！!？?]*$/i.test(t);
+    }
+
+    function ghLooksLikeFollowup(q){
+      const t=String(q||"").trim();
+      if(!t)return false;
+      if(/^(那|那麼|那個|那今年|那去年|那上個月|那這個月|那四北|那四南|那一期|那二期|那三期|那五期|不是|改成|換成|再看|再查|還有|以及|跟|和|平均|最高|最低|最多|最少|A級|B級|D級|NG)/.test(t))return true;
+      if(t.length<=14 && /今年|去年|前年|本月|這個月|上個月|今天|昨天|四北|四南|一期|二期|三期|五期|A級|B級|D級|NG|平均|最高|最低|最多|最少/.test(t))return true;
+      return false;
+    }
+
+    function ghMergeFollowup(prev,q,topic){
+      if(!prev)return q;
+      const t=String(q||"").trim();
+      if(!ghLooksLikeFollowup(t))return q;
+
+      // 將上一輪自然語句當作語意背景，再用本輪修正條件。
+      // 明確的新時間會覆蓋舊時間；其餘主詞/項目/分析動作沿用。
+      let base=String(prev);
+      const hasNewTime=/今天|昨天|本週|這週|本月|這個月|上個月|今年|去年|前年|20\d{2}年|\d{1,2}月/.test(t);
+      if(hasNewTime){
+        base=base
+          .replace(/今天|昨天|本週|這週|本月|這個月|上個月|今年|去年|前年/g,"")
+          .replace(/20\d{2}\s*年(?:\s*\d{1,2}\s*月)?/g,"")
+          .replace(/(?:^|[^0-9])(?:1[0-2]|[1-9])\s*月/g," ");
+      }
+      const hasNewZone=/四北|四南|一期|二期|三期|五期/.test(t);
+      if(hasNewZone)base=base.replace(/四北(?:溫室)?|四南(?:溫室)?|一期(?:溫室)?|二期(?:溫室)?|三期(?:溫室)?|五期(?:溫室)?/g,"");
+      const hasNewGrade=/A級|B級|D級|NG/.test(t);
+      if(hasNewGrade)base=base.replace(/A級|B級|D級|NG/g,"");
+      return `${base.trim()} ${t}`.trim();
+    }
+
+    function ghResolveConversation(q){
+      const state=ghLoadConversationState();
+      const explicit=ghExplicitTopic(q);
+      let topic=explicit||state.topic;
+
+      // 沒有明確「Teddy，我們談…」時，完整的新問題仍可自然切換主題。
+      if(!explicit && !ghLooksLikeFollowup(q)){
+        if(ghIsAttendanceQuestion(q))topic="attendance";
+        else if(ghIsYieldQuestion(q))topic="yield";
+        else if(/工作|工項|指派|除草|打芽|剪葉|補水|施肥|資材/.test(String(q||"")))topic="work";
+      }
+
+      const prev=(state.ctx&&state.ctx[topic])||"";
+      const effective=ghMergeFollowup(prev,q,topic);
+      const ctx={...(state.ctx||{})};
+      if(topic && !ghTopicAckOnly(q))ctx[topic]=effective;
+      ghSaveConversationState(topic,ctx);
+      return {topic,effective,topicOnly:!!explicit&&ghTopicAckOnly(q)};
+    }
+
     async function ghSend(){
       const input=document.getElementById("greenhouseInput"),btn=document.getElementById("btnGreenhouseSend"),q=input.value.trim();
       if(!q)return;
@@ -3512,25 +3675,48 @@ ${parts}
       const status=document.getElementById("greenhouseStatus");
       status.textContent="正在結構化讀取 V5.1…";
       try{
-        const isYield=ghIsYieldQuestion(q);
-        const isAttendance=ghIsAttendanceQuestion(q);
+        const conv=ghResolveConversation(q);
+        if(conv.topicOnly){
+          // 背景完成主題設定，不朗讀「已切換模式」等機器式訊息。
+          status.textContent="V5.1 即時資料 · 支援語音提問與朗讀";
+          return;
+        }
+        const effectiveQ=conv.effective||q;
+        const isYield=conv.topic==="yield" || ghIsYieldQuestion(effectiveQ);
+        const isAttendance=conv.topic==="attendance" || ghIsAttendanceQuestion(effectiveQ);
+        const isWork=!isYield && !isAttendance && (conv.topic==="work" || ghIsWorkQuestion(effectiveQ));
         let mainRows=[];
         let yieldRows=[];
 
         // 功能表11：打卡／出勤查詢唯一入口。
         if(isAttendance){
-          const allRows=await ghQueryV51(q);
+          const allRows=await ghQueryV51(effectiveQ);
           mainRows=allRows.filter(r=>["attendance","attendance_pref","leave_types","person"].includes(r.category));
-          const answer=ghAttendanceDirectAnswer(mainRows,q);
+          const answer=ghAttendanceDirectAnswer(mainRows,effectiveQ);
           status.textContent="功能表11・打卡／出勤查詢";
           ghLog("assistant",answer);
           await ghSpeak(answer);
           return;
         }
 
+        // 功能表4：工作1-5（打芽/除草/剪葉/覆蓋）唯一入口。
+        // 跟功能表11一樣，先匯入 V5.1 主資料，再只挑 worklog 的 function4Work1to5 出來統計。
+        if(isWork){
+          status.textContent="功能表4・工作查詢";
+          const allRows=await ghQueryV51(effectiveQ);
+          mainRows=allRows;
+          const answer=ghWork45DirectAnswer(effectiveQ,mainRows);
+          if(answer){
+            ghLog("assistant",answer);
+            await ghSpeak(answer);
+            return;
+          }
+          // 超出固定統計模板的工作問題（例如問原因、建議），仍只把 worklog 交給 AI 解讀。
+        }
+
         // 產能問題：唯一入口＝功能表3。完全不讀主 kv 的其他工作表。
         if(isYield){
-          const route=ghYieldRoute(q);
+          const route=ghYieldRoute(effectiveQ);
           status.textContent=`工作表三・${route.label}`;
 
           // 這兩個是流程型動作：先把路徑鎖定，不誤讀其他工作表。
@@ -3546,7 +3732,7 @@ ${parts}
             return;
           }
 
-          try{yieldRows=await ghQueryYield(q);}
+          try{yieldRows=await ghQueryYield(effectiveQ);}
           catch(e){console.error("產能資料查詢失敗：",e);throw e;}
 
           if(route.id==="analysis"){
@@ -3556,15 +3742,16 @@ ${parts}
               ghLog("assistant",msg);await ghSpeak(msg);return;
             }
           }
-        }else{
-          mainRows=await ghQueryV51(q);
+        }else if(!mainRows.length){
+          // isWork 已經在上面匯入過一次，這裡只補一般問題或 work45 沒攔到、需要再交給 AI 的情況。
+          mainRows=await ghQueryV51(effectiveQ);
         }
 
-        const payload=ghBuildSummaryPayload(q,mainRows,yieldRows);
+        const payload=ghBuildSummaryPayload(effectiveQ,mainRows,yieldRows);
         status.textContent=isYield?`工作表三已整理 ${yieldRows.length} 筆產能資料`:`V5.1 已整理 ${payload.coverage.totalRecords} 筆結構化資料，正在解讀…`;
 
         // 工作 6-8 固定只讀功能表3的 confirmedHistory；不讓 AI 混入 pending、格位或其他來源。
-        const work68=ghWork68DirectAnswer(q,mainRows);
+        const work68=ghWork68DirectAnswer(effectiveQ,mainRows);
         if(work68){
           ghLog("assistant",work68);
           await ghSpeak(work68);
@@ -3572,22 +3759,22 @@ ${parts}
         }
 
         if(isYield){
-          const route=ghYieldRoute(q);
+          const route=ghYieldRoute(effectiveQ);
           if(!yieldRows.length){
             const noData="工作表三目前沒有讀到符合期間／分區的產能紀錄。";
             ghLog("assistant",noData);await ghSpeak(noData);return;
           }
           if(route.id==="history"){
-            const direct=ghYieldDirectAnswer(yieldRows,q);
+            const direct=ghYieldDirectAnswer(yieldRows,effectiveQ);
             if(direct){ghLog("assistant",direct);await ghSpeak(direct);return;}
           }
           if(route.id==="analysis"){
-            const direct=ghYieldCompositeAnswer(yieldRows,q);
+            const direct=ghYieldCompositeAnswer(yieldRows,effectiveQ);
             if(direct){ghLog("assistant",direct);await ghSpeak(direct);return;}
           }
           // 超出固定統計模板的分析，仍只把工作表3的 yield / yield_archive 交給 AI。
         }
-        const answer=await ghAskAI(q,payload);
+        const answer=await ghAskAI(effectiveQ,payload);
         ghLog("assistant",answer);
         await ghSpeak(answer);
       }catch(e){
