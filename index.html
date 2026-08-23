@@ -2705,25 +2705,37 @@ ${parts}
       const auth=ghYieldApp.auth();
       if(!auth.currentUser)await auth.signInAnonymously();
       const db=ghYieldApp.firestore();
-      const marker="fbrfA_priv__";
+      // 之前這裡寫死只查 fbrfA_priv__，完全沒查 fbrfA_shared__。
+      // 「priv」在這個模組裡並不是真的依使用者帳號隔開（storageKey 沒有塞 uid 進去），
+      // 只是產能模組寫入時自己選的一個旗標，實際資料到底存在哪一種前綴下無法保證，
+      // 之前只查 priv 會導致：只要哪一筆資料是用 shared 身分寫入，就永遠查不到，
+      // 五期就是活生生的例子。兩種前綴都查、合併起來，不要再用猜的。
+      const markers=["fbrfA_priv__","fbrfA_shared__"];
       return{
         async get(key){
-          const doc=await db.collection(GH_YIELD_COLLECTION).doc(marker+key).get();
-          if(!doc.exists)return null;
-          const d=doc.data()||{};
-          let value=d.value;
-          if(typeof value==="string"){try{value=JSON.parse(value);}catch(_){}}
-          return{key,value,updatedAt:d.updatedAt||null};
+          for(const marker of markers){
+            const doc=await db.collection(GH_YIELD_COLLECTION).doc(marker+key).get();
+            if(!doc.exists)continue;
+            const d=doc.data()||{};
+            let value=d.value;
+            if(typeof value==="string"){try{value=JSON.parse(value);}catch(_){}}
+            return{key,value,updatedAt:d.updatedAt||null};
+          }
+          return null;
         },
         async list(prefix){
-          const fp=marker+prefix;
-          const snap=await db.collection(GH_YIELD_COLLECTION)
-            .where(firebase.firestore.FieldPath.documentId(),">=",fp)
-            .where(firebase.firestore.FieldPath.documentId(),"<",fp+"\uf8ff").get();
-          return snap.docs.map(d=>d.id.slice(marker.length));
+          const seen=new Set();
+          for(const marker of markers){
+            const fp=marker+prefix;
+            const snap=await db.collection(GH_YIELD_COLLECTION)
+              .where(firebase.firestore.FieldPath.documentId(),">=",fp)
+              .where(firebase.firestore.FieldPath.documentId(),"<",fp+"\uf8ff").get();
+            snap.docs.forEach(d=>seen.add(d.id.slice(marker.length)));
+          }
+          return[...seen];
         },
         async set(key,value,meta={}){
-          const ref=db.collection(GH_YIELD_COLLECTION).doc(marker+key);
+          const ref=db.collection(GH_YIELD_COLLECTION).doc("fbrfA_priv__"+key);
           await ref.set({
             key,
             value,
