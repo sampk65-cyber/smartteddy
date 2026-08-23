@@ -4189,6 +4189,15 @@ ${parts}
       return total;
     }
 
+    const GH_CALENDAR_ZONE_ORDER=["p1","p2","zone3","south4","north4","zone5"];
+    function ghCalendarZonesInOrder(){
+      return GH_CALENDAR_ZONE_ORDER.map(id=>GH_ZONES.find(z=>z.id===id)).filter(Boolean);
+    }
+    function ghCalendarEntryReadyText(rows){
+      const calRows=(rows||[]).filter(r=>r.category==="calendar"&&r.function5Calendar);
+      return calRows.length ? "資料已讀取。想分析節氣、月份、區域還是溫室？" : "功能表5目前沒有讀到計畫資料。";
+    }
+
     function ghCalendarDirectAnswer(q,rows){
       const t=String(q||"");
       const calRows=rows.filter(r=>r.category==="calendar"&&r.function5Calendar);
@@ -4252,7 +4261,7 @@ ${parts}
       if(!zone && (req.ym||req.month)){
         const yy=req.year||cy, mm=req.month||cm;
         const ym=req.ym||`${yy}-${String(mm).padStart(2,"0")}`;
-        const parts=GH_ZONES.map(z=>{
+        const parts=ghCalendarZonesInOrder().map(z=>{
           const rec=calRows.find(r=>r.zone?.id===z.id && r.period===ym);
           if(!rec)return `${z.name}：無計畫`;
           const cal=rec.function5Calendar;
@@ -4266,6 +4275,44 @@ ${parts}
         let out=`${yy}年${mm}月各區計畫：${parts.join("；")}。`;
         if(/節氣/.test(t))out+=`節氣：${GH_SOLAR_TERMS_BY_MONTH[mm]}。`;
         return out;
+      }
+
+      // 5. 問「計畫內容」本身：反向搜尋哪個溫室、哪個月份在做該計畫。
+      // 例如「哪裡在剪枝」「產季計畫」「度冬有哪些」；只回符合的溫室＋月份＋開始日/累積天數。
+      if(keywordHit && !zone && !(req.ym||req.month)){
+        const color=GH_CAL_KEYWORD_TO_COLOR[keywordHit];
+        const order=new Map(ghCalendarZonesInOrder().map((z,i)=>[z.id,i]));
+        const hits=calRows.filter(r=>r.function5Calendar.color===color).sort((a,b)=>{
+          const za=order.get(a.zone?.id)??99, zb=order.get(b.zone?.id)??99;
+          return za-zb || String(a.period).localeCompare(String(b.period));
+        });
+        if(!hits.length)return `功能表5目前沒有查到${keywordHit}計畫。`;
+        const parts=hits.map(r=>{
+          const [y,m]=String(r.period).split('-').map(Number), cal=r.function5Calendar;
+          const days=ghCalendarCumulativeDays(calRows,r.zone?.id,y,m);
+          let x=`${r.zone?.name||"未分區"} ${y}年${m}月`;
+          if(cal.date)x+=`，${m}月${cal.date}日開始`;
+          if(days>0)x+=`，累計${days}天`;
+          return x;
+        });
+        return `${keywordHit}：${parts.join("；")}。`;
+      }
+
+      // 6. 只問某區/溫室計畫（沒指定月份）：依月份順序列出該溫室的計畫。
+      if(zone && !(req.ym||req.year||req.month)){
+        const recs=calRows.filter(r=>r.zone?.id===zone.id && r.function5Calendar.color!=="none")
+          .sort((a,b)=>String(a.period).localeCompare(String(b.period)));
+        if(!recs.length)return `${zone.name}目前沒有查到功能表5計畫。`;
+        const parts=recs.map(r=>{
+          const [y,m]=String(r.period).split('-').map(Number), cal=r.function5Calendar;
+          const days=ghCalendarCumulativeDays(calRows,zone.id,y,m);
+          let x=`${y}年${m}月：${cal.colorLabel}`;
+          if(cal.date)x+=`，${m}月${cal.date}日開始`;
+          if(days>0)x+=`，累計${days}天`;
+          if(cal.text)x+=`，${cal.text}`;
+          return x;
+        });
+        return `${zone.name}計畫：${parts.join("；")}。`;
       }
 
       // 5. 只問某區現況（沒指定月份）——用目前月份回答。
@@ -4591,6 +4638,7 @@ ${parts}
         status.textContent=`${meta.label}｜${meta.table} 已讀取 ${cache.rows.length} 組資料`;
         let readyText='想讓我分析什麼事？';
         if(entry==='yield') readyText=ghYieldEntryReadyText(cache.rows);
+        if(entry==='calendar') readyText=ghCalendarEntryReadyText(cache.rows);
         if(hint)hint.textContent=`目前：${meta.label}。${readyText}`;
         // 產能入口只回報「實際成功讀到」的年份範圍，再問分析方向；不主動播任何統計數字。
         await ghSpeak(readyText);
@@ -4670,7 +4718,7 @@ ${parts}
       const payload=ghOrganizeForAI(entry,q,rows,yieldRows);
       payload.selectedEntry={id:entry,label:meta.label,table:meta.table};
       payload.questionUnderstanding=understood;
-      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。`;
+      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。若為計畫：把功能表5視為「月份×溫室」矩陣；問月份就依一期、二期、三期、四南、四北、五期順序回答；問溫室就依月份順序回答；問計畫類型就反向回答符合的溫室與月份；節氣使用月份節氣列。`;
       return await ghAskAI(aiQ,payload);
     }
 
