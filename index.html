@@ -2808,6 +2808,19 @@ ${parts}
       return GH_ZONES.find(z=>z.aliases.some(a=>s.includes(a.toLowerCase())))||null;
     }
 
+    // 可同時辨識多個分區；「四期」代表四北+四南。產能比較會用到。
+    function ghFindZones(text){
+      const s=String(text||"").toLowerCase();
+      const hits=[];
+      const add=z=>{ if(z && !hits.some(x=>x.id===z.id)) hits.push(z); };
+      GH_ZONES.forEach(z=>{ if(z.aliases.some(a=>s.includes(a.toLowerCase()))) add(z); });
+      if(/四期(?!溫室?[^北南])/.test(String(text||"")) || /第四期/.test(String(text||""))){
+        add(GH_ZONES.find(z=>z.id==='north4'));
+        add(GH_ZONES.find(z=>z.id==='south4'));
+      }
+      return hits;
+    }
+
     function ghDateRequest(q){
       const now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1;
       let year=null,month=null;
@@ -3398,6 +3411,17 @@ ${parts}
 
     function ghYieldMonthsForQuestion(q){
       const req=ghDateRequest(q),now=new Date(),out=[],route=ghYieldRoute(q);
+      const t=String(q||"");
+      // 支援「7到9月／7-9月／7月至9月」時間區間。年份沒寫就用今年。
+      const rm=t.match(/(?:20\d{2}\s*年\s*)?(1[0-2]|[1-9])\s*月?\s*(?:到|至|~|～|-|—)\s*(1[0-2]|[1-9])\s*月/);
+      if(rm){
+        const y=(t.match(/(20\d{2})\s*年/)||[])[1];
+        const yy=y?Number(y):(req.year||now.getFullYear());
+        let a=Number(rm[1]),b=Number(rm[2]);
+        if(a<=b){for(let m=a;m<=b;m++)out.push({year:yy,month:m});}
+        else{for(let m=a;m<=12;m++)out.push({year:yy,month:m});for(let m=1;m<=b;m++)out.push({year:yy+1,month:m});}
+        return out;
+      }
       if(req.year&&req.month)return[{year:req.year,month:req.month}];
       if(req.year){for(let m=1;m<=12;m++)out.push({year:req.year,month:m});return out;}
       // 資料分析必須先吃到歷史匯入資料：讀 2020~今年，才能做跨年/跨月分析。
@@ -3415,8 +3439,8 @@ ${parts}
 
     async function ghQueryYield(q){
       const s=await ghYieldStorage();
-      const zone=ghFindZone(q);
-      const zones=zone?[zone]:GH_ZONES;
+      const requestedZones=ghFindZones(q);
+      const zones=requestedZones.length?requestedZones:GH_ZONES;
       const periods=ghYieldMonthsForQuestion(q);
       const rows=[];
 
@@ -4023,7 +4047,9 @@ ${parts}
     }
 
     function ghWork45DirectAnswer(q,rows){
-      if(!ghIsWorkQuestion(q))return null;
+      // 已按下「工作」功能鍵後，像「各區進度」「目前情況」也必須能回答，
+      // 不再要求句子重複出現打芽/除草等關鍵字。
+      if(!ghIsWorkQuestion(q) && !/進度|情況|狀態|報告|全部|各區|各分區|目前|現在|總覽/.test(String(q||"")))return null;
 
       const zone=ghFindZone(q);
       const req=ghDateRequest(q);
@@ -4066,14 +4092,39 @@ ${parts}
       }
 
       if(intent==="progress"){
-        const parts=items.map(i=>`${i.zone?.name||"未標區"}${i.itemName}：${i.progressMeaning}`);
-        return `${periodLabel}${parts.join("；")}。`;
+        if(!zone){
+          const byZone={};
+          GH_ZONES.forEach(z=>byZone[z.name]=[]);
+          items.forEach(i=>{ const zn=i.zone?.name||"未標區"; (byZone[zn]||(byZone[zn]=[])).push(i); });
+          const parts=Object.entries(byZone).map(([zn,list])=>{
+            if(!list.length)return `${zn}：無紀錄`;
+            const done=list.filter(i=>i.progress===1).length;
+            const pending=list.filter(i=>i.pendingConfirmation).length;
+            const doing=list.length-done;
+            return `${zn}：完成${done}/${list.length}${doing?`、進行中${doing}`:""}${pending?`、待確認${pending}`:""}`;
+          });
+          return `${periodLabel}各分區工作進度：${parts.join("；")}。`;
+        }
+        const parts=items.map(i=>`${i.itemName}：${i.progressMeaning}`);
+        return `${zone.name}${periodLabel}${parts.join("；")}。`;
       }
 
-      // summary：給整體概況，不逐筆列，避免語音唸起來太長
+      // summary：未指定分區時，改成各分區報告，不把所有工作混成一個總數。
+      if(!zone){
+        const byZone={};
+        GH_ZONES.forEach(z=>byZone[z.name]=[]);
+        items.forEach(i=>{ const zn=i.zone?.name||"未標區"; (byZone[zn]||(byZone[zn]=[])).push(i); });
+        const parts=Object.entries(byZone).map(([zn,list])=>{
+          if(!list.length)return `${zn}：無紀錄`;
+          const done=list.filter(i=>i.progress===1).length;
+          const pending=list.filter(i=>i.pendingConfirmation).length;
+          return `${zn}：完成${done}/${list.length}${pending?`、待確認${pending}`:""}`;
+        });
+        return `${periodLabel}工作總覽：${parts.join("；")}。`;
+      }
       const done=items.filter(i=>i.progress===1).length;
       const pendingCount=items.filter(i=>i.pendingConfirmation).length;
-      return `${zoneLabel}${periodLabel}功能表4共查到 ${items.length} 筆${itemLabel}指派，已完成 ${done} 筆、待確認 ${pendingCount} 筆。`;
+      return `${zoneLabel}${periodLabel}共 ${items.length} 筆${itemLabel}，完成 ${done} 筆、待確認 ${pendingCount} 筆。`;
     }
 
     // ===== 功能表5・工項行事曆／年度計畫 =====
@@ -4192,7 +4243,27 @@ ${parts}
         return out;
       }
 
-      // 4. 只問某區現況（沒指定月份）——用目前月份回答。
+      // 4. 指定月份但沒指定區：一次整理各分區的「狀態＋開始日＋累計天數」。
+      if(!zone && (req.ym||req.month)){
+        const yy=req.year||cy, mm=req.month||cm;
+        const ym=req.ym||`${yy}-${String(mm).padStart(2,"0")}`;
+        const parts=GH_ZONES.map(z=>{
+          const rec=calRows.find(r=>r.zone?.id===z.id && r.period===ym);
+          if(!rec)return `${z.name}：無計畫`;
+          const cal=rec.function5Calendar;
+          const days=ghCalendarCumulativeDays(calRows,z.id,yy,mm);
+          let x=`${z.name}：${cal.colorLabel}`;
+          if(cal.date)x+=`，${mm}月${cal.date}日開始`;
+          if(/累計|幾天|多久|狀態|階段/.test(t) && days>0)x+=`，累計${days}天`;
+          if(/內容|做什麼|在做什麼|要做什麼|有什麼|事項|工項|安排|時程|階段/.test(t) && cal.text)x+=`，${cal.text}`;
+          return x;
+        });
+        let out=`${yy}年${mm}月各區計畫：${parts.join("；")}。`;
+        if(/節氣/.test(t))out+=`節氣：${GH_SOLAR_TERMS_BY_MONTH[mm]}。`;
+        return out;
+      }
+
+      // 5. 只問某區現況（沒指定月份）——用目前月份回答。
       if(zone){
         const ym=`${cy}-${String(cm).padStart(2,"0")}`;
         const rec=calRows.find(r=>r.zone?.id===zone.id && r.period===ym);
@@ -4206,7 +4277,7 @@ ${parts}
         return out+"。";
       }
 
-      // 5. 沒指定分區/月份/關鍵字的籠統問題（例如「能查到年度計畫嗎」）——
+      // 6. 沒指定分區/月份/關鍵字的籠統問題（例如「能查到年度計畫嗎」）——
       // 之前這種問法四個分支全部對不上，會直接掉進通用 AI、變成一堆條列原始資料。
       // 改成：只挑「接下來有排定事項」的部分，依分區彙整成一句話，不逐月全部列出。
       if(calRows.length){
@@ -4402,19 +4473,62 @@ ${parts}
       });
     }
 
+    async function ghLoadAllYieldRows(){
+      const s=await ghYieldStorage();
+      // 進入「產能」時主動把 fbrfA_data 的即時資料 + 年度封存都讀進本次資料池。
+      // 這裡只讀，不寫入 Firebase；之後的問題先從這個資料池篩選與計算。
+      const keys=[
+        ...await s.list("yieldArchive:").catch(()=>[]),
+        ...await s.list("yield:").catch(()=>[])
+      ];
+      const uniq=[...new Set(keys)];
+      const rows=[];
+      // 分批讀取，避免手機一次併發太高。
+      for(let i=0;i<uniq.length;i+=12){
+        const batch=uniq.slice(i,i+12);
+        const got=await Promise.all(batch.map(async key=>{
+          const r=await s.get(key).catch(()=>null);
+          return r?ghNormalizeYieldRecord({key,data:r.value,updatedAt:r.updatedAt}):null;
+        }));
+        rows.push(...got.filter(Boolean));
+      }
+      return rows;
+    }
+
+    function ghFilterYieldCache(rows,q){
+      const requestedZones=ghFindZones(q);
+      const zoneIds=new Set(requestedZones.map(z=>z.id));
+      const periods=ghYieldMonthsForQuestion(q);
+      const ymSet=new Set(periods.map(p=>`${p.year}-${String(p.month).padStart(2,"0")}`));
+      const out=[];
+      for(const row of rows||[]){
+        if(zoneIds.size && !zoneIds.has(row.zone?.id))continue;
+        if(row.category==="yield_archive"){
+          const raw=row.rawData&&typeof row.rawData==="object"?row.rawData:{};
+          const cropped={};
+          Object.keys(raw).forEach(d=>{ if(ymSet.has(String(d).slice(0,7)))cropped[d]=raw[d]; });
+          if(Object.keys(cropped).length)out.push({...row,rawData:cropped});
+        }else{
+          const ym=String(row.period||"").slice(0,7);
+          if(ymSet.has(ym))out.push(row);
+        }
+      }
+      return out;
+    }
+
+    async function ghLoadMainEntryRows(entry){
+      const allow=new Set(GH_ENTRY_META[entry].categories);
+      // 功能鍵要「先讀完整資料再理解」，不要走 ghQueryV51() 的 180 筆問題式截斷。
+      const docs=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,"kv",1000);
+      return docs.map(ghNormalizeMainRecord).filter(r=>allow.has(r.category));
+    }
+
     async function ghReadEntry(entry,force=false){
       if(!GH_ENTRY_META[entry])throw new Error('未知功能入口');
       if(!force && ghEntryCache[entry])return ghEntryCache[entry];
       let rows=[];
-      if(entry==='yield'){
-        // 產能資料量可能大，不在按鍵時硬抓全部；先確認獨立 Firebase 可連線。
-        await ghYieldStorage();
-        rows=[];
-      }else{
-        const all=await ghQueryV51('');
-        const allow=new Set(GH_ENTRY_META[entry].categories);
-        rows=all.filter(r=>allow.has(r.category));
-      }
+      if(entry==='yield') rows=await ghLoadAllYieldRows();
+      else rows=await ghLoadMainEntryRows(entry);
       ghEntryCache[entry]={rows,loadedAt:Date.now()};
       return ghEntryCache[entry];
     }
@@ -4428,8 +4542,10 @@ ${parts}
       status.textContent=`${meta.label}｜正在讀取 ${meta.table}…`;
       try{
         const cache=await ghReadEntry(entry,true);
-        status.textContent=`${meta.label}｜${meta.table} 已讀取`;
-        if(hint)hint.textContent=`目前：${meta.label}。直接問，我會先理解、整理，再回答。`;
+        status.textContent=`${meta.label}｜${meta.table} 已讀取 ${cache.rows.length} 組資料`;
+        if(hint)hint.textContent=`目前：${meta.label}。想讓我分析什麼事？`;
+        // 功能鍵進入後只說這一句，不播資料表名稱或長說明。
+        await ghSpeak("想讓我分析什麼事？");
         const input=document.getElementById('greenhouseInput');
         if(input){
           const ph={yield:'例如：五期7月總產量多少？',work:'例如：四南除草進度？',calendar:'例如：四北11月在做什麼？',materials:'例如：四北8月用了什麼肥料？',attendance:'例如：今天誰有打卡？'};
@@ -4445,13 +4561,14 @@ ${parts}
 
     function ghUnderstandQuestion(entry,q){
       const zone=ghFindZone(q);
+      const zones=ghFindZones(q);
       const time=ghDateRequest(q)||{};
       const t=String(q||'').trim();
       const wantsWhy=/(為什麼|原因|怎麼|如何|建議|分析)/.test(t);
       const wantsCompare=/(比較|最高|最低|最多|最少|排名|差異|趨勢|比例|平均)/.test(t);
       const wantsList=/(哪些|什麼|有什麼|內容|明細|紀錄|列出|誰)/.test(t);
       const wantsTotal=/(多少|總量|總共|合計|公斤|包|次|幾筆|工時)/.test(t);
-      return {entry,question:t,zone,time,wantsWhy,wantsCompare,wantsList,wantsTotal};
+      return {entry,question:t,zone,zones,time,wantsWhy,wantsCompare,wantsList,wantsTotal};
     }
 
     function ghOrganizeForAI(entry,q,rows,yieldRows=[]){
@@ -4464,13 +4581,14 @@ ${parts}
       const understood=ghUnderstandQuestion(entry,q);
       let rows=[]; let yieldRows=[]; let direct='';
 
-      // Step 1: Read only the selected function table.
+      // Step 1: 使用「按下功能鍵時已主動讀入」的資料池，不重新跨表猜資料來源。
+      const cache=await ghReadEntry(entry,false);
       if(entry==='yield'){
-        yieldRows=await ghQueryYield(q);
+        yieldRows=ghFilterYieldCache(cache.rows,q);
+        // 若背景資料池剛好沒有命中（例如資料在回答前才新增），再做一次即時精準查詢補強。
+        if(!yieldRows.length)yieldRows=await ghQueryYield(q);
       }else{
-        const all=await ghQueryV51(q);
-        const allow=new Set(meta.categories);
-        rows=all.filter(r=>allow.has(r.category));
+        rows=cache.rows.slice();
       }
 
       // Step 2 + 3: Understand and organize using domain-specific deterministic functions first.
@@ -4557,7 +4675,7 @@ ${parts}
       if(g)g.onclick=()=>{
         setUiMode("greenhouse");
         const st=document.getElementById("greenhouseStatus");
-        if(st)st.textContent="V5.1 已就緒・直接問產能／工作／計畫／耗材／打卡";
+        if(st)st.textContent="V5.1 已就緒・先選功能，再問分析內容";
       };
       if(close)close.onclick=()=>setUiMode("pongchi");
       if(send)send.onclick=ghSend;
