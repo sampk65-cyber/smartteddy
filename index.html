@@ -2565,6 +2565,14 @@ ${parts}
       return out;
     }
 
+    function ghNormalizeStamp(s){
+      // 原始 App 的 nowStamp() 寫入格式是「YYYY/MM/DD HH:mm」（斜線），
+      // 但這裡所有日期比對用的都是「YYYY-MM」（減號）去 startsWith 比對——
+      // 兩種分隔符號完全對不上，導致每一筆耗材確認紀錄的日期篩選永遠失敗。
+      // 統一在讀取時就轉成減號格式，後面所有比對邏輯都不用改。
+      return String(s||"").replace(/^(\d{4})\/(\d{2})\/(\d{2})/,"$1-$2-$3");
+    }
+
     function ghZoneWorkFunction3View(data){
       data=data||{};
       const history=(data.confirmHistory||[])
@@ -2580,7 +2588,7 @@ ${parts}
             (h.rowKey==="米糠"||h.rowKey==="金旺")?"包":"kg",
           personId:h.personId||null,
           personName:h.personName||h.personId||null,
-          confirmedAt:h.at||null,
+          confirmedAt:ghNormalizeStamp(h.at),
           progress:h.progress??1
         }));
       return {
