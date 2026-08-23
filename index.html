@@ -4047,84 +4047,89 @@ ${parts}
     }
 
     function ghWork45DirectAnswer(q,rows){
-      // 已按下「工作」功能鍵後，像「各區進度」「目前情況」也必須能回答，
-      // 不再要求句子重複出現打芽/除草等關鍵字。
-      if(!ghIsWorkQuestion(q) && !/進度|情況|狀態|報告|全部|各區|各分區|目前|現在|總覽/.test(String(q||"")))return null;
+      // 功能表4採兩層回答：
+      // 1) 未指定分區：只確認哪些分區目前有工作，再問「你想了解哪一區？」
+      // 2) 指定分區：固定整理工作1-5的「指派 + 進度」，不主動展開格位細節。
+      const text=String(q||"").trim();
+      const zone=ghFindZone(text);
+      const req=ghDateRequest(text);
+      const itemId=ghWork45MatchItem(text);
+      const onlyBudding=/打芽/.test(text) && itemId===null;
 
-      const zone=ghFindZone(q);
-      const req=ghDateRequest(q);
-      const itemId=ghWork45MatchItem(q);
-      const onlyBudding=/打芽/.test(q) && itemId===null; // 「打芽」沒分側/地時，1跟2都算
+      // 已經按下「工作」功能鍵後，單獨回答「四南／三期」也視為有效追問。
+      if(!zone && !ghIsWorkQuestion(text) && !/進度|情況|狀態|報告|全部|各區|各分區|目前|現在|總覽|哪些區|哪幾區|有工作/.test(text))return null;
 
-      const items=[];
+      const base=[];
       rows.filter(r=>r.category==="worklog").forEach(r=>{
-        if(zone && r.zone?.id!==zone.id)return;
         if(req.ym && !String(r.period||"").startsWith(req.ym))return;
         if(req.date && r.period!==req.date)return;
         (r.function4Work1to5||[]).forEach(item=>{
-          if(itemId && item.itemId!==itemId)return;
-          if(onlyBudding && item.itemId!==1 && item.itemId!==2)return;
-          items.push({...item,zone:r.zone,period:r.period});
+          base.push({...item,zone:r.zone,period:r.period});
         });
       });
 
-      const zoneLabel=zone?zone.name:"全區";
       const periodLabel=req.ym?`${req.year}年${req.month}月`:req.date?req.date:"目前";
-      const itemLabel=itemId?GH_WORK_ITEMS[itemId]:onlyBudding?"打芽":"工作";
 
-      if(!items.length)return `功能表4在${zoneLabel}${periodLabel}沒有查到${itemLabel}的指派紀錄。`;
-
-      const intent=ghWork45Intent(q);
-
-      if(intent==="assignee"){
-        const parts=items.filter(i=>i.recipients?.length).map(i=>
-          `${i.zone?.name||"未標區"}${i.itemName}：${i.recipients.map(r=>r.name).join("、")}`
-        );
-        if(!parts.length)return `${zoneLabel}${periodLabel}的${itemLabel}目前沒有指派受文對象。`;
-        return `${periodLabel}${parts.join("；")}。`;
-      }
-
-      if(intent==="pending"){
-        const pending=items.filter(i=>i.pendingConfirmation);
-        if(!pending.length)return `${zoneLabel}${periodLabel}的${itemLabel}沒有待確認的項目。`;
-        const parts=pending.map(i=>`${i.zone?.name||"未標區"}${i.itemName}`);
-        return `${periodLabel}待確認：${parts.join("、")}。`;
-      }
-
-      if(intent==="progress"){
-        if(!zone){
-          const byZone={};
-          GH_ZONES.forEach(z=>byZone[z.name]=[]);
-          items.forEach(i=>{ const zn=i.zone?.name||"未標區"; (byZone[zn]||(byZone[zn]=[])).push(i); });
-          const parts=Object.entries(byZone).map(([zn,list])=>{
-            if(!list.length)return `${zn}：無紀錄`;
-            const done=list.filter(i=>i.progress===1).length;
-            const pending=list.filter(i=>i.pendingConfirmation).length;
-            const doing=list.length-done;
-            return `${zn}：完成${done}/${list.length}${doing?`、進行中${doing}`:""}${pending?`、待確認${pending}`:""}`;
-          });
-          return `${periodLabel}各分區工作進度：${parts.join("；")}。`;
-        }
-        const parts=items.map(i=>`${i.itemName}：${i.progressMeaning}`);
-        return `${zone.name}${periodLabel}${parts.join("；")}。`;
-      }
-
-      // summary：未指定分區時，改成各分區報告，不把所有工作混成一個總數。
+      // 第一層：沒有指定分區，只報「有工作的分區」，不把全部工作細節倒出來。
       if(!zone){
-        const byZone={};
-        GH_ZONES.forEach(z=>byZone[z.name]=[]);
-        items.forEach(i=>{ const zn=i.zone?.name||"未標區"; (byZone[zn]||(byZone[zn]=[])).push(i); });
-        const parts=Object.entries(byZone).map(([zn,list])=>{
-          if(!list.length)return `${zn}：無紀錄`;
-          const done=list.filter(i=>i.progress===1).length;
-          const pending=list.filter(i=>i.pendingConfirmation).length;
-          return `${zn}：完成${done}/${list.length}${pending?`、待確認${pending}`:""}`;
+        const zoneMap=new Map();
+        base.forEach(i=>{
+          if(!i.zone?.id)return;
+          if(!zoneMap.has(i.zone.id))zoneMap.set(i.zone.id,i.zone.name);
         });
-        return `${periodLabel}工作總覽：${parts.join("；")}。`;
+        const activeZones=GH_ZONES.filter(z=>zoneMap.has(z.id)).map(z=>z.name);
+        if(!activeZones.length)return `${periodLabel}功能表4沒有查到工作1到5的紀錄。`;
+        return `${periodLabel}共有 ${activeZones.length} 個分區有工作：${activeZones.join("、")}。你想了解哪一區？`;
       }
-      const done=items.filter(i=>i.progress===1).length;
-      const pendingCount=items.filter(i=>i.pendingConfirmation).length;
-      return `${zoneLabel}${periodLabel}共 ${items.length} 筆${itemLabel}，完成 ${done} 筆、待確認 ${pendingCount} 筆。`;
+
+      // 第二層：指定分區後，只使用該分區資料。
+      let items=base.filter(i=>i.zone?.id===zone.id);
+      if(itemId)items=items.filter(i=>i.itemId===itemId);
+      if(onlyBudding)items=items.filter(i=>i.itemId===1||i.itemId===2);
+
+      if(!items.length){
+        const wanted=itemId?GH_WORK_ITEMS[itemId]:onlyBudding?"打芽":"工作1到5";
+        return `${zone.name}${periodLabel}沒有查到${wanted}的工作紀錄。`;
+      }
+
+      // 若同一工作因不同格位/紀錄出現多筆，先整理成工作層級，不主動展開格位。
+      const byItem=new Map();
+      items.forEach(i=>{
+        if(!byItem.has(i.itemId))byItem.set(i.itemId,[]);
+        byItem.get(i.itemId).push(i);
+      });
+
+      const lineFor=(id,list)=>{
+        const first=list[0];
+        const names=[];
+        list.forEach(i=>(i.recipients||[]).forEach(r=>{ if(r?.name&&!names.includes(r.name))names.push(r.name); }));
+        const levels=[...new Set(list.map(i=>i.assignedLevel).filter(Boolean))];
+        const assigned=names.length?names.join("、"):(levels.length?`級別${levels.join("/")}`:"未指派");
+
+        const done=list.filter(i=>i.progress===1).length;
+        const pending=list.filter(i=>i.pendingConfirmation).length;
+        const progressing=list.filter(i=>Number(i.progress)>1);
+        let progress="尚未回報";
+        if(done===list.length)progress="已完成";
+        else if(progressing.length){
+          const max=Math.max(...progressing.map(i=>Number(i.progress)||0));
+          progress=`處理中（進度${max}/5）`;
+          if(done)progress+=`，部分已完成`;
+        }else if(done)progress=`部分完成（${done}/${list.length}）`;
+        else if(pending)progress="已指派、待確認";
+
+        const label={1:"打芽",2:"打芽底",3:"除草",4:"剪葉",5:"覆蓋"}[id]||first.itemName||`工作${id}`;
+        return `${id}. ${label}：指派 ${assigned}，進度 ${progress}`;
+      };
+
+      const ids=itemId?[itemId]:onlyBudding?[1,2]:[1,2,3,4,5];
+      const lines=[];
+      ids.forEach(id=>{
+        const list=byItem.get(id);
+        if(list?.length)lines.push(lineFor(id,list));
+        else lines.push(`${id}. ${{1:"打芽",2:"打芽底",3:"除草",4:"剪葉",5:"覆蓋"}[id]}：無工作紀錄`);
+      });
+      return `${zone.name}${periodLabel}工作：\n${lines.join("\n")}`;
     }
 
     // ===== 功能表5・工項行事曆／年度計畫 =====
@@ -4518,7 +4523,34 @@ ${parts}
 
     async function ghLoadMainEntryRows(entry){
       const allow=new Set(GH_ENTRY_META[entry].categories);
-      // 功能鍵要「先讀完整資料再理解」，不要走 ghQueryV51() 的 180 筆問題式截斷。
+
+      // 功能表5特別處理：不要先抓整個 kv 再期待 calendar 剛好落在前 1000 筆。
+      // 直接依 key 前綴讀 calendar:*，確認「計畫」按鍵真的能把功能表5完整載入。
+      if(entry==='calendar'){
+        const db=await ghMainFirestore();
+        let snap;
+        try{
+          snap=await db.collection('kv')
+            .where('key','>=','calendar:')
+            .where('key','<=','calendar:\uf8ff')
+            .get();
+        }catch(e){
+          console.warn('calendar 前綴查詢失敗，改用完整 kv 後篩選',e);
+          const fallback=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,'kv',1000);
+          return fallback.map(ghNormalizeMainRecord)
+            .filter(r=>r.category==='calendar' && r.function5Calendar);
+        }
+        const docs=snap.docs.map(doc=>{
+          const raw=doc.data()||{};
+          let value=raw.value;
+          if(typeof value==='string'){try{value=JSON.parse(value);}catch(_){}}
+          return {key:raw.key||doc.id,data:value,updatedAt:raw.updatedAt||null};
+        });
+        return docs.map(ghNormalizeMainRecord)
+          .filter(r=>r.category==='calendar' && r.function5Calendar);
+      }
+
+      // 其他功能鍵維持既有讀取方式；進入後只保留該入口允許的資料類別。
       const docs=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,"kv",1000);
       return docs.map(ghNormalizeMainRecord).filter(r=>allow.has(r.category));
     }
@@ -4533,6 +4565,20 @@ ${parts}
       return ghEntryCache[entry];
     }
 
+    function ghYieldCoverage(rows){
+      const facts=ghYieldFacts(rows||[]);
+      const years=[...new Set(facts.map(f=>Number(f.year)).filter(Number.isFinite))].sort((a,b)=>a-b);
+      const zones=[...new Set(facts.map(f=>f.zone).filter(Boolean))];
+      return {years,zones,facts:facts.length,minYear:years[0]||null,maxYear:years[years.length-1]||null};
+    }
+
+    function ghYieldEntryReadyText(rows){
+      const c=ghYieldCoverage(rows);
+      if(!c.years.length)return '產能資料目前沒有成功讀取。';
+      const range=c.minYear===c.maxYear?`${c.minYear}`:`${c.minYear}–${c.maxYear}`;
+      return `已讀取 ${range} 產能資料。你想了解產量、品質，還是對比？`;
+    }
+
     async function ghSelectEntry(entry){
       ghSelectedEntry=entry;
       ghSetEntryButtonState(entry);
@@ -4543,9 +4589,11 @@ ${parts}
       try{
         const cache=await ghReadEntry(entry,true);
         status.textContent=`${meta.label}｜${meta.table} 已讀取 ${cache.rows.length} 組資料`;
-        if(hint)hint.textContent=`目前：${meta.label}。想讓我分析什麼事？`;
-        // 功能鍵進入後只說這一句，不播資料表名稱或長說明。
-        await ghSpeak("想讓我分析什麼事？");
+        let readyText='想讓我分析什麼事？';
+        if(entry==='yield') readyText=ghYieldEntryReadyText(cache.rows);
+        if(hint)hint.textContent=`目前：${meta.label}。${readyText}`;
+        // 產能入口只回報「實際成功讀到」的年份範圍，再問分析方向；不主動播任何統計數字。
+        await ghSpeak(readyText);
         const input=document.getElementById('greenhouseInput');
         if(input){
           const ph={yield:'例如：五期7月總產量多少？',work:'例如：四南除草進度？',calendar:'例如：四北11月在做什麼？',materials:'例如：四北8月用了什麼肥料？',attendance:'例如：今天誰有打卡？'};
@@ -4605,7 +4653,10 @@ ${parts}
       }else if(entry==='work'){
         direct=ghWork45DirectAnswer(q,rows);
       }else if(entry==='calendar'){
+        // 功能表5已在按鍵進入時完整預載；回答只允許使用 calendar 資料。
+        // 月份／區域／狀態／節氣／開始日／累積天數先由固定函式計算。
         direct=ghCalendarDirectAnswer(q,rows);
+        if(!rows.length)return '功能表5目前沒有讀到計畫資料。';
       }else if(entry==='materials'){
         direct=ghWork68DirectAnswer(q,rows);
       }else if(entry==='attendance'){
@@ -4619,7 +4670,7 @@ ${parts}
       const payload=ghOrganizeForAI(entry,q,rows,yieldRows);
       payload.selectedEntry={id:entry,label:meta.label,table:meta.table};
       payload.questionUnderstanding=understood;
-      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。`;
+      const aiQ=`【已鎖定入口：${meta.label}／${meta.table}】\n${q}\n\n回答規則：只回答這個入口的資料；先回答結論，再補必要計算或分析；不要介紹功能表、不要說正在讀取。若為產能：依使用者指定的區域（可多選）與時間區間，只分析產量、A/B/D/NG品質公斤數與占比、或區域/期間對比；未要求的區域與期間禁止主動加入答案。`;
       return await ghAskAI(aiQ,payload);
     }
 
