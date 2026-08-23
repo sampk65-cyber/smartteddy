@@ -4826,14 +4826,35 @@ ${parts}
     return docs.map(doc=>{const raw=doc.data()||{};return {key:String(raw.key||doc.id),data:v6SafeJson(raw.value),updatedAt:raw.updatedAt||null};});
   }
 
+  // rowId 可能是英文代碼（p1/zone3...）也可能是舊版直接存中文名稱（一期/三期...）——
+  // 之前只認英文代碼，如果三期、四南這幾筆是舊版用中文存的，會被這裡直接篩掉、當成沒讀到。
+  const V6_ROWID_TO_ZONE={
+    p1:"p1","一期":"p1",
+    p2:"p2","二期":"p2","總公司":"p2",
+    zone3:"zone3","三期":"zone3",
+    south4:"south4","四南":"south4",
+    north4:"north4","四北":"north4",
+    zone5:"zone5","五期":"zone5"
+  };
   function v6CalendarRow(doc){
-    const m=doc.key.match(/^calendar:(p1|p2|zone3|south4|north4|zone5|prod):(\d{4})-(\d{2})$/);if(!m||m[1]==="prod")return null;
+    const m=doc.key.match(/^calendar:([^:]+):(\d{4})-(\d{2})$/);
+    if(!m)return null;
+    const rawRowId=m[1];
+    if(rawRowId==="prod")return null;
+    const zoneId=V6_ROWID_TO_ZONE[rawRowId];
+    if(!zoneId)return null; // 真的辨識不出來的 rowId 才丟掉，並且會被下面的診斷計數記錄
     const d=(doc.data&&typeof doc.data==="object")?doc.data:{},color=String(d.color||"none"),text=String(d.text||"").trim();
     if(color==="none"&&!text&&!d.date)return null;
-    return {sourceKey:doc.key,category:"calendar",zone:{id:m[1],name:V6_ZONE_NAME[m[1]]},period:`${m[2]}-${m[3]}`,
+    return {sourceKey:doc.key,category:"calendar",zone:{id:zoneId,name:V6_ZONE_NAME[zoneId]},period:`${m[2]}-${m[3]}`,
       function5Calendar:{color,text,date:d.date==null?null:Number(d.date),action:(V6_CAL_LABEL[color]||text||"").trim()},rawData:d,updatedAt:doc.updatedAt};
   }
-  async function v6LoadCalendar(){return (await v6PrefixDocs("calendar:")).map(v6CalendarRow).filter(Boolean);}
+  async function v6LoadCalendar(){
+    const rawDocs=await v6PrefixDocs("calendar:");
+    const rows=rawDocs.map(v6CalendarRow).filter(Boolean);
+    // 診斷用：記下「撈到的原始文件數」跟「篩選後的有效筆數」，兩者差太多就代表篩選這關把資料濾掉了。
+    window.__ghCalendarDebug={rawCount:rawDocs.length,filteredCount:rows.length,rawKeys:rawDocs.map(d=>d.key)};
+    return rows;
+  }
 
   function v6ZoneworkRow(doc){
     const m=doc.key.match(/^zonework:(p1|p2|zone3|south4|north4|zone5):(\d{4}-\d{2})$/);if(!m)return null;
@@ -4996,7 +5017,12 @@ ${parts}
         const cache=ghEntryCache[ghSelectedEntry];
         const meta=GH_ENTRY_META[ghSelectedEntry];
         const rows=cache?cache.rows:[];
-        const header=`入口：${meta?meta.label:ghSelectedEntry}／${meta?meta.table:""}\n讀取時間：${cache?new Date(cache.loadedAt).toLocaleString("zh-TW"):"未知"}\n總筆數：${rows.length}\n\n以下是實際抓到的原始資料（可以整段複製貼給開發者比對）：\n`;
+        let debugLine="";
+        if(ghSelectedEntry==="calendar" && window.__ghCalendarDebug){
+          const dbg=window.__ghCalendarDebug;
+          debugLine=`\n【撈取診斷】Firestore 原始文件數：${dbg.rawCount}　篩選後有效筆數：${dbg.filteredCount}\n原始 key 清單：${dbg.rawKeys.join("、")}\n`;
+        }
+        const header=`入口：${meta?meta.label:ghSelectedEntry}／${meta?meta.table:""}\n讀取時間：${cache?new Date(cache.loadedAt).toLocaleString("zh-TW"):"未知"}\n總筆數：${rows.length}\n${debugLine}\n以下是實際抓到的原始資料（可以整段複製貼給開發者比對）：\n`;
         debugOut.style.display="block";
         try{
           debugOut.value=header+JSON.stringify(rows,null,2);
