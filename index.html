@@ -3646,13 +3646,16 @@ ${parts}
       if(!addressed)return null;
       if(/產能|產量|收成|採收|品質/.test(t))return "yield";
       if(/打卡|出勤|上下班|工時|請假/.test(t))return "attendance";
-      if(/工作|工項|指派|除草|打芽|剪葉|補水|施肥|資材/.test(t))return "work";
+      // 耗材（工作表七・分區耗材統計）跟工作1-5是分開的入口，即使背後都讀 zonework，
+      // 也要分開判斷，狀態列跟直接回答函式才會對得上你實際點進去的畫面。
+      if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(t))return "materials";
+      if(/工作|工項|指派|除草|打芽|剪葉/.test(t))return "work";
       return null;
     }
 
     function ghTopicAckOnly(q){
       const t=String(q||"").replace(/\s+/g,"");
-      return /^(?:teddy|泰迪|松鼠|pongchi)?(?:我們|今天|現在|先|來)*(?:談|聊|看|處理)(?:一下)?(?:產能|產量|收成|採收|品質|工作|工項|打卡|出勤)(?:吧|好了|好嗎)?[。！!？?]*$/i.test(t);
+      return /^(?:teddy|泰迪|松鼠|pongchi)?(?:我們|今天|現在|先|來)*(?:談|聊|看|處理)(?:一下)?(?:產能|產量|收成|採收|品質|工作|工項|打卡|出勤|耗材|資材)(?:吧|好了|好嗎)?[。！!？?]*$/i.test(t);
     }
 
     function ghLooksLikeFollowup(q){
@@ -3694,7 +3697,11 @@ ${parts}
       if(!explicit && !ghLooksLikeFollowup(q)){
         if(ghIsAttendanceQuestion(q))topic="attendance";
         else if(ghIsYieldQuestion(q))topic="yield";
-        else if(/工作|工項|指派|除草|打芽|剪葉|補水|施肥|資材/.test(String(q||"")))topic="work";
+        else if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(String(q||"")))topic="materials";
+        else if(/工作|工項|指派|除草|打芽|剪葉/.test(String(q||"")))topic="work";
+        // 三個模組都對不上、又不是延續上一句的追問，就是全新話題（包含單純聊天），
+        // 不該沿用舊主題——這就是之前「hi teddy」被硬套進產能查詢的根本原因。
+        else topic=null;
       }
 
       const prev=(state.ctx&&state.ctx[topic])||"";
@@ -3705,6 +3712,15 @@ ${parts}
       return {topic,effective,topicOnly:!!explicit&&ghTopicAckOnly(q)};
     }
 
+    // 純粹打招呼／閒聊，不含任何模組關鍵字時，不該被舊主題「黏住」硬套進產能/工作/打卡。
+    function ghIsGreetingOnly(q){
+      const t=String(q||"").trim();
+      if(!t)return false;
+      const bare=/^(?:hi|hello|hey|yo|嗨|哈囉|哈囉囉|你好|您好|安安|早安|午安|晚安|在嗎|在不在|teddy|泰迪|松鼠|pongchi)[\s!！~～。.,，]*$/i;
+      const withName=/^(?:hi|hello|hey|嗨|哈囉|你好|您好|安安)\s*(?:teddy|泰迪|松鼠|pongchi)[\s!！~～。.,，]*$/i;
+      return bare.test(t) || withName.test(t);
+    }
+
     async function ghSend(){
       const input=document.getElementById("greenhouseInput"),btn=document.getElementById("btnGreenhouseSend"),q=input.value.trim();
       if(!q)return;
@@ -3712,6 +3728,17 @@ ${parts}
       const status=document.getElementById("greenhouseStatus");
       status.textContent="正在結構化讀取 V5.1…";
       try{
+        // 純打招呼：不進任何模組路由，也把黏住的舊主題清掉，避免下一句被誤套進舊主題。
+        if(ghIsGreetingOnly(q)){
+          const state=ghLoadConversationState();
+          ghSaveConversationState(null,state.ctx||{});
+          const reply="嗨！我在溫室模式，直接說「聊聊產能／工作／耗材」或問問題，我會自動幫你進對應的工作表查資料。";
+          status.textContent="V5.1 即時資料 · 支援語音提問與朗讀";
+          ghLog("assistant",reply);
+          await ghSpeak(reply);
+          btn.disabled=false;
+          return;
+        }
         const conv=ghResolveConversation(q);
         if(conv.topicOnly){
           // 背景完成主題設定，不朗讀「已切換模式」等機器式訊息。
@@ -3721,7 +3748,8 @@ ${parts}
         const effectiveQ=conv.effective||q;
         const isYield=conv.topic==="yield" || ghIsYieldQuestion(effectiveQ);
         const isAttendance=conv.topic==="attendance" || ghIsAttendanceQuestion(effectiveQ);
-        const isWork=!isYield && !isAttendance && (conv.topic==="work" || ghIsWorkQuestion(effectiveQ));
+        const isMaterials=!isYield && !isAttendance && conv.topic==="materials";
+        const isWork=!isYield && !isAttendance && !isMaterials && (conv.topic==="work" || ghIsWorkQuestion(effectiveQ));
         let mainRows=[];
         let yieldRows=[];
 
@@ -3734,6 +3762,22 @@ ${parts}
           ghLog("assistant",answer);
           await ghSpeak(answer);
           return;
+        }
+
+        // 工作表七・分區耗材統計：跟功能表4的工作1-5是分開的入口，
+        // 但背後其實跟功能表3裡的工作6-8共用同一份 zonework 資料（figapi-d24dc／kv），
+        // 所以直接沿用已經寫好的 ghWork68DirectAnswer，只是換一個對應畫面的狀態列文字。
+        if(isMaterials){
+          status.textContent="工作表七・分區耗材統計";
+          const allRows=await ghQueryV51(effectiveQ);
+          mainRows=allRows;
+          const answer=ghWork68DirectAnswer(effectiveQ,mainRows);
+          if(answer){
+            ghLog("assistant",answer);
+            await ghSpeak(answer);
+            return;
+          }
+          // 超出固定統計模板的耗材問題，仍只把 zonework 交給 AI 解讀。
         }
 
         // 功能表4：工作1-5（打芽/除草/剪葉/覆蓋）唯一入口。
