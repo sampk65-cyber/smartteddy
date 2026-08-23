@@ -5001,5 +5001,164 @@ ${parts}
     </div>
   </div>
 
+
+<script>
+/* TEDDY 溫室模式 V6：完全對齊 V5.1 真實 key/schema，五入口 + 上下文 */
+(function(){
+  const V6_ZONE_ORDER=["p1","p2","zone3","south4","north4","zone5"];
+  const V6_ZONE_NAME={p1:"一期溫室",p2:"二期溫室",zone3:"三期溫室",south4:"四南溫室",north4:"四北溫室",zone5:"五期溫室"};
+  const V6_CAL_LABEL={season:"產季",green:"座果",purple:"剪枝",alert:"度冬",beige:"備註",red:"重要",cyan:"預估",none:""};
+  const V6_SOLAR={1:"小寒／大寒",2:"立春／雨水",3:"驚蟄／春分",4:"清明／穀雨",5:"立夏／小滿",6:"芒種／夏至",7:"小暑／大暑",8:"立秋／處暑",9:"白露／秋分",10:"寒露／霜降",11:"立冬／小雪",12:"大雪／冬至"};
+  const V6_MAT_META={
+    "溝灌":{itemId:6,unit:"噸",kind:"補水"},"噴灌":{itemId:6,unit:"分鐘",kind:"補水"},
+    "米糠":{itemId:7,unit:"包",kind:"施肥"},"金旺":{itemId:7,unit:"包",kind:"施肥"},
+    "黃豆":{itemId:8,unit:"kg",kind:"其他資材"},"水果":{itemId:8,unit:"kg",kind:"其他資材"},
+    "硝酸鉀":{itemId:8,unit:"kg",kind:"其他資材"},"磷酸一鉀":{itemId:8,unit:"kg",kind:"其他資材"},
+    "硫酸鉀":{itemId:8,unit:"kg",kind:"其他資材"},"鈣鎂粉":{itemId:8,unit:"kg",kind:"其他資材"},
+    "微量元素":{itemId:8,unit:"kg",kind:"其他資材"}
+  };
+  const V6_CTX={
+    yield:{zones:[],year:null,month:null,intent:null,grade:null},
+    work:{zones:[],year:null,month:null,item:null,intent:null},
+    calendar:{zones:[],year:null,month:null,action:null,intent:null},
+    materials:{zones:[],year:null,month:null,itemId:null,material:null,intent:null},
+    attendance:{person:null,year:null,month:null,date:null,intent:null}
+  };
+
+  function v6Today(){const d=new Date();return {year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),date:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};}
+  function v6SafeJson(v){if(typeof v!=="string")return v;try{return JSON.parse(v);}catch(_){return v;}}
+  function v6ZoneIds(q){
+    const t=String(q||""),out=[];
+    [["p1",/(?:一期|p1)/i],["p2",/(?:二期|p2)/i],["zone3",/(?:三期|zone3)/i],["south4",/(?:四南|south4)/i],["north4",/(?:四北|north4)/i],["zone5",/(?:五期|zone5)/i]]
+      .forEach(([id,re])=>{if(re.test(t))out.push(id);});
+    if(/四期/.test(t)){if(!out.includes("south4"))out.push("south4");if(!out.includes("north4"))out.push("north4");}
+    return out;
+  }
+  function v6Time(q){
+    const t=String(q||""),now=v6Today();let year=null,month=null,date=null,m=t.match(/(20\d{2})\s*年?/);if(m)year=Number(m[1]);
+    m=t.match(/(?:^|[^\d])(\d{1,2})\s*月/);if(m)month=Number(m[1]);
+    if(/今年/.test(t))year=now.year;if(/去年/.test(t))year=now.year-1;if(/明年/.test(t))year=now.year+1;
+    if(/本月|這個月|這月|目前|現在/.test(t)){year=year||now.year;month=month||now.month;}
+    if(/上個月|上月/.test(t)){let d=new Date(now.year,now.month-2,1);year=d.getFullYear();month=d.getMonth()+1;}
+    if(/下個月|下月/.test(t)){let d=new Date(now.year,now.month,1);year=d.getFullYear();month=d.getMonth()+1;}
+    m=t.match(/(20\d{2})[\/.-](\d{1,2})[\/.-](\d{1,2})/);if(m){year=+m[1];month=+m[2];date=`${m[1]}-${String(+m[2]).padStart(2,"0")}-${String(+m[3]).padStart(2,"0")}`;}
+    return {year,month,date,ym:(year&&month)?`${year}-${String(month).padStart(2,"0")}`:null};
+  }
+  function v6CalendarAction(q){const t=String(q||"");for(const a of ["產季","剪枝","座果","度冬","重要","預估","備註"])if(t.includes(a))return a;return null;}
+  function v6Material(q){const t=String(q||"");for(const k of Object.keys(V6_MAT_META))if(t.includes(k))return k;return null;}
+  function v6WorkItem(q){const t=String(q||"");if(/打芽.*(?:地|底)|地芽/.test(t))return 2;if(/打芽/.test(t))return 1;if(/除草/.test(t))return 3;if(/剪葉/.test(t))return 4;if(/覆蓋/.test(t))return 5;return null;}
+
+  async function v6PrefixDocs(prefix){
+    const db=await ghMainFirestore();let docs=[];
+    try{const snap=await db.collection("kv").where("key",">=",prefix).where("key","<",prefix+"\uf8ff").get();docs=snap.docs;}
+    catch(e){docs=(await ghFetchAllDocs(db.collection("kv"))).filter(d=>String((d.data()||{}).key||d.id).startsWith(prefix));}
+    return docs.map(doc=>{const raw=doc.data()||{};return {key:String(raw.key||doc.id),data:v6SafeJson(raw.value),updatedAt:raw.updatedAt||null};});
+  }
+
+  function v6CalendarRow(doc){
+    const m=doc.key.match(/^calendar:(p1|p2|zone3|south4|north4|zone5|prod):(\d{4})-(\d{2})$/);if(!m||m[1]==="prod")return null;
+    const d=(doc.data&&typeof doc.data==="object")?doc.data:{},color=String(d.color||"none"),text=String(d.text||"").trim();
+    if(color==="none"&&!text&&!d.date)return null;
+    return {sourceKey:doc.key,category:"calendar",zone:{id:m[1],name:V6_ZONE_NAME[m[1]]},period:`${m[2]}-${m[3]}`,
+      function5Calendar:{color,text,date:d.date==null?null:Number(d.date),action:(V6_CAL_LABEL[color]||text||"").trim()},rawData:d,updatedAt:doc.updatedAt};
+  }
+  async function v6LoadCalendar(){return (await v6PrefixDocs("calendar:")).map(v6CalendarRow).filter(Boolean);}
+
+  function v6ZoneworkRow(doc){
+    const m=doc.key.match(/^zonework:(p1|p2|zone3|south4|north4|zone5):(\d{4}-\d{2})$/);if(!m)return null;
+    const d=(doc.data&&typeof doc.data==="object")?doc.data:{};
+    const history=(Array.isArray(d.confirmHistory)?d.confirmHistory:[]).map(h=>{
+      const material=String(h.rowKey||h.itemName||""),meta=V6_MAT_META[material]||{itemId:null,unit:"",kind:""},at=String(h.at||h.confirmedAt||"");
+      return {itemId:meta.itemId,material,quantity:Number(h.qty??h.quantity??0),unit:meta.unit,kind:meta.kind,confirmedAt:at,at,personName:h.personName||h.personId||"",raw:h};
+    }).filter(h=>h.material&&Number.isFinite(h.quantity)&&h.quantity>0);
+    return {sourceKey:doc.key,category:"zonework",zone:{id:m[1],name:V6_ZONE_NAME[m[1]]},period:m[2],function3Work6to8:{confirmedHistory:history},rawData:d,updatedAt:doc.updatedAt};
+  }
+  async function v6LoadMaterials(){return (await v6PrefixDocs("zonework:")).map(v6ZoneworkRow).filter(Boolean);}
+  async function v6LoadWork(){return (await v6PrefixDocs("worklog:")).map(ghNormalizeMainRecord).filter(r=>r.category==="worklog");}
+  async function v6LoadAttendance(){const [a,p]=await Promise.all([v6PrefixDocs("attendance:"),v6PrefixDocs("person:")]);return [...a,...p].map(ghNormalizeMainRecord).filter(r=>r.category==="attendance"||r.category==="person");}
+
+  ghLoadMainEntryRows=async function(entry){
+    if(entry==="calendar")return v6LoadCalendar();
+    if(entry==="materials")return v6LoadMaterials();
+    if(entry==="work")return v6LoadWork();
+    if(entry==="attendance")return v6LoadAttendance();
+    return [];
+  };
+
+  function v6UpdateContext(entry,q){
+    const c=V6_CTX[entry],t=String(q||"").trim(),tm=v6Time(t),zs=v6ZoneIds(t);if(zs.length)c.zones=zs;if(tm.year)c.year=tm.year;if(tm.month)c.month=tm.month;
+    if(entry==="calendar"){const a=v6CalendarAction(t);if(a)c.action=a;if(/節氣/.test(t))c.intent="solar";else if(/何時|什麼時候|幾月|哪個月/.test(t))c.intent="when";else if(/計畫|做什麼|內容|安排|時程|動作|有哪些|有什麼/.test(t))c.intent="list";}
+    else if(entry==="materials"){const mat=v6Material(t);if(mat){c.material=mat;c.itemId=V6_MAT_META[mat].itemId;}if(/補水|澆水|灌溉/.test(t))c.itemId=6;if(/施肥|肥料/.test(t))c.itemId=7;if(/其他資材|資材/.test(t)&&!mat)c.itemId=8;if(/哪裡|哪一區|哪些區|哪幾區/.test(t))c.intent="where";else if(/何時|哪天|幾號|什麼時候/.test(t))c.intent="when";else if(/什麼|哪些|品項|材料/.test(t))c.intent="what";else if(/多少|用量|總量|幾包|幾噸|分鐘/.test(t))c.intent="qty";}
+    else if(entry==="work"){const wi=v6WorkItem(t);if(wi)c.item=wi;}
+    else if(entry==="yield"){if(/品質|A級|B級|D級|NG/.test(t))c.intent="quality";else if(/比較|對比|差異|排名/.test(t))c.intent="compare";else if(/產量|產能|收成|採收|公斤|多少/.test(t))c.intent="yield";const gm=t.match(/\b(NG|A|B|D)\s*級?/i);if(gm)c.grade=gm[1].toUpperCase();}
+    return c;
+  }
+  function v6EffectiveQuestion(entry,q){
+    const c=v6UpdateContext(entry,q),parts=[String(q||"").trim()],tm=v6Time(q);
+    if(c.zones?.length&&!v6ZoneIds(q).length)parts.push(c.zones.map(id=>V6_ZONE_NAME[id]).join("、"));if(c.year&&!tm.year)parts.push(`${c.year}年`);if(c.month&&!tm.month)parts.push(`${c.month}月`);
+    if(entry==="calendar"){if(c.action&&!v6CalendarAction(q))parts.push(c.action);parts.push("計畫");}
+    else if(entry==="materials"){if(c.material&&!v6Material(q))parts.push(c.material);else if(c.itemId===6&&!/補水|澆水|灌溉/.test(q))parts.push("補水");else if(c.itemId===7&&!/施肥|肥料/.test(q))parts.push("施肥");else if(c.itemId===8&&!/資材/.test(q))parts.push("其他資材");if(c.intent==="where")parts.push("哪一區");if(c.intent==="when")parts.push("何時");if(c.intent==="what")parts.push("用了什麼");if(c.intent==="qty")parts.push("多少");}
+    else if(entry==="work"){if(c.item&&!v6WorkItem(q))parts.push({1:"打芽",2:"打芽底",3:"除草",4:"剪葉",5:"覆蓋"}[c.item]);parts.push("工作進度");}
+    else if(entry==="yield"){parts.push(c.intent==="quality"?"品質":c.intent==="compare"?"比較":"產量");if(c.grade)parts.push(c.grade+"級");}
+    return parts.join(" ");
+  }
+
+  function v6PlanAnswer(q,rows){
+    const t=String(q||""),now=v6Today(),tm=v6Time(t),month=tm.month,year=tm.year||now.year,zones=v6ZoneIds(t),action=v6CalendarAction(t),active=rows.filter(r=>r.category==="calendar");
+    if(/節氣/.test(t)){const m=month||now.month;return `${year}年${m}月的節氣是${V6_SOLAR[m]}。`;}
+    const label=r=>{const c=r.function5Calendar||{},a=V6_CAL_LABEL[c.color]||c.action||c.text||"計畫",m=Number(String(r.period).slice(5,7)),d=c.date?`${m}月${c.date}日開始`:"";return `${a}${d?"，"+d:""}${c.text&&c.text!==a?"，"+c.text:""}`;};
+    if(month&&!zones.length&&!action){const ym=`${year}-${String(month).padStart(2,"0")}`;return `${year}年${month}月：`+V6_ZONE_ORDER.map(id=>{const r=active.find(x=>x.zone?.id===id&&x.period===ym);return `${V6_ZONE_NAME[id]}：${r?label(r):"無計畫"}`;}).join("；")+"。";}
+    if(zones.length&&action){return zones.map(id=>{const hits=active.filter(r=>r.zone?.id===id&&(V6_CAL_LABEL[r.function5Calendar?.color]===action||String(r.function5Calendar?.text||"").includes(action))).filter(r=>!tm.year||String(r.period).startsWith(String(tm.year))).sort((a,b)=>a.period.localeCompare(b.period));return hits.length?`${V6_ZONE_NAME[id]}：${hits.map(r=>`${r.period.replace("-","年")}月${r.function5Calendar?.date?`${r.function5Calendar.date}日`:""}`).join("、")}`:`${V6_ZONE_NAME[id]}：沒有查到${action}計畫`;}).join("；")+"。";}
+    if(zones.length){const sy=tm.year||now.year,sm=tm.month||now.month;return zones.map(id=>{const p=[];for(let i=0;i<5;i++){const d=new Date(sy,sm-1+i,1),y=d.getFullYear(),m=d.getMonth()+1,ym=`${y}-${String(m).padStart(2,"0")}`,r=active.find(x=>x.zone?.id===id&&x.period===ym);p.push(`${m}月${r?"："+label(r):"：無計畫"}`);}return `${V6_ZONE_NAME[id]}：${p.join("、")}`;}).join("；")+"。";}
+    if(action){const hits=active.filter(r=>V6_CAL_LABEL[r.function5Calendar?.color]===action||String(r.function5Calendar?.text||"").includes(action)).filter(r=>!tm.year||String(r.period).startsWith(String(tm.year))).sort((a,b)=>a.period.localeCompare(b.period));if(!hits.length)return "抱歉，我不知道。";return `${action}計畫：`+hits.map(r=>`${r.zone.name} ${r.period.replace("-","年")}月${r.function5Calendar?.date?`${r.function5Calendar.date}日開始`:""}`).join("；")+"。";}
+    const ym=`${now.year}-${String(now.month).padStart(2,"0")}`;return `${now.year}年${now.month}月：`+V6_ZONE_ORDER.map(id=>{const r=active.find(x=>x.zone?.id===id&&x.period===ym);return `${V6_ZONE_NAME[id]}：${r?label(r):"無計畫"}`;}).join("；")+"。";
+  }
+
+  function v6MaterialsAnswer(q,rows){
+    const t=String(q||""),tm=v6Time(t),zones=v6ZoneIds(t),mat=v6Material(t);let itemId=null;if(mat)itemId=V6_MAT_META[mat].itemId;else if(/補水|澆水|灌溉/.test(t))itemId=6;else if(/施肥|肥料/.test(t))itemId=7;else if(/其他資材|資材/.test(t))itemId=8;
+    let hs=[];rows.forEach(r=>(r.function3Work6to8?.confirmedHistory||[]).forEach(h=>hs.push({...h,zone:r.zone,period:r.period})));if(zones.length)hs=hs.filter(h=>zones.includes(h.zone?.id));if(tm.ym)hs=hs.filter(h=>String(h.confirmedAt||"").startsWith(tm.ym));else if(tm.year)hs=hs.filter(h=>String(h.confirmedAt||"").startsWith(String(tm.year)));if(mat)hs=hs.filter(h=>h.material===mat);if(itemId)hs=hs.filter(h=>Number(h.itemId)===itemId);if(!hs.length)return "沒有查到符合條件的已確認紀錄。";
+    if(/最近|最新|上次/.test(t)){const h=[...hs].sort((a,b)=>String(b.confirmedAt).localeCompare(String(a.confirmedAt)))[0];return `${h.zone.name}最近一次（${String(h.confirmedAt).slice(0,10)}）${h.kind||"使用"}：${h.material} ${h.quantity}${h.unit}。`;}
+    if(/哪裡|哪一區|哪些區|哪幾區/.test(t))return `有紀錄的區域：${[...new Set(hs.map(h=>h.zone?.name).filter(Boolean))].join("、")}。`;
+    if(/何時|哪天|什麼時候|幾號/.test(t))return hs.sort((a,b)=>String(a.confirmedAt).localeCompare(String(b.confirmedAt))).map(h=>`${h.zone.name} ${String(h.confirmedAt).slice(0,10)}：${h.material} ${h.quantity}${h.unit}`).join("；")+"。";
+    const totals={};hs.forEach(h=>{const k=`${h.material}|${h.unit}`;totals[k]=(totals[k]||0)+h.quantity;});const parts=Object.entries(totals).map(([k,n])=>{const [m,u]=k.split("|");return `${m} ${Math.round(n*100)/100}${u}`;});return `${zones.length?zones.map(id=>V6_ZONE_NAME[id]).join("、"):"全區"}${tm.month?` ${tm.year||v6Today().year}年${tm.month}月`:""}：${parts.join("、")}。`;
+  }
+
+  function v6AttendanceAnswer(rows,q){
+    const tm=v6Time(q),now=v6Today(),target=tm.date||(tm.year&&tm.month?`${tm.year}-${String(tm.month).padStart(2,"0")}`:now.date);let recs=rows.filter(r=>r.category==="attendance"&&String(r.sourceKey||"").includes(target));if(!recs.length)return `${target}沒有查到打卡／出勤紀錄。`;
+    return recs.map(r=>{const d=r.rawData||{},name=d.personName||d.personId||String(r.sourceKey).split(":")[1]||"人員",p=(d.regular&&d.regular.punches)||{},ot=(d.overtime&&d.overtime.punches)||{},times=["amIn","amOut","pmIn","pmOut"].map(k=>p[k]).filter(Boolean),ots=["amIn","amOut","pmIn","pmOut"].map(k=>ot[k]).filter(Boolean),leave=d.leave&&d.leave.type?`，請假${d.leave.type}`:"";return `${name}：正常班${times.length?times.join("、"):"無打卡"}${ots.length?`，加班${ots.join("、")}`:""}${leave}`;}).join("；")+"。";
+  }
+
+  const V6_OLD_ANSWER=ghAnswerSelectedEntry;
+  ghAnswerSelectedEntry=async function(entry,q){
+    const effective=v6EffectiveQuestion(entry,q),cache=await ghReadEntry(entry,false);
+    if(entry==="calendar")return v6PlanAnswer(effective,cache.rows);
+    if(entry==="materials")return v6MaterialsAnswer(effective,cache.rows);
+    if(entry==="attendance")return v6AttendanceAnswer(cache.rows,effective);
+    return V6_OLD_ANSWER(entry,effective);
+  };
+
+  ghSelectEntry=async function(entry){
+    ghSelectedEntry=entry;ghEntryCache[entry]=null;ghSetEntryButtonState(entry);
+    const status=document.getElementById("greenhouseStatus"),hint=document.getElementById("ghEntryHint"),meta=GH_ENTRY_META[entry];
+    if(status)status.textContent=`${meta.label}｜正在讀取 ${meta.table}…`;
+    try{
+      const cache=await ghReadEntry(entry,true);
+      if(status)status.textContent=`${meta.label}｜${meta.table} 已讀取 ${cache.rows.length} 組資料`;
+      let ready="資料已讀取。想讓我分析什麼事？";
+      if(entry==="yield")ready=ghYieldEntryReadyText(cache.rows);
+      if(entry==="calendar")ready="資料已讀取。想查月份、溫室、計畫動作，還是節氣？";
+      if(entry==="work")ready="資料已讀取。想了解哪一區的工作？";
+      if(entry==="materials")ready="資料已讀取。想查補水、施肥、其他資材，還是哪個區域？";
+      if(entry==="attendance")ready="資料已讀取。想查哪一天或哪位人員？";
+      if(hint)hint.textContent=`目前：${meta.label}。${ready}`;
+      await ghSpeak(ready);
+    }catch(e){console.error("V6入口讀取失敗",e);if(status)status.textContent=`${meta.label}｜讀取失敗`;if(hint)hint.textContent=`讀取失敗：${e.message}`;}
+  };
+
+  window.addEventListener("load",()=>document.querySelectorAll(".gh-entry-btn").forEach(btn=>btn.onclick=()=>ghSelectEntry(btn.dataset.entry)));
+  console.log("TEDDY Greenhouse V6 loaded");
+})();
+</script>
+
 </body>
 </html>
