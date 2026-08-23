@@ -4821,10 +4821,22 @@ ${parts}
 
   async function v6PrefixDocs(prefix){
     const db=await ghMainFirestore();let docs=[];
-    try{const snap=await db.collection("kv").where("key",">=",prefix).where("key","<",prefix+"\uf8ff").get();docs=snap.docs;}
-    catch(e){docs=(await ghFetchAllDocs(db.collection("kv"))).filter(d=>String((d.data()||{}).key||d.id).startsWith(prefix));}
-    return docs.map(doc=>{const raw=doc.data()||{};return {key:String(raw.key||doc.id),data:v6SafeJson(raw.value),updatedAt:raw.updatedAt||null};});
+    // 改成對「文件ID本身」做範圍查詢，不要依賴文件內部的 key 欄位——
+    // 已經證實有些舊資料的 key 欄位沒有正確寫入（可能是很久以前用不同版本存的），
+    // 用欄位查詢會讓這些文件完全隱形，但文件ID本身其實是對的，真正的 App 也是直接用ID讀取。
+    try{
+      const snap=await db.collection("kv")
+        .where(firebase.firestore.FieldPath.documentId(),">=",prefix)
+        .where(firebase.firestore.FieldPath.documentId(),"<",prefix+"\uf8ff")
+        .get();
+      docs=snap.docs;
+    }catch(e){
+      docs=(await ghFetchAllDocs(db.collection("kv"))).filter(d=>d.id.startsWith(prefix));
+    }
+    // 文件ID保證是對的（就是查詢用的依據），內部 key 欄位就算缺漏或不一致也不影響——一律以文件ID為準。
+    return docs.map(doc=>{const raw=doc.data()||{};return {key:doc.id,data:v6SafeJson(raw.value),updatedAt:raw.updatedAt||null};});
   }
+
 
   // rowId 可能是英文代碼（p1/zone3...）也可能是舊版直接存中文名稱（一期/三期...）——
   // 之前只認英文代碼，如果三期、四南這幾筆是舊版用中文存的，會被這裡直接篩掉、當成沒讀到。
@@ -5068,7 +5080,7 @@ ${parts}
         <div>
           <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
           <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
-          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-08-23-diag-v2</div>
+          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-08-23-docid-fix-v3</div>
         </div>
         <button type="button" id="btnGreenhouseClose" style="border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px;cursor:pointer;">🐿 回一般模式</button>
       </div>
