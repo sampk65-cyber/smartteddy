@@ -483,6 +483,7 @@
             <button type="button" id="teddyUsageToggle" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">📊 用量</button>
             <button type="button" id="teddyVoiceToggle" title="開關 TEDDY 語音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🔇 語音</button>
             <button type="button" id="teddyVoicePreview" title="試聽目前選擇的聲音" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🎧 試聽</button>
+            <button type="button" id="teddyChipmunkToggle" title="開關花栗鼠變聲效果" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">🐿️ 花栗鼠變聲</button>
             <button type="button" id="teddyChatClear" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">清除記憶</button>
           </div>
           <div id="teddyUsagePanel" style="display:none;margin-top:8px;font-size:11px;color:#8a9a92;line-height:1.7;"></div>
@@ -1804,6 +1805,40 @@
     // ===== TEDDY 語音（優先用 OpenAI TTS 甜美女聲，沒有 Key 才 fallback 瀏覽器內建語音）=====
     let teddyVoiceEnabled = false; // 預設靜音，避免在安靜場合突然講話
     let teddyCurrentAudio = null;
+    let teddyCurrentChipmunkSource = null;
+    let teddyAudioCtx = null;
+
+    // 花栗鼠效果預設開啟（松鼠角色配這個很合理），可以關掉。
+    const TEDDY_CHIPMUNK_KEY = "teddy_chipmunk_voice";
+    function teddyChipmunkEnabled() {
+      const v = localStorage.getItem(TEDDY_CHIPMUNK_KEY);
+      return v === null ? true : v === "1";
+    }
+    function teddySetChipmunkEnabled(on) {
+      localStorage.setItem(TEDDY_CHIPMUNK_KEY, on ? "1" : "0");
+    }
+
+    function teddyGetAudioCtx() {
+      if (!teddyAudioCtx) teddyAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return teddyAudioCtx;
+    }
+
+    // playbackRate 同時拉高音調跟加快速度——就是「花栗鼠效果」，不需要額外的變聲函式庫。
+    async function teddyPlayChipmunk(blob, rateMultiplier) {
+      const ctx = teddyGetAudioCtx();
+      if (ctx.state === "suspended") await ctx.resume();
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.playbackRate.value = rateMultiplier || 1;
+      source.connect(ctx.destination);
+      teddyCurrentChipmunkSource = source;
+      return new Promise((resolve) => {
+        source.onended = resolve;
+        source.start(0);
+      });
+    }
 
     // ===== TEDDY 用量統計（估計值，存在 localStorage）=====
     const TEDDY_USAGE_KEY = "teddy_usage_stats";
@@ -1860,11 +1895,13 @@
     };
 
     const TEDDY_VOICE_PROFILES = {
-      sweet:       { voice: "nova",    speed: 1.02, pitch: 1.18, rate: 1.02 },
-      playful:     { voice: "shimmer", speed: 1.08, pitch: 1.24, rate: 1.08 },
-      gentle:      { voice: "nova",    speed: 0.92, pitch: 1.05, rate: 0.92 },
-      storyteller: { voice: "nova",    speed: 0.95, pitch: 1.0,  rate: 0.95 },
-      excited:     { voice: "shimmer", speed: 1.1,  pitch: 1.3,  rate: 1.1  }
+      // chipmunk 是額外疊加在 OpenAI TTS 播放上的「花栗鼠效果」倍率（拉高音調＋加速），
+      // 跟原本只給瀏覽器備援語音用的 pitch 欄位分開，這樣主要播放路徑（OpenAI TTS）才會真的變聲。
+      sweet:       { voice: "nova",    speed: 1.02, pitch: 1.18, rate: 1.02, chipmunk: 1.12 },
+      playful:     { voice: "shimmer", speed: 1.08, pitch: 1.24, rate: 1.08, chipmunk: 1.18 },
+      gentle:      { voice: "nova",    speed: 0.92, pitch: 1.05, rate: 0.92, chipmunk: 1.05 },
+      storyteller: { voice: "nova",    speed: 0.95, pitch: 1.0,  rate: 0.95, chipmunk: 1.0  },
+      excited:     { voice: "shimmer", speed: 1.1,  pitch: 1.3,  rate: 1.1,  chipmunk: 1.2  }
     };
 
     function teddyAutoDetectVoiceStyle(replyText, lastToolNames) {
@@ -1902,6 +1939,7 @@
       if (!clean) return;
       const keys = loadKeys();
       if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
+      if (teddyCurrentChipmunkSource) { try { teddyCurrentChipmunkSource.stop(); } catch (_) {} }
 
       const styleKey = teddyResolveVoiceStyle(autoStyleHint);
       const instructions = TEDDY_VOICE_STYLES[styleKey] || TEDDY_VOICE_STYLES.sweet;
@@ -1932,11 +1970,21 @@
             // Some accounts/models may not expose every voice; nova is the compatibility fallback.
             blob = await requestVoice("nova");
           }
+          teddyRecordTtsUsage(clean.length);
+
+          if (teddyChipmunkEnabled() && (profile.chipmunk || 1) !== 1) {
+            try {
+              await teddyPlayChipmunk(blob, profile.chipmunk);
+              return;
+            } catch (_) {
+              // 解碼失敗（例如舊瀏覽器不支援）就照原本方式播放，不要整段語音直接沒聲音。
+            }
+          }
+
           const url = URL.createObjectURL(blob);
           teddyCurrentAudio = new Audio(url);
           teddyCurrentAudio.onended = () => URL.revokeObjectURL(url);
           await teddyCurrentAudio.play();
-          teddyRecordTtsUsage(clean.length);
           return;
         } catch (_) {
           // Fall through to browser TTS.
@@ -2147,6 +2195,22 @@
       };
     }
 
+
+    const teddyChipmunkToggleBtn = document.getElementById("teddyChipmunkToggle");
+    function teddyRenderChipmunkToggle() {
+      if (!teddyChipmunkToggleBtn) return;
+      const on = teddyChipmunkEnabled();
+      teddyChipmunkToggleBtn.style.borderColor = on ? "#5eead4" : "#2a3532";
+      teddyChipmunkToggleBtn.style.color = on ? "#d9fff0" : "#6b7a74";
+      teddyChipmunkToggleBtn.textContent = on ? "🐿️ 花栗鼠變聲：開" : "🐿️ 花栗鼠變聲：關";
+    }
+    if (teddyChipmunkToggleBtn) {
+      teddyRenderChipmunkToggle();
+      teddyChipmunkToggleBtn.onclick = () => {
+        teddySetChipmunkEnabled(!teddyChipmunkEnabled());
+        teddyRenderChipmunkToggle();
+      };
+    }
 
     document.getElementById("teddyChatSend").onclick = teddySend;
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
