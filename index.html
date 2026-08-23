@@ -1605,16 +1605,12 @@
       return TEDDY_VOICE_STYLES[autoHint] ? autoHint : "sweet";
     }
 
-    let teddySpeakSeq = 0;
     async function teddySpeak(text, autoStyleHint, forcePreview = false) {
       if ((!teddyVoiceEnabled && !forcePreview) || !text) return;
       const clean = text.replace(/[*_`#]/g, "").trim();
       if (!clean) return;
-      const mySpeakSeq = ++teddySpeakSeq;
       const keys = loadKeys();
-      // 單一語音通道：任何新朗讀都立即停止舊的 Audio 與瀏覽器 TTS。
-      if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); teddyCurrentAudio.currentTime = 0; } catch (_) {} teddyCurrentAudio = null; }
-      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (_) {}
+      if (teddyCurrentAudio) { try { teddyCurrentAudio.pause(); } catch (_) {} }
 
       const styleKey = teddyResolveVoiceStyle(autoStyleHint);
       const instructions = TEDDY_VOICE_STYLES[styleKey] || TEDDY_VOICE_STYLES.sweet;
@@ -1645,11 +1641,9 @@
             // Some accounts/models may not expose every voice; nova is the compatibility fallback.
             blob = await requestVoice("nova");
           }
-          // 若等待 API 時已有更新的朗讀要求，丟棄這次舊語音，避免重疊。
-          if (mySpeakSeq !== teddySpeakSeq) return;
           const url = URL.createObjectURL(blob);
           teddyCurrentAudio = new Audio(url);
-          teddyCurrentAudio.onended = () => { URL.revokeObjectURL(url); if (mySpeakSeq === teddySpeakSeq) teddyCurrentAudio = null; };
+          teddyCurrentAudio.onended = () => URL.revokeObjectURL(url);
           await teddyCurrentAudio.play();
           teddyRecordTtsUsage(clean.length);
           return;
@@ -1671,7 +1665,6 @@
             zhVoices.find(v => /female|女|Mei|Ting|Yating|Hanhan|Xiaoxiao|Google.*中文|Microsoft.*Hsiao/i.test(v.name)) ||
             zhVoices[0];
           if (preferred) utter.voice = preferred;
-          if (mySpeakSeq !== teddySpeakSeq) return;
           window.speechSynthesis.speak(utter);
         } catch (_) {}
       }
@@ -2362,8 +2355,8 @@ ${parts}
     ];
 
     const GH_SCHEMA={
-      "zonework:":{category:"zonework",meaning:"分區共用工項／補水／施肥／其他資材；6=補水、7=施肥、8=其他資材"},
-      "worklog:":{category:"worklog",meaning:"分區格位工作紀錄、完成狀態、工項細節"},
+      "zonework:":{category:"zonework",meaning:"功能表3資料來源：全區工作6=補水、7=施肥、8=其他資材；實際完成量與當日統計以 confirmHistory 為準"},
+      "worklog:":{category:"worklog",meaning:"功能表4圖一資料來源：分區格位工作1-5；主管指派級別、受文對象、待確認、回報進度與是否完成都以此為準"},
       "workmonth:":{category:"workmonth",meaning:"工作月表；常見結構 day -> items / note"},
       "spraylog:":{category:"spraylog",meaning:"施肥／噴藥月曆；常見欄位 code、name、dosage、qty、type"},
       "attendance:":{category:"attendance",meaning:"人員出勤／打卡；通常包含 personId 與日期"},
@@ -2463,6 +2456,10 @@ ${parts}
       else if(/今年/.test(q))year=cy;
       if(/本月|這個月/.test(q)){year=cy;month=cm;}
       if(/上個月|上月/.test(q)){const d=new Date(cy,cm-2,1);year=d.getFullYear();month=d.getMonth()+1;}
+      if(!month){
+        const mm=String(q||"").match(/(?:^|[^0-9])(1[0-2]|[1-9])\s*月/);
+        if(mm){year=year||cy;month=Number(mm[1]);}
+      }
       const ym=year&&month?`${year}-${String(month).padStart(2,"0")}`:null;
       return{year,month,ym};
     }
@@ -2528,12 +2525,76 @@ ${parts}
       return out;
     }
 
+    const GH_WORK_ITEMS={
+      1:"打芽(側)",2:"打芽(地)",3:"除草",4:"剪葉",5:"覆蓋",
+      6:"補水",7:"施肥",8:"其他資材"
+    };
+
+    function ghWorkTable4View(data){
+      data=data||{};
+      const out=[];
+      for(let id=1;id<=5;id++){
+        const level=Number(data.levels?.[id]||0);
+        const pending=!!data.pending?.[id] && level>0;
+        const progress=Number(data.progress?.[id]||0);
+        const recipients=(data.recipientIds||[]).map(pid=>({
+          id:pid,
+          name:data.recipientNames?.[pid]||pid
+        }));
+        const confirmed=(data.confirmedBy?.[id]||[]).map(pid=>({
+          id:pid,
+          name:data.recipientNames?.[pid]||pid
+        }));
+        const ts=data.timestamps?.[id]||{};
+        if(level || pending || progress || confirmed.length){
+          out.push({
+            itemId:id,
+            itemName:GH_WORK_ITEMS[id],
+            assignedLevel:level||null,
+            assigned:level>0,
+            recipients,
+            pendingConfirmation:pending,
+            progress:progress||null,
+            progressMeaning:progress===1?"已完成":progress>1?`處理中（進度${progress}/5）`:pending?"已指派、尚未回報":"無回報",
+            confirmedBy:confirmed,
+            changedAt:ts.changedAt||null,
+            acknowledgedAt:ts.ackAt||null
+          });
+        }
+      }
+      return out;
+    }
+
+    function ghZoneWorkFunction3View(data){
+      data=data||{};
+      const history=(data.confirmHistory||[])
+        .filter(h=>h && h.rowKey && Number(h.qty)>0)
+        .map(h=>({
+          itemId:Number(h.itemId||0)||null,
+          itemName:h.itemName||GH_WORK_ITEMS[Number(h.itemId||0)]||h.rowKey,
+          material:h.rowKey,
+          quantity:Number(h.qty),
+          unit:
+            h.rowKey==="溝灌"?"噸":
+            h.rowKey==="噴灌"?"分鐘":
+            (h.rowKey==="米糠"||h.rowKey==="金旺")?"包":"kg",
+          personId:h.personId||null,
+          personName:h.personName||h.personId||null,
+          confirmedAt:h.at||null,
+          progress:h.progress??1
+        }));
+      return {
+        confirmedHistory:history,
+        rule:"功能表3只統計已回報確認且有時間的紀錄；問『今天用了多少』時只加總今天 confirmedAt 的紀錄，不把目前尚未確認的 checks/extra 算進去。"
+      };
+    }
+
     function ghNormalizeMainRecord(row){
       const schema=ghSchemaForKey(row.key);
       const zone=ghFindZone(row.key);
       const ym=(row.key.match(/20\d{2}-\d{2}/)||[])[0]||null;
       const date=(row.key.match(/20\d{2}-\d{2}-\d{2}/)||[])[0]||null;
-      return{
+      const normalized={
         sourceKey:row.key,
         category:schema.category,
         meaning:schema.meaning,
@@ -2543,6 +2604,19 @@ ${parts}
         facts:ghFlattenFacts(row.data).slice(0,30),
         preview:ghSafePreview(row.data,1100)
       };
+      if(schema.category==="attendance"){
+        normalized.rawData=row.data;
+      }
+      if(schema.category==="worklog"){
+        normalized.function4Work1to5=ghWorkTable4View(row.data);
+      }
+      if(schema.category==="zonework"){
+        normalized.function3Work6to8=ghZoneWorkFunction3View(row.data);
+        // 功能表3的6-8只暴露已確認歷史，避免 pending/checks/extra 被誤判為已使用。
+        normalized.facts=[];
+        normalized.preview="";
+      }
+      return normalized;
     }
 
     function ghYieldRecordMeta(key){
@@ -2647,15 +2721,300 @@ ${parts}
             .where(firebase.firestore.FieldPath.documentId(),">=",fp)
             .where(firebase.firestore.FieldPath.documentId(),"<",fp+"\uf8ff").get();
           return snap.docs.map(d=>d.id.slice(marker.length));
+        },
+        async set(key,value,meta={}){
+          const ref=db.collection(GH_YIELD_COLLECTION).doc(marker+key);
+          await ref.set({
+            key,
+            value,
+            updatedAt:new Date().toISOString(),
+            source:meta.source||"teddy-history-import",
+            importedAt:meta.importedAt||new Date().toISOString(),
+            importFile:meta.importFile||null
+          },{merge:true});
+          return true;
         }
       };
     }
 
+    // ===== 功能表3・產能唯一入口 =====
+    // 任何產能相關問題都先進這裡，不讀 worklog / zonework / 其他工作表。
+    // ===== 功能表11・打卡／出勤查詢唯一入口 =====
+    // TEDDY 在此只做查詢，不替任何人執行打卡或修改出勤資料。
+    function ghIsAttendanceQuestion(q){
+      const t=String(q||"");
+      return /打卡|出勤|上班|下班|遲到|早退|加班|請假|休假|工時|上下班|簽到|簽退/.test(t);
+    }
+
+    function ghAttendanceIntent(q){
+      const t=String(q||"");
+      if(/誰.*(?:沒|未).*(?:打卡|上班|下班)|(?:沒|未).*(?:打卡|上班|下班).*(?:誰)/.test(t))
+        return "missing";
+      if(/請假|休假|假別/.test(t))
+        return "leave";
+      if(/加班/.test(t))
+        return "overtime";
+      if(/工時|幾小時|時數|總時數/.test(t))
+        return "hours";
+      if(/遲到|早退/.test(t))
+        return "status";
+      return "attendance";
+    }
+
+    function ghAttendanceDateFilter(q){
+      const req=ghDateRequest(q);
+      const now=new Date();
+      const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+      if(/今天|今日/.test(q)) return {type:"date",value:today,label:"今天"};
+      if(req.date) return {type:"date",value:req.date,label:req.date};
+      if(req.ym) return {type:"month",value:req.ym,label:`${req.year}年${req.month}月`};
+      if(req.year) return {type:"year",value:String(req.year),label:`${req.year}年`};
+      return {type:"date",value:today,label:"今天"};
+    }
+
+    function ghAttendancePersonName(q, rows){
+      const people=rows.filter(r=>r.category==="person");
+      for(const p of people){
+        const name=p.data?.name || p.preview?.name || p.facts?.find?.(()=>false);
+        if(name && String(q).includes(String(name))) return {id:p.data?.id||null,name};
+      }
+      return null;
+    }
+
+    function ghAttendanceRecords(rows,q){
+      const f=ghAttendanceDateFilter(q);
+      const person=ghAttendancePersonName(q,rows);
+      return rows.filter(r=>{
+        if(r.category!=="attendance") return false;
+        const key=String(r.sourceKey||"");
+        if(f.type==="date" && !key.includes(f.value)) return false;
+        if(f.type==="month" && !key.includes(f.value)) return false;
+        if(f.type==="year" && !key.includes(f.value)) return false;
+        if(person && !key.includes(person.id||"") && !String(r.preview||"").includes(person.name)) return false;
+        return true;
+      });
+    }
+
+    function ghAttendanceDirectAnswer(rows,q){
+      const intent=ghAttendanceIntent(q);
+      const f=ghAttendanceDateFilter(q);
+      const recs=ghAttendanceRecords(rows,q);
+
+      if(!recs.length) return `功能表11在${f.label}沒有查到符合條件的打卡／出勤紀錄。`;
+
+      // 查某人的單筆狀態：優先簡短列出 regular / overtime / leave
+      if(recs.length===1){
+        const r=recs[0];
+        const d=r.rawData || r.data || {};
+        const regular=d.regular||{};
+        const overtime=d.overtime||{};
+        const leave=d.leave||{};
+        const parts=[];
+        if(Array.isArray(regular.punches) && regular.punches.length){
+          parts.push(`正常班打卡 ${regular.punches.join("、")}`);
+        }
+        if(Array.isArray(overtime.punches) && overtime.punches.length){
+          parts.push(`加班打卡 ${overtime.punches.join("、")}`);
+        }
+        if(leave && (leave.type||leave.note||leave.hours)){
+          parts.push(`請假 ${leave.type||"未註明假別"}${leave.hours?` ${leave.hours}小時`:""}`);
+        }
+        if(parts.length) return `${f.label}：${parts.join("；")}。`;
+      }
+
+      // 多筆時給統計，不猜薪資也不代打
+      if(intent==="leave"){
+        const n=recs.filter(r=>{
+          const d=r.rawData||r.data||{};
+          return d.leave && (d.leave.type||d.leave.note||d.leave.hours);
+        }).length;
+        return `${f.label}共有 ${n} 筆請假紀錄。`;
+      }
+      if(intent==="overtime"){
+        const n=recs.filter(r=>{
+          const d=r.rawData||r.data||{};
+          return Array.isArray(d.overtime?.punches) && d.overtime.punches.length>0;
+        }).length;
+        return `${f.label}共有 ${n} 筆加班打卡紀錄。`;
+      }
+
+      return `${f.label}功能表11共查到 ${recs.length} 筆打卡／出勤紀錄。`;
+    }
+
+    // ===== 功能表3・歷史產能真正匯入 =====
+    let ghYieldImportDraft=null;
+
+    function ghCsvSplitLine(line,sep){
+      const out=[]; let cur="",quote=false;
+      for(let i=0;i<line.length;i++){
+        const c=line[i];
+        if(c==='"'){
+          if(quote && line[i+1]==='"'){cur+='"';i++;}
+          else quote=!quote;
+        }else if(c===sep && !quote){out.push(cur.trim());cur="";}
+        else cur+=c;
+      }
+      out.push(cur.trim()); return out;
+    }
+
+    function ghNormZoneName(v){
+      const s=String(v||"").trim();
+      for(const z of GH_ZONES){
+        if(z.aliases.some(a=>s.includes(a)) || s===z.yield || s===z.name) return z;
+      }
+      return null;
+    }
+
+    function ghNormGrade(v){
+      const s=String(v||"").toUpperCase().replace(/級/g,"").trim();
+      if(s==="A"||s==="B"||s==="D"||s==="NG")return s;
+      return null;
+    }
+
+    function ghNormDate(v){
+      const s=String(v||"").trim().replace(/[./]/g,"-");
+      let m=s.match(/^(20\d{2})-(\d{1,2})-(\d{1,2})$/);
+      if(!m)m=s.match(/^(20\d{2})年(\d{1,2})月(\d{1,2})日?$/);
+      if(!m)return null;
+      return `${m[1]}-${String(Number(m[2])).padStart(2,"0")}-${String(Number(m[3])).padStart(2,"0")}`;
+    }
+
+    function ghYieldImportRowsFromJson(obj){
+      const rows=[];
+      const walk=(x,ctx={})=>{
+        if(Array.isArray(x)){x.forEach(v=>walk(v,ctx));return;}
+        if(!x||typeof x!=="object")return;
+        const date=ghNormDate(x.date||x.日期||ctx.date);
+        const zone=ghNormZoneName(x.zone||x.溫室||x.分區||ctx.zone);
+        const grade=ghNormGrade(x.grade||x.等級||ctx.grade);
+        const kg=Number(x.net??x.kg??x.公斤??x.重量??x.gross);
+        if(date&&zone&&grade&&Number.isFinite(kg)&&kg>0){
+          rows.push({date,zone,grade,kg,note:String(x.note||x.備註||"")}); return;
+        }
+        for(const [k,v] of Object.entries(x)){
+          const nctx={...ctx};
+          const d=ghNormDate(k); if(d)nctx.date=d;
+          const z=ghNormZoneName(k); if(z)nctx.zone=z.yield;
+          const g=ghNormGrade(k); if(g)nctx.grade=g;
+          walk(v,nctx);
+        }
+      };
+      walk(obj); return rows;
+    }
+
+    function ghYieldImportParse(name,raw){
+      const t=String(raw||"").trim(); if(!t)throw new Error("檔案是空的");
+      if(/\.json$/i.test(name)||t[0]==="{"||t[0]==="["){
+        let obj; try{obj=JSON.parse(t);}catch(e){throw new Error("JSON 格式無法解析");}
+        const rows=ghYieldImportRowsFromJson(obj);
+        if(!rows.length)throw new Error("JSON 沒有辨識到日期、溫室、等級、公斤數");
+        return rows;
+      }
+      const lines=t.split(/\r?\n/).filter(x=>x.trim());
+      if(lines.length<2)throw new Error("CSV/TSV 至少需要標題列與一筆資料");
+      const sep=lines[0].includes("\t")?"\t":",";
+      const head=ghCsvSplitLine(lines[0],sep).map(x=>x.toLowerCase().replace(/\s/g,""));
+      const find=(names)=>head.findIndex(h=>names.some(n=>h===n||h.includes(n)));
+      const ix={
+        date:find(["date","日期","採收日期"]), zone:find(["zone","溫室","分區","區域"]),
+        grade:find(["grade","等級","級別"]), kg:find(["net","kg","公斤","重量","產量","產能"]),
+        note:find(["note","備註","說明"])
+      };
+      if(ix.date<0||ix.zone<0||ix.grade<0||ix.kg<0)throw new Error("缺少必要欄位：日期、溫室/分區、等級、公斤數");
+      const rows=[]; const bad=[];
+      for(let n=1;n<lines.length;n++){
+        const a=ghCsvSplitLine(lines[n],sep),date=ghNormDate(a[ix.date]),zone=ghNormZoneName(a[ix.zone]),grade=ghNormGrade(a[ix.grade]),kg=Number(String(a[ix.kg]||"").replace(/,/g,""));
+        if(date&&zone&&grade&&Number.isFinite(kg)&&kg>0)rows.push({date,zone,grade,kg,note:ix.note>=0?(a[ix.note]||""):""});
+        else bad.push(n+1);
+      }
+      if(!rows.length)throw new Error("沒有任何可匯入資料；請檢查日期、溫室、等級、公斤數");
+      rows.badLines=bad; return rows;
+    }
+
+    function ghYieldImportSummary(rows){
+      const years=[...new Set(rows.map(r=>r.date.slice(0,4)))].sort();
+      const zones=[...new Set(rows.map(r=>r.zone.name))];
+      const kg=rows.reduce((s,r)=>s+r.kg,0);
+      return `預覽完成：${rows.length} 筆，${years[0]}～${years[years.length-1]}，${zones.join("、")}，合計 ${Math.round(kg*100)/100} kg${rows.badLines?.length?`；另有 ${rows.badLines.length} 列格式不符未納入`:""}。確認後才會寫入。`;
+    }
+
+    async function ghYieldImportCommit(){
+      const d=ghYieldImportDraft;
+      if(!d||!d.rows?.length)throw new Error("沒有待匯入資料");
+      const s=await ghYieldStorage();
+      const grouped={};
+      for(const r of d.rows){
+        const y=r.date.slice(0,4),k=`${r.zone.yield}|${y}`;
+        (grouped[k]||(grouped[k]={zone:r.zone,year:y,days:{}}));
+        const day=grouped[k].days[r.date]||(grouped[k].days[r.date]={A:[],B:[],D:[],NG:[]});
+        day[r.grade].push({net:r.kg,gross:r.kg,note:r.note||"",imported:true});
+      }
+      let groups=0;
+      for(const g of Object.values(grouped)){
+        const key=`yieldArchive:${g.zone.yield}:${g.year}`;
+        const old=await s.get(key); const archive=old?.value&&typeof old.value==="object"?old.value:{};
+        // Merge by date/grade; imported records append, preserving existing production data.
+        for(const [date,day] of Object.entries(g.days)){
+          const target=archive[date]&&typeof archive[date]==="object"?archive[date]:{A:[],B:[],D:[],NG:[]};
+          for(const grade of ["A","B","D","NG"]){
+            target[grade]=Array.isArray(target[grade])?target[grade]:[];
+            target[grade].push(...day[grade]);
+          }
+          archive[date]=target;
+        }
+        await s.set(key,archive,{source:"teddy-history-import",importFile:d.name}); groups++;
+      }
+      ghYieldImportDraft=null;
+      return {rows:d.rows.length,groups};
+    }
+
+    function ghOpenYieldImport(){
+      const el=document.getElementById("ghYieldImportFile"); if(el){el.value="";el.click();}
+    }
+
+    async function ghHandleYieldImportFile(file){
+      const raw=await file.text();
+      const rows=ghYieldImportParse(file.name,raw);
+      ghYieldImportDraft={name:file.name,rows};
+      document.getElementById("ghYieldImportConfirm").style.display="block";
+      return ghYieldImportSummary(rows);
+    }
+
+    function ghIsYieldQuestion(q){
+      return /產能|產量|收成|採收|收穫|公斤|秤重|A級|B級|D級|NG|良率|品質|等級|歷史資料匯入|產能資料|使用紀錄/.test(String(q||""));
+    }
+
+    function ghYieldRoute(q){
+      const t=String(q||"").trim();
+      if(/歷史.*匯入|匯入.*歷史|導入.*歷史|上傳.*歷史|匯入產能|歷史資料匯入/.test(t))
+        return {id:"import",label:"歷史資料匯入"};
+      if(/使用紀錄|操作紀錄|誰.*(?:輸入|修改|新增|刪除)|(?:輸入|修改|新增|刪除).*誰|修改紀錄|異動紀錄/.test(t))
+        return {id:"audit",label:"使用紀錄"};
+      if(/分析|趨勢|比較|平均|最高|最低|最多|最少|最好|最差|成長|衰退|變化|比例|占比|良率|合計|總共|加總|哪一區|哪個區|哪個月|哪一月|排名|預測|瓶頸|異常|決策|建議|年度比較|月度比較/.test(t))
+        return {id:"analysis",label:"資料分析"};
+      if(/輸入|新增|登記|記錄|紀錄|寫入|補登/.test(t) && /產能|產量|收成|採收|公斤|A級|B級|D級|NG/.test(t))
+        return {id:"input",label:"輸入產能"};
+      return {id:"history",label:"歷史資料"};
+    }
+
+    function ghYieldRouteIntro(route){
+      if(route.id==="import") return "已進入工作表三・歷史資料匯入。匯入完成後，資料分析才使用完整歷史產能。";
+      if(route.id==="input") return "已進入工作表三・輸入產能。請提供日期、溫室、等級與公斤數；寫入前必須先確認資料。";
+      if(route.id==="audit") return "已進入工作表三・使用紀錄。只查產能模組的新增、修改與操作紀錄。";
+      if(route.id==="analysis") return "已進入工作表三・資料分析。分析只使用工作表三的產能與已匯入歷史資料。";
+      return "已進入工作表三・歷史資料。";
+    }
+
     function ghYieldMonthsForQuestion(q){
-      const req=ghDateRequest(q),now=new Date(),out=[];
+      const req=ghDateRequest(q),now=new Date(),out=[],route=ghYieldRoute(q);
       if(req.year&&req.month)return[{year:req.year,month:req.month}];
       if(req.year){for(let m=1;m<=12;m++)out.push({year:req.year,month:m});return out;}
-      // 「最近／目前／看得到產量嗎」先查本月，再往前兩個月。
+      // 資料分析必須先吃到歷史匯入資料：讀 2020~今年，才能做跨年/跨月分析。
+      if(route.id==="analysis"){
+        for(let y=2020;y<=now.getFullYear();y++)for(let m=1;m<=12;m++)out.push({year:y,month:m});
+        return out;
+      }
+      // 一般歷史查詢若未指定期間，先查最近三個月。
       for(let i=0;i<3;i++){
         const d=new Date(now.getFullYear(),now.getMonth()-i,1);
         out.push({year:d.getFullYear(),month:d.getMonth()+1});
@@ -2664,53 +3023,32 @@ ${parts}
     }
 
     async function ghQueryYield(q){
-      const store=await ghYieldStorage();
+      const s=await ghYieldStorage();
       const zone=ghFindZone(q);
       const zones=zone?[zone]:GH_ZONES;
       const periods=ghYieldMonthsForQuestion(q);
-      const rows=[], seen=new Set();
-      const wantedYM=new Set(periods.map(p=>`${p.year}-${String(p.month).padStart(2,"0")}`));
-      const wantedYears=new Set(periods.map(p=>String(p.year)));
+      const rows=[];
 
-      const pushRow=(key,value,updatedAt)=>{
-        const sig=key+"|"+JSON.stringify(value||{});
-        if(seen.has(sig))return; seen.add(sig);
-        rows.push(ghNormalizeYieldRecord({key,data:value,updatedAt}));
-      };
-
-      // 1) 現行逐日產量：不再用 2026-08 當硬切點，指定月份一律實際查詢。
       for(const p of periods){
         const ym=`${p.year}-${String(p.month).padStart(2,"0")}`;
         for(const z of zones){
-          const keys=await store.list(`yield:${z.yield}:${ym}`);
-          for(const key of keys){ const r=await store.get(key); if(r)pushRow(key,r.value,r.updatedAt); }
-        }
-      }
-
-      // 2) 歷史封存：先探索實際存在的 yieldArchive key，兼容「年度一包」與其他舊命名。
-      //    這可避免把「五期 7 月」誤當成只有 8 月工作紀錄。
-      const archiveKeys=await store.list("yieldArchive:");
-      for(const key of archiveKeys){
-        const z=zones.find(x=>key.includes(`:${x.yield}:`)||key.includes(`:${x.id}:`));
-        if(!z)continue;
-        if(![...wantedYears].some(y=>key.includes(y)))continue;
-        const r=await store.get(key); if(!r)continue;
-        const raw=r.value&&typeof r.value==="object"?r.value:{};
-        const filtered={};
-        for(const [d,v] of Object.entries(raw)){
-          const ds=String(d);
-          if([...wantedYM].some(ym=>ds.startsWith(ym))) filtered[d]=v;
-        }
-        if(Object.keys(filtered).length)pushRow(key,filtered,r.updatedAt);
-      }
-
-      // 3) 舊資料若仍放在 yield: 下但命名不完全一致，再掃描 zone prefix 後依日期過濾。
-      if(!rows.length){
-        for(const z of zones){
-          const keys=await store.list(`yield:${z.yield}:`);
-          for(const key of keys){
-            if(![...wantedYM].some(ym=>key.includes(ym)))continue;
-            const r=await store.get(key); if(r)pushRow(key,r.value,r.updatedAt);
+          if(`${ym}-01`<"2026-08-01"){
+            const key=`yieldArchive:${z.yield}:${p.year}`;
+            const r=await s.get(key);
+            if(!r)continue;
+            const archive=r.value&&typeof r.value==="object"?r.value:{};
+            const monthData={};
+            Object.keys(archive).filter(d=>d.startsWith(ym)).sort().forEach(d=>monthData[d]=archive[d]);
+            if(Object.keys(monthData).length){
+              rows.push(ghNormalizeYieldRecord({key,data:monthData,updatedAt:r.updatedAt}));
+            }
+          }else{
+            const prefix=`yield:${z.yield}:${ym}`;
+            const keys=await s.list(prefix);
+            for(const key of keys){
+              const r=await s.get(key);
+              if(r)rows.push(ghNormalizeYieldRecord({key,data:r.value,updatedAt:r.updatedAt}));
+            }
           }
         }
       }
@@ -2745,6 +3083,108 @@ ${parts}
       return{total,entries,byZone,byGrade};
     }
 
+    function ghYieldFacts(rows){
+      const facts=[];
+      const pushDay=(zone,date,record)=>{
+        if(!record||typeof record!=="object")return;
+        for(const grade of ["A","B","D","NG"]){
+          const arr=Array.isArray(record[grade])?record[grade]:[];
+          for(const x of arr){
+            const kg=Number(x?.net ?? x?.gross ?? 0);
+            if(Number.isFinite(kg)&&kg>0)facts.push({
+              zone, date:date||null, month:date?date.slice(0,7):null,
+              year:date?date.slice(0,4):null, grade, kg
+            });
+          }
+        }
+      };
+      for(const row of rows){
+        const zone=row.zone?.name||"未分區",raw=row.rawData;
+        if(row.category==="yield_archive"&&raw&&typeof raw==="object"){
+          for(const [date,day] of Object.entries(raw))pushDay(zone,date,day);
+        }else{
+          const date=(String(row.sourceKey||"").match(/20\d{2}-\d{2}-\d{2}/)||[])[0]||null;
+          pushDay(zone,date,raw);
+        }
+      }
+      return facts;
+    }
+
+    function ghFmtKg(v){return `${Math.round((Number(v)||0)*10)/10}kg`;}
+
+    function ghYieldCompositeAnswer(rows,q){
+      const t=String(q||""),facts=ghYieldFacts(rows);
+      if(!facts.length)return null;
+
+      const grades=[...new Set(["A","B","D","NG"].filter(g=>new RegExp(`${g}\\s*級|(?:^|[^A-Z])${g}(?:[^A-Z]|$)`,"i").test(t)))];
+      const wantsAB=/A\s*[+加與和、及]\s*B|A、B|A級.*B級|A\s*B\s*(?:合計|總共)/i.test(t);
+      const selectedGrades=wantsAB?["A","B"]:(grades.length?grades:null);
+      const scoped=selectedGrades?facts.filter(f=>selectedGrades.includes(f.grade)):facts;
+
+      const sumBy=(arr,keyFn)=>{
+        const o={}; for(const f of arr){const k=keyFn(f);if(k)o[k]=(o[k]||0)+f.kg;} return o;
+      };
+      const top=(o,desc=true)=>Object.entries(o).sort((a,b)=>desc?b[1]-a[1]:a[1]-b[1])[0]||null;
+      const total=scoped.reduce((s,f)=>s+f.kg,0);
+      const req=ghDateRequest(t);
+      const period=req.ym?`${req.year}年${req.month}月`:req.year?`${req.year}年`:(/本月|這個月/.test(t)?"本月":"指定期間");
+
+      // 品質 × 區域：A/B/D/NG 哪區最多/最少
+      if(selectedGrades && /哪一區|哪個區|哪區|最多|最少|最高|最低/.test(t)){
+        const byZone=sumBy(scoped,f=>f.zone), isMin=/最少|最低/.test(t), win=top(byZone,!isMin);
+        if(win){
+          const gLabel=selectedGrades.join("+")+"級";
+          return `${period}${gLabel}${isMin?"最少":"最多"}的是${win[0]}，共 ${ghFmtKg(win[1])}。`;
+        }
+      }
+
+      // 時間 × 產能/品質：哪個月最好、最多、最低
+      if(/哪個月|哪一月|月份|月.*(?:最好|最多|最高|最少|最低)|(?:最好|最多|最高|最少|最低).*月/.test(t)){
+        const byMonth=sumBy(scoped,f=>f.month), isMin=/最少|最低|最差/.test(t), win=top(byMonth,!isMin);
+        if(win){
+          const gLabel=selectedGrades?`${selectedGrades.join("+")}級`:"總產能";
+          return `${gLabel}${isMin?"最低":"最高"}的月份是 ${win[0]}，共 ${ghFmtKg(win[1])}。`;
+        }
+      }
+
+      // 區域 × 總產能：哪區產能最高
+      if(!selectedGrades && /哪一區|哪個區|哪區/.test(t) && /產能|產量|收成|最多|最高|最低|最少/.test(t)){
+        const byZone=sumBy(scoped,f=>f.zone), isMin=/最少|最低/.test(t), win=top(byZone,!isMin);
+        if(win)return `${period}總產能${isMin?"最低":"最高"}的是${win[0]}，共 ${ghFmtKg(win[1])}。`;
+      }
+
+      // A+B / selected grade combined totals
+      if(selectedGrades && /合計|總共|加總|多少|幾公斤|統合|綜合/.test(t)){
+        const label=selectedGrades.join("+")+"級";
+        const byZone=sumBy(scoped,f=>f.zone);
+        const parts=Object.entries(byZone).sort((a,b)=>b[1]-a[1]).map(([z,v])=>`${z} ${ghFmtKg(v)}`);
+        return `${period}${label}合計 ${ghFmtKg(total)}${parts.length>1?`；各區：${parts.join("、")}`:""}。`;
+      }
+
+      // Quality share / rate.
+      if(selectedGrades && /比例|占比|良率|百分比|率/.test(t)){
+        const all=facts.reduce((s,f)=>s+f.kg,0);
+        const pct=all?total/all*100:0;
+        return `${period}${selectedGrades.join("+")}級共 ${ghFmtKg(total)}，占總產能 ${pct.toFixed(1)}%。`;
+      }
+
+      // General multi-condition comparison summary.
+      if(/比較|排名|綜合|統合|分析/.test(t)){
+        const byZone=sumBy(scoped,f=>f.zone), byMonth=sumBy(scoped,f=>f.month), byGrade=sumBy(facts,f=>f.grade);
+        const z=top(byZone,true),m=top(byMonth,true);
+        const gp=Object.entries(byGrade).filter(([,v])=>v>0).map(([g,v])=>`${g}級 ${ghFmtKg(v)}`).join("、");
+        return `${period}共 ${ghFmtKg(total)}；${z?`最高區域是${z[0]} ${ghFmtKg(z[1])}；`:""}${m?`最高月份是${m[0]} ${ghFmtKg(m[1])}；`:""}品質合計：${gp}。`;
+      }
+      return null;
+    }
+
+    function ghYieldHistoryStatus(rows){
+      const archives=rows.filter(r=>r.category==="yield_archive");
+      const live=rows.filter(r=>r.category==="yield");
+      const years=[...new Set(archives.map(r=>r.period?.year||String(r.sourceKey||"").match(/:(\d{4})$/)?.[1]).filter(Boolean))];
+      return {hasArchive:archives.length>0,archiveRows:archives.length,liveRows:live.length,years:years.sort()};
+    }
+
     function ghYieldDirectAnswer(rows,q){
       if(!rows.length)return null;
       const x=ghYieldTotals(rows);
@@ -2772,7 +3212,11 @@ ${parts}
           zone:ghFindZone(q)?.name||null,
           date:ghDateRequest(q),
           categories:[...ghRequestedCategories(q)],
-          yieldRequested:/產能|收成|採收|收穫|產量|公斤|箱數|重量/.test(q)
+          yieldRequested:/產能|收成|採收|收穫|產量|公斤|箱數|重量/.test(q),
+          workSourcePolicy:{
+            items1to5:"只以 worklog.function4Work1to5（功能表4圖一）判讀主管指派、級別、受文者、待確認、回報進度、完成狀態。",
+            items6to8:"只以 zonework.function3Work6to8.confirmedHistory（功能表3）統計實際已確認用量；今天的數字只算今天 confirmedAt。"
+          }
         },
         coverage:{
           totalRecords:rows.length,
@@ -2791,9 +3235,39 @@ ${parts}
       const keys=loadKeys();
       const system=`你是 Pongchi 的溫室管理／農業顧問模式。你現在收到的是「已正規化」的 V5.1 資料，不是原始 JSON 垃圾堆。
 
-資料分類：
-- zonework：分區共用工項；V5.1 的 6=補水、7=施肥（例如米糠／金旺）、8=其他資材。
-- worklog：格位工作紀錄、工項與完成狀態。
+工作資料的唯一判讀規則（最高優先，不能混用）：
+- 工作項目1-5：1=打芽(側)、2=打芽(地)、3=除草、4=剪葉、5=覆蓋。
+  只讀 worklog.function4Work1to5，也就是「功能表4・圖一」的狀態。
+  assignedLevel 是主管指派級別（數字越大越緊急）；recipients 是被指派/受文的人；
+  pendingConfirmation=true 代表已指派但仍待確認/回報；
+  progress=1 代表已完成；progress=2~5 代表仍在處理中，數字越大越初期；
+  confirmedBy / acknowledgedAt 用來回答誰已確認、是否已確認。
+  回答「除草有沒有指派、指派給誰、確認了沒、做到哪裡」時，絕對以這組欄位為準。
+
+- 工作項目6-8：6=補水、7=施肥、8=其他資材。
+  只讀 zonework.function3Work6to8.confirmedHistory，也就是「功能表3」的實際回報統計。
+  只有已回報確認、且有 confirmedAt 的紀錄才算實際用量；目前尚未確認的 checks/extra 不算。
+  問「今天加了多少／今天用了多少」時，只加總 confirmedAt 為今天的紀錄。
+  單位固定：溝灌=噸、噴灌=分鐘、米糠/金旺=包、其他資材=kg。
+  不可以拿功能表4的1-5資料推測6-8，也不可以用6-8目前未確認的輸入值當成已完成統計。
+
+產能資料的唯一判讀規則（功能表3）：
+- 任何「產能／產量／採收／收成／公斤／A/B/D/NG」問題，只能走功能表3，不得混讀 worklog、zonework 或其他工作表。
+- 進功能表3後再分成：輸入產能、歷史資料、資料分析、使用紀錄、歷史資料匯入。
+- 資料分析必須以「目前產能 + 已完成的歷史資料匯入」為完整資料來源；若沒有歷史封存資料，先明確要求完成歷史資料匯入，不可用零碎近期資料冒充完整分析。
+- 歷史資料匯入是資料分析的前置步驟；匯入完成後才能做跨年、跨月、趨勢、比較與決策分析。
+- 必須理解「時間 × 產能 × 品質 × 區域」的多條件問題，例如：去年哪個月產能最高、A級最多是哪區、B級最多是哪區、D級最多是哪區、本月A+B級合計、某年某月某區A級占比、跨月/跨區比較。
+- 所有加總、最高、最低、排名、比例都只能依工作表3實際公斤數計算；不得引用功能表4、11或其他資料補值。
+- 輸入產能屬寫入動作，必須先整理草稿並確認後才可寫入，不可直接覆寫。
+
+功能表11・打卡／出勤規則：
+- 任何打卡、上下班、出勤、加班、請假、遲到、早退、工時問題，只能讀 attendance / attendance_pref / leave_types。
+- 功能表11在 TEDDY 端主要是「查詢」用途；不得替任何人打卡，也不得主動修改打卡紀錄。
+- attendance key 格式為 attendance:{personId}:{YYYY-MM-DD}；內容可含 regular.punches、overtime.punches、leave。
+- 問某一天／某月／某人時，必須先依日期與 personId 過濾，再回答；不可混入其他日期或其他人。
+- 找不到資料就直接說功能表11沒有查到，不可用其他工作表補猜。
+
+其他資料分類：
 - workmonth：工作月表，常見 day/items/note。
 - spraylog：施肥／噴藥月曆，常見 code/name/dosage/qty/type。
 - attendance / attendance_pref / leave_types：出勤、打卡、偏好、假別。
@@ -2807,10 +3281,11 @@ ${parts}
 2. facts 是從原始資料抽出的欄位路徑=值；回答數字、日期、資材、工項狀態時優先引用 facts。
 3. 「最近」代表依 period / updatedAt / sourceKey 的日期排序理解最近資料；不要把沒有日期的設定資料當成最近工作紀錄。
 4. 問某分區，只使用該分區紀錄；全場問題才可跨區彙整。
-5. 農場現場數字只能依提供資料回答，找不到就明確說「V5.1 目前沒有查到這項紀錄」，不可編造。
-6. 若問題是一般農業知識而非現場紀錄，可使用農藝知識正常回答，不要因資料庫沒記錄就拒答。
-7. 回答必須短：一般問題 1～3 句；需要列數字時最多 4 個短項目。先講結論，不重述問題，不寫長篇背景。
-8. 若使用者只問「看得到嗎／有沒有嗎」，直接回答有或沒有，再給最重要數字。繁體中文、自然。`;
+5. 工作問題先判斷是1-5還是6-8：1-5只看功能表4圖一；6-8實際數量只看功能表3 confirmedHistory。若同時問「今天工作」，先回答1-5的指派/確認狀態，再補6-8今天已確認的統計。
+6. 農場現場數字只能依提供資料回答，找不到就明確說「V5.1 目前沒有查到這項紀錄」，不可編造。
+7. 若問題是一般農業知識而非現場紀錄，可使用農藝知識正常回答，不要因資料庫沒記錄就拒答。
+8. 回答必須短：一般問題 1～3 句；需要列數字時最多 4 個短項目。先講結論，不重述問題，不寫長篇背景。
+9. 若使用者只問「看得到嗎／有沒有嗎」，直接回答有或沒有，再給最重要數字。繁體中文、自然。`;
 
       let body=JSON.stringify(payload,null,2);
       if(body.length>52000)body=body.slice(0,52000)+"\n...[已截斷較低優先紀錄]";
@@ -2978,6 +3453,58 @@ ${parts}
       };
     }
 
+    function ghWork68DirectAnswer(q,rows){
+      const materialPatterns=[
+        ["溝灌","噸"],["噴灌","分鐘"],["米糠","包"],["金旺","包"],
+        ["黃豆","kg"],["水果","kg"],["硝酸鉀","kg"],["磷酸一鉀","kg"],
+        ["硫酸鉀","kg"],["鈣鎂粉","kg"],["微量元素","kg"]
+      ];
+      const hit=materialPatterns.find(([name])=>String(q||"").includes(name));
+      const asks68=!!hit || /補水|澆水|施肥|肥料|其他資材|資材|工作[678]|工項[678]/.test(q);
+      if(!asks68)return null;
+
+      const zone=ghFindZone(q);
+      const req=ghDateRequest(q);
+      const histories=[];
+
+      rows.filter(r=>r.category==="zonework").forEach(r=>{
+        const hs=r.function3Work6to8?.confirmedHistory||[];
+        hs.forEach(h=>{
+          if(zone && r.zone?.id!==zone.id)return;
+          const at=String(h.confirmedAt||"");
+          if(req.ym && !at.startsWith(req.ym))return;
+          if(req.year && !req.month && !at.startsWith(String(req.year)))return;
+          if(hit && h.material!==hit[0])return;
+          histories.push({...h,zone:r.zone});
+        });
+      });
+
+      const zoneLabel=zone?zone.name:"全區";
+      const periodLabel=req.ym?`${req.year}年${req.month}月`:req.year?`${req.year}年`:"目前已確認紀錄";
+
+      if(hit){
+        const [material,unit]=hit;
+        const total=histories.reduce((s,h)=>s+(Number(h.quantity)||0),0);
+        if(!histories.length)return `${zoneLabel}${periodLabel}沒有查到已確認的${material}使用紀錄。`;
+        const n=Number.isInteger(total)?String(total):String(Math.round(total*100)/100);
+        return `${zoneLabel}${periodLabel}共用了 ${n} ${unit}${material}。`;
+      }
+
+      if(!histories.length)return `${zoneLabel}${periodLabel}沒有查到工作 6～8 的已確認使用紀錄。`;
+
+      const totals={};
+      histories.forEach(h=>{
+        const key=`${h.material}|${h.unit}`;
+        totals[key]=(totals[key]||0)+(Number(h.quantity)||0);
+      });
+      const parts=Object.entries(totals).map(([key,val])=>{
+        const [material,unit]=key.split("|");
+        const n=Number.isInteger(val)?String(val):String(Math.round(val*100)/100);
+        return `${material} ${n} ${unit}`;
+      });
+      return `${zoneLabel}${periodLabel}已確認：${parts.join("、")}。`;
+    }
+
     async function ghSend(){
       const input=document.getElementById("greenhouseInput"),btn=document.getElementById("btnGreenhouseSend"),q=input.value.trim();
       if(!q)return;
@@ -2985,21 +3512,80 @@ ${parts}
       const status=document.getElementById("greenhouseStatus");
       status.textContent="正在結構化讀取 V5.1…";
       try{
-        const mainRows=await ghQueryV51(q);
+        const isYield=ghIsYieldQuestion(q);
+        const isAttendance=ghIsAttendanceQuestion(q);
+        let mainRows=[];
         let yieldRows=[];
-        if(/產能|收成|採收|收穫|產量|公斤|箱數|重量/.test(q)){
-          try{yieldRows=await ghQueryYield(q);}
-          catch(e){console.error("產能資料查詢失敗：",e);}
+
+        // 功能表11：打卡／出勤查詢唯一入口。
+        if(isAttendance){
+          const allRows=await ghQueryV51(q);
+          mainRows=allRows.filter(r=>["attendance","attendance_pref","leave_types","person"].includes(r.category));
+          const answer=ghAttendanceDirectAnswer(mainRows,q);
+          status.textContent="功能表11・打卡／出勤查詢";
+          ghLog("assistant",answer);
+          await ghSpeak(answer);
+          return;
         }
+
+        // 產能問題：唯一入口＝功能表3。完全不讀主 kv 的其他工作表。
+        if(isYield){
+          const route=ghYieldRoute(q);
+          status.textContent=`工作表三・${route.label}`;
+
+          // 這兩個是流程型動作：先把路徑鎖定，不誤讀其他工作表。
+          if(route.id==="import"){
+            ghLog("assistant","進入工作表三・歷史資料匯入。請選擇 CSV、TSV 或 JSON；系統會先檢查與預覽，確認後才寫入。");
+            ghOpenYieldImport();
+            return;
+          }
+          if(route.id==="input" || route.id==="audit"){
+            const msg=ghYieldRouteIntro(route);
+            ghLog("assistant",msg);
+            await ghSpeak(msg);
+            return;
+          }
+
+          try{yieldRows=await ghQueryYield(q);}
+          catch(e){console.error("產能資料查詢失敗：",e);throw e;}
+
+          if(route.id==="analysis"){
+            const hs=ghYieldHistoryStatus(yieldRows);
+            if(!hs.hasArchive){
+              const msg="資料分析需要完整歷史產能；目前沒有讀到歷史封存資料。請先在工作表三執行『歷史資料匯入』，完成後再分析。";
+              ghLog("assistant",msg);await ghSpeak(msg);return;
+            }
+          }
+        }else{
+          mainRows=await ghQueryV51(q);
+        }
+
         const payload=ghBuildSummaryPayload(q,mainRows,yieldRows);
-        status.textContent=`V5.1 已整理 ${payload.coverage.totalRecords} 筆結構化資料，正在解讀…`;
-        if(/產能|收成|採收|收穫|產量|公斤|箱數|重量/.test(q)){
-          const direct=ghYieldDirectAnswer(yieldRows,q);
-          if(direct){ghLog("assistant",direct);await ghSpeak(direct);return;}
+        status.textContent=isYield?`工作表三已整理 ${yieldRows.length} 筆產能資料`:`V5.1 已整理 ${payload.coverage.totalRecords} 筆結構化資料，正在解讀…`;
+
+        // 工作 6-8 固定只讀功能表3的 confirmedHistory；不讓 AI 混入 pending、格位或其他來源。
+        const work68=ghWork68DirectAnswer(q,mainRows);
+        if(work68){
+          ghLog("assistant",work68);
+          await ghSpeak(work68);
+          return;
+        }
+
+        if(isYield){
+          const route=ghYieldRoute(q);
           if(!yieldRows.length){
-            const noData="目前沒有讀到符合期間／分區的產量紀錄。";
+            const noData="工作表三目前沒有讀到符合期間／分區的產能紀錄。";
             ghLog("assistant",noData);await ghSpeak(noData);return;
           }
+          if(route.id==="history"){
+            const direct=ghYieldDirectAnswer(yieldRows,q);
+            if(direct){ghLog("assistant",direct);await ghSpeak(direct);return;}
+          }
+          if(route.id==="analysis"){
+            const direct=ghYieldCompositeAnswer(yieldRows,q);
+            if(direct){ghLog("assistant",direct);await ghSpeak(direct);return;}
+          }
+          // 超出固定統計模板的分析，仍只把工作表3的 yield / yield_archive 交給 AI。
         }
         const answer=await ghAskAI(q,payload);
         ghLog("assistant",answer);
@@ -3023,7 +3609,7 @@ ${parts}
       if(g)g.onclick=()=>{
         setUiMode("greenhouse");
         if(!document.getElementById("greenhouseLog").children.length)
-          ghLog("assistant","溫室模式已開啟。現在會先辨識 V5.1 的資料類型、分區、日期與欄位，再交給 AI 解讀；一般 Pongchi 模式完全沒有更動。");
+          ghLog("assistant","進入溫室模式");
       };
       if(close)close.onclick=()=>setUiMode("pongchi");
       if(send)send.onclick=ghSend;
@@ -3032,11 +3618,26 @@ ${parts}
       if(scan)scan.onclick=async()=>{
         scan.disabled=true;scan.textContent="掃描中…";
         try{
-          const r=await ghScanKeyPrefixes();
-          ghLog("assistant",`📋 V5.1 kv 共 ${r.total} 筆文件：\n\n${r.summary}`);
+          await ghScanKeyPrefixes();
+          ghLog("assistant","掃描完成");
         }catch(e){ghLog("assistant","掃描失敗："+e.message+"。請確認 Firebase Authentication 已啟用 Anonymous，且 Firestore kv 規則允許 request.auth != null。");}
         finally{scan.disabled=false;scan.textContent="🔍 掃描資料分類";}
       };
+      const yf=document.getElementById("ghYieldImportFile");
+      if(yf)yf.onchange=async()=>{
+        const f=yf.files?.[0]; if(!f)return;
+        try{ghLog("assistant",await ghHandleYieldImportFile(f));}
+        catch(e){ghYieldImportDraft=null;document.getElementById("ghYieldImportConfirm").style.display="none";ghLog("assistant","歷史資料檢查失敗："+e.message);}
+      };
+      const yc=document.getElementById("btnYieldImportCommit");
+      if(yc)yc.onclick=async()=>{
+        yc.disabled=true;yc.textContent="匯入中…";
+        try{const r=await ghYieldImportCommit();document.getElementById("ghYieldImportConfirm").style.display="none";ghLog("assistant",`歷史資料匯入完成：${r.rows} 筆，已寫入 ${r.groups} 個年度／溫室封存。現在可以進行跨月、跨年產能分析。`);}
+        catch(e){ghLog("assistant","歷史資料匯入失敗："+e.message);}
+        finally{yc.disabled=false;yc.textContent="確認匯入";}
+      };
+      const yx=document.getElementById("btnYieldImportCancel");
+      if(yx)yx.onclick=()=>{ghYieldImportDraft=null;document.getElementById("ghYieldImportConfirm").style.display="none";ghLog("assistant","已取消歷史資料匯入。");};
       setUiMode("pongchi");
     });
 
@@ -3064,6 +3665,14 @@ ${parts}
       </div>
 
       <button type="button" id="btnGreenhouseScan" style="width:100%;margin-bottom:8px;border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:8px;cursor:pointer;font-size:12px;">🔍 掃描資料分類</button>
+      <input id="ghYieldImportFile" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json" style="display:none" />
+      <div id="ghYieldImportConfirm" style="display:none;margin-bottom:8px;padding:9px;border:1px solid #355248;border-radius:10px;background:#0d1713;">
+        <div style="font-size:11px;color:#9fb4ab;margin-bottom:7px;">歷史產能已完成預覽。確認後才寫入功能表3。</div>
+        <div style="display:flex;gap:7px;">
+          <button type="button" id="btnYieldImportCommit" style="flex:1;border:none;border-radius:8px;background:#5eead4;color:#0b110f;font-weight:800;padding:8px;cursor:pointer;">確認匯入</button>
+          <button type="button" id="btnYieldImportCancel" style="flex:1;border:1px solid #355248;border-radius:8px;background:#18231f;color:#cde6dc;padding:8px;cursor:pointer;">取消</button>
+        </div>
+      </div>
       <div style="display:flex;gap:7px;">
         <input id="greenhouseInput" type="text" placeholder="例如：四北最近用了多少米糠？"
           style="flex:1;background:#0b110f;border:1px solid #30483f;border-radius:10px;padding:10px;color:#e9f4ef;font-size:14px;outline:none;" />
