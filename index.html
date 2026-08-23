@@ -3492,18 +3492,30 @@ ${parts}
       };
     }
 
+    // 耗材清單抽成共用常數：ghWork68DirectAnswer（實際回答）跟主題判斷（要不要留在耗材話題）
+    // 都要用同一份，不然像「黃豆」「水果」這種只在其中一邊認得的字，會導致答案答對了、
+    // 但主題狀態被誤判成「無關」而重置，下一句「那區」這種追問就接不上上文。
+    const GH_MATERIAL_PATTERNS=[
+      ["溝灌","噸"],["噴灌","分鐘"],["米糠","包"],["金旺","包"],
+      ["黃豆","kg"],["水果","kg"],["硝酸鉀","kg"],["磷酸一鉀","kg"],
+      ["硫酸鉀","kg"],["鈣鎂粉","kg"],["微量元素","kg"]
+    ];
+    function ghIsMaterialsQuestion(q){
+      const t=String(q||"");
+      return GH_MATERIAL_PATTERNS.some(([name])=>t.includes(name)) ||
+        /耗材|補水|澆水|施肥|肥料|其他資材|資材|工作[678]|工項[678]/.test(t);
+    }
+
     function ghWork68DirectAnswer(q,rows){
-      const materialPatterns=[
-        ["溝灌","噸"],["噴灌","分鐘"],["米糠","包"],["金旺","包"],
-        ["黃豆","kg"],["水果","kg"],["硝酸鉀","kg"],["磷酸一鉀","kg"],
-        ["硫酸鉀","kg"],["鈣鎂粉","kg"],["微量元素","kg"]
-      ];
-      const hit=materialPatterns.find(([name])=>String(q||"").includes(name));
-      const asks68=!!hit || /補水|澆水|施肥|肥料|其他資材|資材|工作[678]|工項[678]/.test(q);
+      const hits=GH_MATERIAL_PATTERNS.filter(([name])=>String(q||"").includes(name));
+      const asks68=ghIsMaterialsQuestion(q);
       if(!asks68)return null;
 
       const zone=ghFindZone(q);
       const req=ghDateRequest(q);
+      // 「那區／哪一區／哪幾區」是在問「不同區各是多少」，不是在問某個特定區的總和，
+      // 沒指名區、但問句裡有這種字眼時，要拆成各區列出，不能只回「全區」一個數字。
+      const wantsByZone=!zone && /那區|哪一區|哪個區|哪幾區|哪些區|各區/.test(q);
       const histories=[];
 
       rows.filter(r=>r.category==="zonework").forEach(r=>{
@@ -3513,23 +3525,49 @@ ${parts}
           const at=String(h.confirmedAt||"");
           if(req.ym && !at.startsWith(req.ym))return;
           if(req.year && !req.month && !at.startsWith(String(req.year)))return;
-          if(hit && h.material!==hit[0])return;
+          if(hits.length && !hits.some(([name])=>name===h.material))return;
           histories.push({...h,zone:r.zone});
         });
       });
 
       const zoneLabel=zone?zone.name:"全區";
       const periodLabel=req.ym?`${req.year}年${req.month}月`:req.year?`${req.year}年`:"目前已確認紀錄";
+      const materialLabel=hits.map(([name])=>name).join("、");
 
-      if(hit){
-        const [material,unit]=hit;
-        const total=histories.reduce((s,h)=>s+(Number(h.quantity)||0),0);
-        if(!histories.length)return `${zoneLabel}${periodLabel}沒有查到已確認的${material}使用紀錄。`;
-        const n=Number.isInteger(total)?String(total):String(Math.round(total*100)/100);
-        return `${zoneLabel}${periodLabel}共用了 ${n} ${unit}${material}。`;
+      if(!histories.length){
+        return hits.length
+          ?`${zoneLabel}${periodLabel}沒有查到已確認的${materialLabel}使用紀錄。`
+          :`${zoneLabel}${periodLabel}沒有查到工作 6～8 的已確認使用紀錄。`;
       }
 
-      if(!histories.length)return `${zoneLabel}${periodLabel}沒有查到工作 6～8 的已確認使用紀錄。`;
+      if(wantsByZone){
+        const byZone={};
+        histories.forEach(h=>{
+          const zn=h.zone?.name||"未分區";
+          const key=`${zn}|${h.material}|${h.unit}`;
+          byZone[key]=(byZone[key]||0)+(Number(h.quantity)||0);
+        });
+        const parts=Object.entries(byZone).map(([key,val])=>{
+          const [zn,material,unit]=key.split("|");
+          const n=Number.isInteger(val)?String(val):String(Math.round(val*100)/100);
+          return `${zn} ${material} ${n}${unit}`;
+        });
+        return `${periodLabel}各區已確認：${parts.join("、")}。`;
+      }
+
+      if(hits.length){
+        const totals={};
+        histories.forEach(h=>{
+          totals[h.material]=(totals[h.material]||0)+(Number(h.quantity)||0);
+        });
+        const parts=hits.filter(([name])=>totals[name]!==undefined).map(([name,unit])=>{
+          const val=totals[name];
+          const n=Number.isInteger(val)?String(val):String(Math.round(val*100)/100);
+          return `${n}${unit}${name}`;
+        });
+        if(!parts.length)return `${zoneLabel}${periodLabel}沒有查到已確認的${materialLabel}使用紀錄。`;
+        return `${zoneLabel}${periodLabel}共用了 ${parts.join("、")}。`;
+      }
 
       const totals={};
       histories.forEach(h=>{
@@ -3648,7 +3686,7 @@ ${parts}
       if(/打卡|出勤|上下班|工時|請假/.test(t))return "attendance";
       // 耗材（工作表七・分區耗材統計）跟工作1-5是分開的入口，即使背後都讀 zonework，
       // 也要分開判斷，狀態列跟直接回答函式才會對得上你實際點進去的畫面。
-      if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(t))return "materials";
+      if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(t) || ghIsMaterialsQuestion(t))return "materials";
       if(/工作|工項|指派|除草|打芽|剪葉/.test(t))return "work";
       return null;
     }
@@ -3697,7 +3735,7 @@ ${parts}
       if(!explicit && !ghLooksLikeFollowup(q)){
         if(ghIsAttendanceQuestion(q))topic="attendance";
         else if(ghIsYieldQuestion(q))topic="yield";
-        else if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(String(q||"")))topic="materials";
+        else if(/耗材|補水|施肥|資材|溝灌|噴灌|米糠|金旺/.test(String(q||"")) || ghIsMaterialsQuestion(q))topic="materials";
         else if(/工作|工項|指派|除草|打芽|剪葉/.test(String(q||"")))topic="work";
         // 三個模組都對不上、又不是延續上一句的追問，就是全新話題（包含單純聊天），
         // 不該沿用舊主題——這就是之前「hi teddy」被硬套進產能查詢的根本原因。
