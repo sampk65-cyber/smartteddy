@@ -496,7 +496,6 @@
           <button type="button" class="teddy-chip" data-msg="幫我找一個最酷最特別的新知識或新聞">🔍 找新知</button>
           <button type="button" class="teddy-chip" data-msg="幫我寫一篇今天的文章">✍️ 寫文章</button>
           <button type="button" class="teddy-chip" data-msg="念今天寫的文章給我聽">📖 念文章</button>
-          <button type="button" class="teddy-chip" data-msg="倒數5分鐘">⏰ 倒數5分</button>
         </div>
 
         <div style="margin-bottom:8px;">
@@ -504,7 +503,14 @@
         </div>
 
         <div id="teddyChatLog" style="max-height:160px;overflow-y:auto;font-size:13px;line-height:1.5;margin-bottom:8px;"></div>
+        <div id="teddyImagePreviewBar" style="display:none;align-items:center;gap:8px;margin-bottom:6px;">
+          <img id="teddyImagePreviewThumb" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #2a3532;" />
+          <span style="font-size:11px;color:#9fb4ab;">已附加照片，送出後 TEDDY 會一併看到</span>
+          <button type="button" id="teddyImageRemoveBtn" title="移除附加照片" style="background:none;border:1px solid #2a3532;color:#c8d4ce;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">✕</button>
+        </div>
+        <input id="teddyChatImageInput" type="file" accept="image/*" style="display:none" />
         <div style="display:flex;gap:8px;">
+          <button type="button" id="teddyChatImageBtn" title="附加照片給 TEDDY 分析" style="background:#1a2220;color:#c8d4ce;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;font-size:15px;cursor:pointer;">📎</button>
           <input id="teddyChatInput" type="text" placeholder="跟 TEDDY 說話…" style="flex:1;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:8px 10px;color:#e8eeea;font-size:13px;font-family:inherit;" />
           <button type="button" id="teddyMicBtn" title="語音輸入" style="background:#1a2220;color:#c8d4ce;border:1px solid #2a3532;border-radius:8px;padding:8px 12px;font-size:15px;cursor:pointer;white-space:nowrap;">🎤</button>
           <button type="button" id="teddyChatSend" style="background:#5eead4;color:#0a0e0d;border:none;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;">送出</button>
@@ -911,12 +917,14 @@
       return "general";
     }
 
-    // Fresh Data Gate: 只有財務相關話題才需要先查證即時資料；一般聊天保持自然、不做搜尋驗證。
+    // Fresh Data Gate: 財經話題本質上就是會變動的資訊，只要被分類成 finance/investment，
+    // 一律強制查證，不用再額外檢查有沒有踩到「今天/最新」這類關鍵字——
+    // 「那妳對台股的看法」這種問法完全沒有時效性關鍵字，之前會被漏掉，導致 TEDDY 誤以為自己不能搜尋。
     function teddyV3NeedsFreshData(message, skill) {
       const q = String(message || "");
       const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|政策|公告|法規|疫情|病蟲害警報|現況|行情)/i;
       const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息)/i;
-      if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q);
+      if (skill === "finance" || skill === "investment") return true;
       if (skill === "presentation") return timeSensitive.test(q) || marketEvent.test(q);
       return false;
     }
@@ -1251,9 +1259,18 @@
             }),
           }, 25000);
           const d = await r.json();
-          if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
+          // 之前這裡出錯只會回一句「搜尋失敗：xxx」，看不出到底是金鑰、額度還是其他原因。
+          // 把 xAI 實際回傳的錯誤內容（含 HTTP 狀態碼）完整帶出來，下次失敗才看得出真正原因。
+          if (!r.ok) {
+            const detail = d?.error?.message || d?.error?.code || JSON.stringify(d).slice(0, 300);
+            throw new Error(`HTTP ${r.status}：${detail}`);
+          }
           const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
-          return { ok: true, result: text || "沒有找到相關結果" };
+          if (!text || !text.trim()) {
+            // 回傳成功但沒有任何文字內容，也要老實講清楚，不要假裝有結果。
+            return { ok: false, error: "xAI 回應成功但沒有任何文字內容，可能是搜尋工具沒有被觸發，原始回應：" + JSON.stringify(d).slice(0, 300) };
+          }
+          return { ok: true, result: text };
         } catch (e) { return { ok: false, error: "搜尋失敗：" + e.message }; }
       }
       if (name === "set_reminder") {
@@ -1310,6 +1327,8 @@
 
     // ===== TEDDY 對話記憶（Firestore 雲端同步 + 摘要式長期記憶，localStorage 當本機快取／離線備援）=====
     let teddyHistory = [];
+    // 目前附加、還沒送出的照片（送出後會附進那一則使用者訊息，然後清空，不會每次都重複帶）
+    let teddyPendingImage = null; // { mime, data(base64), name }
     let teddySummary = ""; // 長期記憶摘要（很久以前聊過的重點，濃縮成一段文字）
     // ===== 定位：開啟助理面板時抓一次 GPS，之後天氣工具預設用這個位置，不用每次都問使用者在哪 =====
     let teddyLocation = null; // { lat, lon, label }
@@ -1607,13 +1626,18 @@
           teddyHistory = teddyHistory.slice(-TEDDY_HISTORY_RAW_MAX);
         }
       }
-      localStorage.setItem(TEDDY_HISTORY_KEY, JSON.stringify(teddyHistory));
+      // Firestore 單一文件有 1MB 硬上限，照片的 base64 隨便就是幾百KB～1-2MB，
+      // 存進去的版本要把圖片資料本身拿掉，只留一個「這則曾經附過照片」的標記——
+      // 記憶體裡 teddyHistory 本身不受影響，這次對話送給模型時圖片還是完整的，
+      // 只是重新整理頁面後，過去附過的照片不會被記住（本來就只需要當下分析一次）。
+      const historyForStorage = teddyHistory.map((h) => h.image ? { role: h.role, text: h.text, hadImage: true } : h);
+      localStorage.setItem(TEDDY_HISTORY_KEY, JSON.stringify(historyForStorage));
       localStorage.setItem(TEDDY_SUMMARY_KEY, teddySummary);
       if (!teddyEnsureFirebase()) return;
       try {
         const db = firebase.firestore();
         await db.collection("teddy_memory").doc(teddyGetDeviceId()).set({
-          history: teddyHistory,
+          history: historyForStorage,
           summary: teddySummary,
           updatedAt: Date.now(),
         });
@@ -1669,8 +1693,33 @@
       read_article: "📖 找文章中…",
     };
 
+    // 把 teddyHistory 轉成該模型 API 要的訊息格式；只有真的附了照片的那一則才組成多段內容，
+    // 其餘維持純文字，避免每次都把舊照片重複塞進去、浪費 token。
+    function teddyHistoryToClaudeMessages() {
+      return teddyHistory.map((h) => {
+        if (h.image) {
+          return { role: h.role, content: [
+            { type: "image", source: { type: "base64", media_type: h.image.mime, data: h.image.data } },
+            { type: "text", text: h.text }
+          ]};
+        }
+        return { role: h.role, content: h.text };
+      });
+    }
+    function teddyHistoryToOpenAIMessages() {
+      return teddyHistory.map((h) => {
+        if (h.image) {
+          return { role: h.role, content: [
+            { type: "text", text: h.text },
+            { type: "image_url", image_url: { url: `data:${h.image.mime};base64,${h.image.data}` } }
+          ]};
+        }
+        return { role: h.role, content: h.text };
+      });
+    }
+
     async function teddyChatWithClaude(apiKey, onStatus) {
-      const messages = teddyHistory.map((h) => ({ role: h.role, content: h.text }));
+      const messages = teddyHistoryToClaudeMessages();
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
@@ -1710,7 +1759,7 @@
 
     async function teddyChatWithOpenAI(apiKey, onStatus) {
       const oaTools = TEDDY_TOOLS.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-      const messages = [{ role: "system", content: teddyBuildSystemPrompt() }, ...teddyHistory.map((h) => ({ role: h.role, content: h.text }))];
+      const messages = [{ role: "system", content: teddyBuildSystemPrompt() }, ...teddyHistoryToOpenAIMessages()];
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
@@ -1739,7 +1788,7 @@
     // Grok 走 OpenAI 相容格式，跟 teddyChatWithOpenAI 幾乎一模一樣，只是換端點/模型/金鑰。
     async function teddyChatWithGrok(apiKey, onStatus) {
       const oaTools = TEDDY_TOOLS.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-      const messages = [{ role: "system", content: teddyBuildSystemPrompt() }, ...teddyHistory.map((h) => ({ role: h.role, content: h.text }))];
+      const messages = [{ role: "system", content: teddyBuildSystemPrompt() }, ...teddyHistoryToOpenAIMessages()];
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
@@ -1769,7 +1818,12 @@
     // 呼叫結果要包成 functionResponse 塞進下一輪的 user content，不是獨立的 tool 訊息。
     async function teddyChatWithGemini(apiKey, onStatus) {
       const geminiTools = [{ functionDeclarations: TEDDY_TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: t.input_schema })) }];
-      const contents = teddyHistory.map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] }));
+      const contents = teddyHistory.map((h) => ({
+        role: h.role === "assistant" ? "model" : "user",
+        parts: h.image
+          ? [{ text: h.text }, { inline_data: { mime_type: h.image.mime, data: h.image.data } }]
+          : [{ text: h.text }]
+      }));
       let guard = 0;
       let usedInput = 0, usedOutput = 0;
       while (guard++ < 4) {
@@ -2083,18 +2137,32 @@
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       const text = input.value.trim();
-      if (!text) return;
+      const pendingImage = teddyPendingImage;
+      // 允許「只附照片、沒打字」直接送出，這時候給一句預設說明，不要求使用者一定要打字。
+      if (!text && !pendingImage) return;
+      const effectiveText = text || "幫我看看這張照片";
       input.value = "";
-      teddyActiveSkill = teddyDetectSkill(text);
-      teddyAppendLog("user", text);
-      teddyHistory.push({ role: "user", text });
+      teddyActiveSkill = teddyDetectSkill(effectiveText);
+      teddyAppendLog("user", effectiveText + (pendingImage ? "　📎[已附加照片]" : ""));
+      const historyEntry = { role: "user", text: effectiveText };
+      if (pendingImage) historyEntry.image = pendingImage;
+      teddyHistory.push(historyEntry);
       teddySaveHistory();
-      const nameHit=teddyDetectPreferredName(text);
+      teddyPendingImage = null;
+      document.getElementById("teddyImagePreviewBar").style.display = "none";
+      const nameHit=teddyDetectPreferredName(effectiveText);
       if(nameHit)teddySavePreferredName(nameHit);
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
+      // 有附照片時，一定要讓真正的模型看過圖片才能回答——跳過本地快速回覆／強制搜尋這兩條
+      // 純文字捷徑，不然照片會被完全忽略，TEDDY 只會憑文字亂猜。
+      if (pendingImage) {
+        await teddySendToModel(thinkingDiv);
+        return;
+      }
+
       // V3.1 Core abilities run locally first: faster and cannot be lost by model routing.
-      const localReply = teddyV31LocalCoreReply(text);
+      const localReply = teddyV31LocalCoreReply(effectiveText);
       if (localReply) {
         const prefix = teddyV3VersionPrefix();
         const finalLocalReply = prefix ? (prefix + "\n" + localReply) : localReply;
@@ -2106,7 +2174,7 @@
         return;
       }
       // Hard Fresh Data Gate：需要時效資料的專業問題，先查到資料才讓模型分析。
-      const freshCheck = await teddyFreshDataPreflight(text);
+      const freshCheck = await teddyFreshDataPreflight(effectiveText);
       if (!freshCheck.ok) {
         teddyUpdateLogDiv(thinkingDiv, freshCheck.error);
         teddyHistory.push({ role: "assistant", text: freshCheck.error });
@@ -2115,7 +2183,12 @@
         return;
       }
       if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
+      await teddySendToModel(thinkingDiv);
+    }
 
+    // 實際呼叫模型、拿回覆、存歷史、朗讀——原本這段寫死在 teddySend() 尾端，
+    // 現在抽出來，讓「有附照片」的情況可以跳過本地捷徑／強制搜尋、直接呼叫這裡。
+    async function teddySendToModel(thinkingDiv) {
       let lastToolNames = [];
       const onStatus = (msg, toolNames) => {
         teddyUpdateLogDiv(thinkingDiv, msg);
@@ -2213,6 +2286,28 @@
     }
 
     document.getElementById("teddyChatSend").onclick = teddySend;
+
+    // 附加照片：選檔 → 轉 base64 → 存起來、顯示縮圖，實際送出交給 teddySend() 處理。
+    document.getElementById("teddyChatImageBtn").onclick = () => document.getElementById("teddyChatImageInput").click();
+    document.getElementById("teddyChatImageInput").onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) { alert("請選擇圖片檔"); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const base64 = dataUrl.split(",")[1];
+        teddyPendingImage = { mime: file.type, data: base64, name: file.name };
+        document.getElementById("teddyImagePreviewThumb").src = dataUrl;
+        document.getElementById("teddyImagePreviewBar").style.display = "flex";
+      };
+      reader.readAsDataURL(file);
+      document.getElementById("teddyChatImageInput").value = "";
+    };
+    document.getElementById("teddyImageRemoveBtn").onclick = () => {
+      teddyPendingImage = null;
+      document.getElementById("teddyImagePreviewBar").style.display = "none";
+    };
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") teddySend();
     });
