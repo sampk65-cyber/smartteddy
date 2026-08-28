@@ -1428,13 +1428,12 @@
       try {
         const db = firebase.firestore();
         const ua = navigator.userAgent.slice(0, 120);
-        await db.collection("teddy_access").doc(deviceId).set({
-          deviceId, status,
-          firstSeen: firebase.firestore.FieldValue.serverTimestamp ? undefined : Date.now(),
-          lastSeen: Date.now(),
-          userAgent: ua,
-        }, { merge: true });
-        // firstSeen 只在第一次建立時補上，避免每次重新登入都被覆蓋成現在時間。
+        // 之前這裡把 firstSeen 設成 undefined 想表示「先不填」，
+        // 但 Firestore 不允許欄位值是 undefined，會直接丟錯誤、整筆寫入失敗——
+        // 改成乾脆不放這個欄位（用 delete，而不是設成 undefined），第一次寫入不帶它，
+        // 下面再判斷有沒有 firstSeen、沒有的話另外補一次。
+        const payload = { deviceId, status, lastSeen: Date.now(), userAgent: ua };
+        await db.collection("teddy_access").doc(deviceId).set(payload, { merge: true });
         const snap = await db.collection("teddy_access").doc(deviceId).get();
         if (snap.exists && !snap.data().firstSeen) {
           await db.collection("teddy_access").doc(deviceId).set({ firstSeen: Date.now() }, { merge: true });
@@ -1490,6 +1489,7 @@
 
     async function teddyAdminRender() {
       const devices = await teddyAdminLoadDevices();
+      const myDeviceId = teddyGetDeviceId(); // 用來標出「這是你自己現在用的這台裝置」
       const approved = devices.filter((d) => d.status === "approved").length;
       const blocked = devices.filter((d) => d.status === "blocked").length;
       document.getElementById("teddyAdminSummary").textContent =
@@ -1498,9 +1498,12 @@
       const list = document.getElementById("teddyAdminList");
       list.innerHTML = devices.map((d) => {
         const blocked = d.status === "blocked";
+        const isMe = d.id === myDeviceId;
         return `
-        <div style="background:#141a18;border:1px solid #2a3532;border-radius:10px;padding:12px;margin-bottom:8px;">
-          <div style="color:#e8eeea;font-size:12px;font-family:monospace;word-break:break-all;">${d.id}</div>
+        <div style="background:#141a18;border:1px solid ${isMe ? '#5eead4' : '#2a3532'};border-radius:10px;padding:12px;margin-bottom:8px;">
+          <div style="color:#e8eeea;font-size:12px;font-family:monospace;word-break:break-all;">
+            ${isMe ? '<span style="background:#5eead4;color:#0a0e0d;border-radius:4px;padding:1px 6px;font-size:10px;font-family:inherit;margin-right:6px;">👤 這是你</span>' : ''}${d.id}
+          </div>
           <div style="color:#9fb4ab;font-size:11px;margin-top:4px;">
             狀態：<span style="color:${blocked ? '#f87171' : '#5eead4'}">${blocked ? '已封鎖' : '使用中'}</span>　
             最後開啟：${teddyAdminFormatTime(d.lastSeen)}　
