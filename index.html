@@ -403,6 +403,33 @@
 
 </head>
 <body>
+  <!-- 存取閘門：預設就是擋住的（display:flex 不是 none），JS 驗證通過才會被隱藏——
+       這樣就算網路慢、JS 還沒跑完，畫面預設也是「擋住」而不是「打開」，比較安全的預設值。 -->
+  <div id="teddyAccessGate" style="position:fixed;inset:0;z-index:99999;background:#0a0e0d;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div style="max-width:340px;width:100%;background:#141a18;border:1px solid #2a3532;border-radius:16px;padding:24px;text-align:center;">
+      <div style="font-size:32px;margin-bottom:8px;">🐿️</div>
+      <div style="color:#e8eeea;font-size:15px;font-weight:600;margin-bottom:4px;">TEDDY 需要通行碼</div>
+      <div id="teddyGateMsg" style="color:#9fb4ab;font-size:12px;margin-bottom:16px;">請輸入邀請你的人給你的通行碼</div>
+      <input id="teddyGateInput" type="text" inputmode="text" placeholder="通行碼" style="width:100%;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:10px;color:#e8eeea;font-size:14px;text-align:center;box-sizing:border-box;margin-bottom:10px;" />
+      <button id="teddyGateSubmit" type="button" style="width:100%;background:#5eead4;color:#0a0e0d;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:14px;cursor:pointer;">進入</button>
+      <div id="teddyGateError" style="color:#f87171;font-size:12px;margin-top:10px;min-height:16px;"></div>
+    </div>
+  </div>
+  <!-- 管理儀表板：網址加 ?admin=1 才會出現，預設隱藏，不會被一般使用者看到入口。 -->
+  <div id="teddyAdminPanel" style="display:none;position:fixed;inset:0;z-index:100000;background:#0a0e0d;overflow-y:auto;padding:16px;">
+    <div style="max-width:480px;margin:0 auto;">
+      <div style="color:#e8eeea;font-size:16px;font-weight:700;margin-bottom:12px;">🐿️ TEDDY 使用儀表板</div>
+      <div id="teddyAdminLogin" style="background:#141a18;border:1px solid #2a3532;border-radius:12px;padding:20px;">
+        <input id="teddyAdminPassInput" type="password" placeholder="管理密碼" style="width:100%;background:#0a0e0d;border:1px solid #2a3532;border-radius:8px;padding:10px;color:#e8eeea;font-size:14px;box-sizing:border-box;margin-bottom:10px;" />
+        <button id="teddyAdminPassSubmit" type="button" style="width:100%;background:#5eead4;color:#0a0e0d;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;">登入</button>
+        <div id="teddyAdminLoginError" style="color:#f87171;font-size:12px;margin-top:8px;"></div>
+      </div>
+      <div id="teddyAdminBody" style="display:none;">
+        <div id="teddyAdminSummary" style="color:#9fb4ab;font-size:12px;margin-bottom:12px;"></div>
+        <div id="teddyAdminList"></div>
+      </div>
+    </div>
+  </div>
   <div id="deployStamp" style="display:none;">deploy: Teddy 3.7 V5.1 strict five-entry router 2026-08-23</div>
   <div id="teddyV3Badge" style="display:none;">TEDDY 3.7</div>
   <!-- TEDDY 動態島 -->
@@ -783,7 +810,7 @@
     const _origTeddyPanelOpen = () => {};
 
     // ===== TEDDY Router：讓 TEDDY 自己判斷該用哪個工具 =====
-    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。 ";
+    const TEDDY_SYSTEM_PROMPT = "你是 TEDDY，一隻穿藍色衣服、活潑聰明的小松鼠助理，主人上班時你會在家裡等他。使用者對「自然、科技、SpaceX、茶藝、古文、農業」這幾個領域特別有興趣。重要：這個網頁有幫你接上記憶系統，會自動把最近聊過的內容記下來，超過一定數量的舊對話還會濃縮成長期摘要一起提供給你，換裝置、重新整理網頁都還記得，所以絕對不要跟使用者說「我沒有記憶功能」「每次對話都是全新的」這類話，這是不正確的。如果使用者問你記不記得他，只要照實根據目前對話紀錄和長期摘要裡看得到的內容回答；如果看不到某段更久以前的內容，就照實說「這段我目前看不到」，而不是否認整個記憶系統的存在。使用者要求算數學、放音樂、暫停音樂、換下一首、查天氣、設定倒數計時、搜尋新聞／即時資訊、設定提醒事項時，一定要呼叫對應的工具取得真實結果，絕對不要自己心算、亂猜天氣、編造新聞或假裝已經做了動作。設定提醒時要提醒使用者這個提醒只在網頁分頁保持開啟時才會生效。當使用者要你找「最酷、最特別、最新」的知識或新聞卻沒說主題時，從上面那幾個興趣領域挑一個去搜尋，用帶點驚喜、有觀點的口吻分享重點，不要像條列式新聞稿；如果使用者接著要你把找到的內容寫成文章，就照那個主題創作。使用者要你寫文章／日記時，用 save_article 工具，自己創作一篇 300 字以內、有溫度、符合指定主題（例如節氣、或剛搜尋到的新知識）的繁體中文短文，存好之後要在回覆裡把全文完整念給使用者聽，不要只說寫好了卻不念內容；使用者要你「念文章」「今天寫了什麼」時，用 read_article 工具取得內容後要一字不漏地照原文念出來，不要重新摘要或縮短。其餘一般聊天則正常用繁體中文回答，語氣簡短親切、可以有點可愛，日常閒聊盡量控制在 2-3 句話內，因為使用者常常用語音聽你回覆，太長的回答會等比較久，需要細節或使用者明確要求詳細說明時才展開講。 使用者問你的版本或能力時：你是 Smart Teddy 3.5，不是單純的 GPT 或 Claude；GPT/Claude 是你背後可選的回答模型。你具備一般助理、時間、計算、天氣、計時、提醒、音樂、即時搜尋、財務投資、農業、程式、簡報製作、文章、記憶與語音能力。 【Teddy 3.5 精簡定位】 你是家庭使用的私人 AI 助理，不是對外產品。介面保持簡單，不主動炫耀功能或列一長串能力。 平常像自然的助理一樣聊天；只有在使用者需要時才啟用工具與專業能力。 兩個優先專業領域必須保留： - 財務與投資：重視最新資料、風險、基本面、總經與可驗證事實。 - 農業：重視作物、生育期、環境、水肥、土壤/介質、病蟲害與可操作排查。 程式協助保留為背景能力；使用者自然提出 HTML/CSS/JavaScript 或除錯需求時再處理，不做成可見模式。 不要提供簡報/投影片專用模式。 核心體驗優先順序：1. 回答穩定正確 2. 聲音自然 3. 反應速度 4. 專業深度。 如果任何工具（搜尋、天氣、股價、匯率等）呼叫失敗，一定要把工具回傳的實際失敗原因講給使用者聽（例如金鑰沒設定、額度用完、哪個服務出錯），不要用「遇到一點小問題」「晚點再試試看」這種模糊帶過的話掩蓋真正原因，使用者需要知道具體發生了什麼事才能處理。 ";
 
     // ===== TEDDY v2 Skills：專業能力模組 + 自動路由 =====
     const TEDDY_SKILLS = {
@@ -1247,31 +1274,62 @@
       }
       if (name === "search_news") {
         const keys = loadKeys();
-        if (!keys.xai) return { ok: false, error: "搜尋新聞需要先設定 Grok (xAI) 的 API Key" };
-        try {
-          const r = await teddyFetch("https://api.x.ai/v1/responses", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
-            body: JSON.stringify({
-              model: "grok-4.6",
-              input: [{ role: "user", content: String(input.query || "") }],
-              tools: [{ type: "web_search" }],
-            }),
-          }, 25000);
-          const d = await r.json();
-          // 之前這裡出錯只會回一句「搜尋失敗：xxx」，看不出到底是金鑰、額度還是其他原因。
-          // 把 xAI 實際回傳的錯誤內容（含 HTTP 狀態碼）完整帶出來，下次失敗才看得出真正原因。
-          if (!r.ok) {
-            const detail = d?.error?.message || d?.error?.code || JSON.stringify(d).slice(0, 300);
-            throw new Error(`HTTP ${r.status}：${detail}`);
-          }
-          const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
-          if (!text || !text.trim()) {
-            // 回傳成功但沒有任何文字內容，也要老實講清楚，不要假裝有結果。
-            return { ok: false, error: "xAI 回應成功但沒有任何文字內容，可能是搜尋工具沒有被觸發，原始回應：" + JSON.stringify(d).slice(0, 300) };
-          }
-          return { ok: true, result: text };
-        } catch (e) { return { ok: false, error: "搜尋失敗：" + e.message }; }
+        const query = String(input.query || "");
+        const errors = [];
+
+        // 主要管道：Grok (xAI)。
+        if (keys.xai) {
+          try {
+            const r = await teddyFetch("https://api.x.ai/v1/responses", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
+              body: JSON.stringify({
+                model: "grok-4.6",
+                input: [{ role: "user", content: query }],
+                tools: [{ type: "web_search" }],
+              }),
+            }, 25000);
+            const d = await r.json();
+            if (!r.ok) {
+              const detail = d?.error?.message || d?.error?.code || JSON.stringify(d).slice(0, 300);
+              throw new Error(`HTTP ${r.status}：${detail}`);
+            }
+            const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
+            if (text && text.trim()) return { ok: true, result: text, via: "grok" };
+            errors.push("Grok：回應成功但沒有文字內容，可能搜尋工具沒被觸發");
+          } catch (e) { errors.push("Grok：" + e.message); }
+        } else {
+          errors.push("Grok：尚未設定 xAI 的 API Key");
+        }
+
+        // 備援管道：Grok 沒設定金鑰、或這次失敗時，改用 OpenAI 自己的搜尋模型——
+        // 之前搜尋整個功能只綁死在 Grok 一家，不管使用者當下選的是哪個聊天模型都一樣，
+        // Grok 一出狀況搜尋就完全失效。現在只要 OpenAI 的 Key 有設定，就有第二條路可以走。
+        if (keys.openai) {
+          try {
+            const r = await teddyFetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.openai}` },
+              body: JSON.stringify({
+                model: "gpt-5-search-api",
+                web_search_options: {},
+                messages: [{ role: "user", content: query }],
+              }),
+            }, 25000);
+            const d = await r.json();
+            if (!r.ok) {
+              const detail = d?.error?.message || d?.error?.code || JSON.stringify(d).slice(0, 300);
+              throw new Error(`HTTP ${r.status}：${detail}`);
+            }
+            const text = d.choices?.[0]?.message?.content || "";
+            if (text && text.trim()) return { ok: true, result: text, via: "openai" };
+            errors.push("OpenAI：回應成功但沒有文字內容");
+          } catch (e) { errors.push("OpenAI：" + e.message); }
+        } else if (!keys.xai) {
+          errors.push("OpenAI：也尚未設定 API Key");
+        }
+
+        return { ok: false, error: "所有搜尋管道都失敗了——" + errors.join("；") };
       }
       if (name === "set_reminder") {
         const mins = Number(input.minutes_from_now);
@@ -1331,6 +1389,163 @@
     let teddyPendingImage = null; // { mime, data(base64), name }
     let teddySummary = ""; // 長期記憶摘要（很久以前聊過的重點，濃縮成一段文字）
     // ===== 定位：開啟助理面板時抓一次 GPS，之後天氣工具預設用這個位置，不用每次都問使用者在哪 =====
+    // ===== 存取閘門：通行碼 + 後台黑名單 =====
+    // 設定（通行碼、管理員密碼）存在 Firestore 的 teddy_config/access，
+    // 你之後要換通行碼、換管理密碼，直接去 Firebase 後台改這份文件的欄位就好，不用重新部署。
+    const TEDDY_ACCESS_KEY = "teddy_access_verified"; // localStorage 快取，避免每次都要重打通行碼
+
+    async function teddyGetAccessConfig() {
+      if (!teddyEnsureFirebase()) return null;
+      try {
+        const db = firebase.firestore();
+        const doc = await db.collection("teddy_config").doc("access").get();
+        if (doc.exists) return doc.data();
+        // 第一次用、後台還沒建立設定文件時，自動建立一份預設值，並把預設通行碼告訴你，
+        // 之後隨時可以去 Firebase 後台的 teddy_config/access 這份文件裡直接改掉。
+        const defaults = { passcode: "teddy2026", adminPasscode: "teddyadmin2026", ownerKey: "teddyowner2026" };
+        await db.collection("teddy_config").doc("access").set(defaults);
+        return defaults;
+      } catch (e) {
+        console.warn("讀取存取設定失敗：", e.message);
+        return null;
+      }
+    }
+
+    async function teddyCheckDeviceStatus(deviceId) {
+      if (!teddyEnsureFirebase()) return { status: "unknown" };
+      try {
+        const db = firebase.firestore();
+        const doc = await db.collection("teddy_access").doc(deviceId).get();
+        if (!doc.exists) return { status: "new" };
+        return doc.data();
+      } catch (e) {
+        return { status: "unknown" };
+      }
+    }
+
+    async function teddyRegisterDevice(deviceId, status) {
+      if (!teddyEnsureFirebase()) return;
+      try {
+        const db = firebase.firestore();
+        const ua = navigator.userAgent.slice(0, 120);
+        await db.collection("teddy_access").doc(deviceId).set({
+          deviceId, status,
+          firstSeen: firebase.firestore.FieldValue.serverTimestamp ? undefined : Date.now(),
+          lastSeen: Date.now(),
+          userAgent: ua,
+        }, { merge: true });
+        // firstSeen 只在第一次建立時補上，避免每次重新登入都被覆蓋成現在時間。
+        const snap = await db.collection("teddy_access").doc(deviceId).get();
+        if (snap.exists && !snap.data().firstSeen) {
+          await db.collection("teddy_access").doc(deviceId).set({ firstSeen: Date.now() }, { merge: true });
+        }
+      } catch (e) {
+        console.warn("裝置註冊失敗：", e.message);
+      }
+    }
+
+    async function teddyRunAccessGate() {
+      const gate = document.getElementById("teddyAccessGate");
+      const msg = document.getElementById("teddyGateMsg");
+      const input = document.getElementById("teddyGateInput");
+      const submitBtn = document.getElementById("teddyGateSubmit");
+      const deviceId = teddyGetDeviceId();
+
+      // 這份是「未上鎖」版本：不要求通行碼，家人打開直接能用。
+      // 但裝置紀錄跟後台黑名單機制都還在——儀表板照樣看得到有誰在用，
+      // 之後真的要上鎖，只要換回有通行碼的版本即可，不影響已經記錄的裝置清單。
+      const remoteStatus = await teddyCheckDeviceStatus(deviceId);
+      if (remoteStatus.status === "blocked") {
+        msg.textContent = "這個裝置已被停用，如果你認為是誤會，請直接聯絡邀請你的人。";
+        input.style.display = "none";
+        submitBtn.style.display = "none";
+        gate.style.display = "flex";
+        return;
+      }
+
+      gate.style.display = "none";
+      teddyRegisterDevice(deviceId, "approved");
+    }
+
+    async function teddyAdminLoadDevices() {
+      if (!teddyEnsureFirebase()) return [];
+      const db = firebase.firestore();
+      const snap = await db.collection("teddy_access").orderBy("lastSeen", "desc").get();
+      const devices = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // 順便去 teddy_memory 撈每個裝置最後一次「真的有聊天」的時間，跟單純「開過網頁」分開看。
+      for (const dev of devices) {
+        try {
+          const memDoc = await db.collection("teddy_memory").doc(dev.id).get();
+          dev.lastChat = memDoc.exists ? memDoc.data().updatedAt : null;
+        } catch (_) { dev.lastChat = null; }
+      }
+      return devices;
+    }
+
+    function teddyAdminFormatTime(ts) {
+      if (!ts) return "從未";
+      const d = new Date(typeof ts === "number" ? ts : ts.toMillis?.() || ts);
+      return d.toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    async function teddyAdminRender() {
+      const devices = await teddyAdminLoadDevices();
+      const approved = devices.filter((d) => d.status === "approved").length;
+      const blocked = devices.filter((d) => d.status === "blocked").length;
+      document.getElementById("teddyAdminSummary").textContent =
+        `總共 ${devices.length} 台裝置｜使用中 ${approved} 台｜已封鎖 ${blocked} 台`;
+
+      const list = document.getElementById("teddyAdminList");
+      list.innerHTML = devices.map((d) => {
+        const blocked = d.status === "blocked";
+        return `
+        <div style="background:#141a18;border:1px solid #2a3532;border-radius:10px;padding:12px;margin-bottom:8px;">
+          <div style="color:#e8eeea;font-size:12px;font-family:monospace;word-break:break-all;">${d.id}</div>
+          <div style="color:#9fb4ab;font-size:11px;margin-top:4px;">
+            狀態：<span style="color:${blocked ? '#f87171' : '#5eead4'}">${blocked ? '已封鎖' : '使用中'}</span>　
+            最後開啟：${teddyAdminFormatTime(d.lastSeen)}　
+            最後聊天：${teddyAdminFormatTime(d.lastChat)}
+          </div>
+          <div style="color:#6b7a74;font-size:10px;margin-top:2px;">${d.userAgent || ''}</div>
+          <button data-id="${d.id}" data-action="${blocked ? 'unblock' : 'block'}" class="teddyAdminActionBtn"
+            style="margin-top:8px;background:${blocked ? '#5eead4' : '#7f1d1d'};color:${blocked ? '#0a0e0d' : '#fecaca'};border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;">
+            ${blocked ? '解除封鎖' : '封鎖這台裝置'}
+          </button>
+        </div>`;
+      }).join("") || '<div style="color:#6b7a74;font-size:12px;">目前還沒有任何裝置註冊過。</div>';
+
+      list.querySelectorAll(".teddyAdminActionBtn").forEach((btn) => {
+        btn.onclick = async () => {
+          const db = firebase.firestore();
+          const newStatus = btn.dataset.action === "block" ? "blocked" : "approved";
+          await db.collection("teddy_access").doc(btn.dataset.id).set({ status: newStatus }, { merge: true });
+          teddyAdminRender();
+        };
+      });
+    }
+
+    function teddyMaybeShowAdminPanel() {
+      const params = new URLSearchParams(location.search);
+      if (params.get("admin") !== "1") return;
+      const panel = document.getElementById("teddyAdminPanel");
+      panel.style.display = "block";
+      document.getElementById("teddyAdminPassSubmit").onclick = async () => {
+        const val = document.getElementById("teddyAdminPassInput").value.trim();
+        const config = await teddyGetAccessConfig();
+        if (!config) {
+          document.getElementById("teddyAdminLoginError").textContent = "暫時連不上設定，請稍後再試。";
+          return;
+        }
+        if (val === config.adminPasscode) {
+          document.getElementById("teddyAdminLogin").style.display = "none";
+          document.getElementById("teddyAdminBody").style.display = "block";
+          teddyAdminRender();
+        } else {
+          document.getElementById("teddyAdminLoginError").textContent = "管理密碼不對。";
+        }
+      };
+    }
+
     let teddyLocation = null; // { lat, lon, label }
     let teddyLocationPromise = null;
 
@@ -5090,6 +5305,10 @@ ${parts}
     }
 
     document.addEventListener("DOMContentLoaded",()=>{
+      // 存取閘門最優先跑——沒過的人畫面會被閘門擋住，其他初始化照跑沒關係，
+      // 反正閘門疊在最上層、z-index最高，底下的東西点不到。
+      teddyRunAccessGate();
+      teddyMaybeShowAdminPanel();
       // 稱呼要在任一模式都讀得到，不能只靠打開一般聊天面板才觸發載入——
       // 不然直接點進溫室模式的人，第一句話永遠讀不到已經存過的稱呼。
       teddyLoadHistory();
