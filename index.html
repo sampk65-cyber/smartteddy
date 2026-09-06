@@ -407,6 +407,12 @@
 
 </head>
 <body>
+
+<!-- TEDDY 5.5 ROUTING:
+一般模式=default/no greenhouse data.
+溫室模式: 產能→功能表3；工作→溫室平面圖1-5；計畫→功能表5；施肥→功能表7表一；打卡→功能表10。
+-->
+
   <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.5 Astra · Routing Fix · GPT-6 Astra · Greenhouse Work Edition · 2026-09-06</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.5 ASTRA</div>
   <!-- TEDDY 動態島 -->
@@ -5419,9 +5425,15 @@ ${parts}
     <div style="width:100%;max-width:430px;max-height:78vh;overflow:auto;background:#121916;border:1px solid #2d463d;border-radius:20px;padding:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div>
-          <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
-          <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
-          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-08-23-docid-fix-v3</div>
+          <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · TEDDY 5.5</div>
+<div id="teddy55ModeSwitch" style="display:flex;gap:10px;margin:14px 0 16px;">
+  <button id="teddy55GeneralBtn" type="button" style="flex:1;padding:12px 10px;border-radius:14px;border:1px solid #58dfcf;background:#58dfcf;color:#08231f;font-weight:800;font-size:16px;">🐿 一般模式</button>
+  <button id="teddy55GreenhouseBtn" type="button" style="flex:1;padding:12px 10px;border-radius:14px;border:1px solid #31574f;background:#13231f;color:#dff9f3;font-weight:800;font-size:16px;">🌱 溫室模式</button>
+</div>
+<div id="teddy55ModeHint" style="font-size:13px;color:#91aaa4;margin:-8px 0 14px;">目前：一般模式 · 不讀取溫室工作資料</div>
+
+          <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">TEDDY 5.5 · Astra 雙模式 · 即時資料與語音</div>
+          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-09-06-TEDDY-5.5-dualmode</div>
         </div>
         <button type="button" id="btnGreenhouseClose" style="display:none;border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px;cursor:pointer;">🐿 回一般模式</button>
       </div>
@@ -5717,6 +5729,36 @@ window.TEDDY55_POLICY = Object.freeze({
   }
 });
 console.info("TEDDY 5.5 dual-mode routing loaded", window.TEDDY55_POLICY);
+</script>
+
+
+<script>
+(function(){
+  const KEY="teddy55_mode";
+  function q(id){return document.getElementById(id)}
+  function set55Mode(mode, announce){
+    mode = mode==="greenhouse" ? "greenhouse" : "general";
+    localStorage.setItem(KEY,mode);
+    window.TEDDY55_MODE=mode;
+    const g=q("teddy55GeneralBtn"), f=q("teddy55GreenhouseBtn"), h=q("teddy55ModeHint");
+    if(g){g.style.background=mode==="general"?"#58dfcf":"#13231f";g.style.color=mode==="general"?"#08231f":"#dff9f3";}
+    if(f){f.style.background=mode==="greenhouse"?"#58dfcf":"#13231f";f.style.color=mode==="greenhouse"?"#08231f":"#dff9f3";}
+    if(h) h.textContent=mode==="general"?"目前：一般模式 · 不讀取溫室工作資料":"目前：溫室模式 · Astra 可讀取指定工作資料";
+    document.documentElement.dataset.teddy55Mode=mode;
+    if(announce && typeof teddySpeak==="function"){
+      try{ teddySpeak(mode==="general"?"回到一般模式。":"進入溫室模式。","sweet"); }catch(_){}
+    }
+  }
+  document.addEventListener("DOMContentLoaded",()=>{
+    const g=q("teddy55GeneralBtn"),f=q("teddy55GreenhouseBtn");
+    if(g)g.onclick=()=>set55Mode("general",true);
+    if(f)f.onclick=()=>set55Mode("greenhouse",true);
+    // 5.5 requirement: default to general mode on load.
+    set55Mode("general",false);
+  });
+  window.teddy55GetMode=()=>window.TEDDY55_MODE||localStorage.getItem(KEY)||"general";
+  window.teddy55SetMode=set55Mode;
+})();
 </script>
 
 </body>
