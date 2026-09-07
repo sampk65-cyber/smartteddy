@@ -405,6 +405,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
 
+<!-- TEDDY 5.1.3: unified conversation timeline; live voice is control-only; Astra usage compact -->
 </head>
 <body>
   <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.1.1 Astra · GPT-6 Astra · Dual Mode · 2026-09-07</div>
@@ -474,7 +475,7 @@
             <span style="font-size:12px;font-weight:800;color:#bff9e7;">🎙️ Teddy 即時語音</span>
             <span id="teddyLiveStatus" style="font-size:10px;color:#738b82;">尚未連線</span>
           </div>
-          <div style="font-size:10px;color:#7f948b;margin:-2px 0 7px;">🧠 文字／溫室複雜推理：GPT‑6 Astra · 🎙️ 即時語音：Realtime / Gemini Live</div>
+          <div style="font-size:10px;color:#7f948b;margin:-2px 0 7px;">語音控制 · 對話內容統一顯示於下方</div>
           <select id="teddyLiveModel" style="width:100%;margin-bottom:7px;background:#141a18;border:1px solid #355248;color:#d7e0dc;border-radius:7px;padding:6px;font-size:11px;">
             <option value="smart">智慧分工：Gemini → GPT Mini</option>
             <option value="gemini-live">Gemini 3.1 Flash Live（省費用）</option>
@@ -491,12 +492,10 @@
             <button type="button" id="teddyLiveStop" disabled style="border:1px solid #4b5e57;border-radius:8px;background:#18231f;color:#9fb4ab;padding:8px 11px;cursor:pointer;">停止</button>
           </div>
           <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Aoede 年輕細緻聲線；GPT 備援使用 Coral。預設音量 125%。</div>
-          <div id="teddyLiveTrace" style="margin-top:7px;padding:7px 8px;min-height:32px;background:#101815;border:1px solid #263a33;border-radius:7px;color:#9fd8c8;font-size:10px;line-height:1.45;white-space:pre-wrap;">狀態：尚未開始。開始後會顯示聽到的文字與讀取進度。</div>
+          <div id="teddyLiveTrace" style="display:none;">狀態：尚未開始。</div>
         </div>
 
-        <div id="teddyAstraUsageSummary" style="margin:0 0 8px;padding:9px 10px;background:#0b120f;border:1px solid #2f4d42;border-radius:10px;font-size:10px;line-height:1.55;color:#9fb4ab;">
-          🧠 GPT‑6 Astra 實際用量：尚未使用
-        </div>
+        <div id="teddyAstraUsageSummary" style="margin:0 0 8px;padding:5px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.4;color:#8fa69d;">🧠 Astra｜本次/累計用量尚未產生</div>
 
         <div id="teddyToolsPanel" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <button type="button" class="teddy-chip" data-msg="現在天氣如何">🌦 天氣</button>
@@ -2002,11 +2001,7 @@
     function teddyRenderAstraUsageSummary(){
       const el=document.getElementById("teddyAstraUsageSummary");if(!el)return;
       const o=teddyLoadUsage().openai||{calls:0,apiCalls:0,inputTokens:0,cachedTokens:0,outputTokens:0,costUsd:0};
-      const uncached=Math.max(0,(o.inputTokens||0)-(o.cachedTokens||0));
-      el.innerHTML=`<div style="font-weight:800;color:#c9fff0;margin-bottom:2px;">🧠 GPT‑6 Astra 實際 Token 用量</div>
-      <div>對話 ${o.calls||0} 次 · API ${o.apiCalls||0} 次 · <b style="color:#7ff0d2;">US$${Number(o.costUsd||0).toFixed(6)}</b></div>
-      <div>Input ${uncached.toLocaleString()} · Cached ${(o.cachedTokens||0).toLocaleString()} · Output ${(o.outputTokens||0).toLocaleString()}</div>
-      <div style="color:#6f847b;">Token 數取自 API usage；金額依官方單價計算，最終扣款仍以供應商帳單為準。</div>`;
+      el.innerHTML=`🧠 Astra｜累計 ${o.calls||0} 次 · US$${Number(o.costUsd||0).toFixed(6)}　<span style="color:#657a72;">詳細用量在「更多 → 用量」</span>`;
     }
     function teddyRenderUsage() {
       const panel = document.getElementById("teddyUsagePanel"); if (!panel) return;
