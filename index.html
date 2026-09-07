@@ -2244,7 +2244,7 @@
     }
 
 
-    // ===== TEDDY Hands 5.1.5：A01 授權 → 草稿 → 復述 → 確認 → 寫入 V5.1 =====
+    // ===== TEDDY Hands 5.1.6：A01 授權 → 草稿 → 復述 → 確認 → 寫入 V5.1 =====
     let teddyHandsSession=null;   // 只存在記憶體；重新整理即失效
     let teddyHandsPending=null;   // 待確認草稿；不自動寫入
 
@@ -2327,22 +2327,41 @@
     async function teddyHandsVerifyAccount(id,password){
       if(!password)return null;
       const db=await ghMainFirestore();
+      const target=String(id||"").trim().toUpperCase();
+      const typed=String(password||"").trim();
+      // V5.1 的個人帳號正式位置是 kv/person:{ID}。先直讀，不再先掃整個集合。
+      // 密碼規則沿用完全體：完整密碼 = 帳號 + 3碼英文；為了符合 Teddy 每次詢問密碼的使用方式，
+      // 使用者輸入完整密碼或只輸入後3碼都可驗證，但密碼不會持久化。
+      const tries=new Set([typed]);
+      if(/^[A-Za-z]{3}$/.test(typed))tries.add(target+typed.toUpperCase());
+      if(typed.toUpperCase().startsWith(target))tries.add(typed.toUpperCase());
+      const checkPerson=(a,docId="")=>{
+        if(!a||typeof a!=="object")return null;
+        const aid=String(a.id||a.userId||a.account||String(docId).replace(/^person:/i,"")||"").toUpperCase();
+        const stored=String(a.password??a.pw??"").trim();
+        if(aid!==target||!stored)return null;
+        if(![...tries].some(x=>String(x)===stored||String(x).toUpperCase()===stored.toUpperCase()))return null;
+        if(a.status&&String(a.status).toLowerCase()!=="active")throw new Error("此帳號目前不是啟用狀態");
+        return {id:target,role:a.role||a.roleLabel||"designer",name:a.name||target,menuPerms:a.menuPerms||{}};
+      };
+      try{
+        const doc=await db.collection("kv").doc(`person:${target}`).get();
+        if(doc.exists){let val=doc.data()?.value;try{if(typeof val==="string")val=JSON.parse(val);}catch(_){}const hit=checkPerson(val,doc.id);if(hit)return hit;}
+      }catch(e){console.warn("Teddy Hands direct person read failed",e);}
+      // 相容舊版本：帳號可能被包在陣列／其他前綴文件內。
       let docs=[];
       for(const prefix of ["person:","people:","personnel:"]){
         try{const snap=await db.collection("kv").where(firebase.firestore.FieldPath.documentId(),">=",prefix).where(firebase.firestore.FieldPath.documentId(),"<",prefix+"\uf8ff").get();docs.push(...snap.docs);}catch(_){}
       }
-      // 部分版本把帳號資料放在一般 kv 文件中；只在前綴找不到時做一次完整掃描。
-      if(!docs.length){try{docs=await ghFetchAllDocs(db.collection("kv"));}catch(_){}}
-      const target=String(id||"").toUpperCase();
-      function candidates(v){const out=[];if(v&&typeof v==="object"){out.push(v);for(const x of Object.values(v)){if(Array.isArray(x))out.push(...x.filter(y=>y&&typeof y==="object"));}}return out;}
       for(const doc of docs){const raw=doc.data()||{};let val=raw.value;try{if(typeof val==="string")val=JSON.parse(val);}catch(_){}
-        for(const a of candidates(val)){const aid=String(a.id||a.userId||a.account||"").toUpperCase();if(aid===target && String(a.password??a.pw??"")===String(password)){if(a.status&&a.status!=="active")throw new Error("此帳號目前不是啟用狀態");return {id:target,role:a.role||"designer",name:a.name||target};}}
+        const pool=[];if(val&&typeof val==="object"){pool.push(val);if(Array.isArray(val))pool.push(...val);for(const x of Object.values(val)){if(Array.isArray(x))pool.push(...x);else if(x&&typeof x==="object")pool.push(x);}}
+        for(const a of pool){const hit=checkPerson(a,doc.id);if(hit)return hit;}
       }
       return null;
     }
     async function teddyHandsLogin(id="A01"){
       const pw=await teddyHandsPasswordPrompt(id); if(pw===null)return {ok:false,message:"已取消登入。"};
-      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。密碼不正確，或目前 Teddy 無法讀到完全體 V5.1 的帳號資料。`}; teddyHandsSession=acct; teddyHandsRender(); return {ok:true,message:`✓ ${id} 驗證成功。現在可以下達功能表4（工作1–5）或功能表7（6–8）的設定指令；我會先復述，等你確認才寫入。`};}
+      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。已直接查詢 V5.1 的 person:${id} 帳號；請確認輸入的是完整密碼或密碼後3碼。`}; teddyHandsSession=acct; teddyHandsRender(); return {ok:true,message:`✓ ${id} 驗證成功。現在可以下達功能表4（工作1–5）或功能表7（6–8）的設定指令；我會先復述，等你確認才寫入。`};}
       catch(e){return {ok:false,message:`登入失敗：${e.message}`};}
       finally{ /* pw 僅存在此函式區域，不持久化 */ }
     }
@@ -5707,7 +5726,7 @@ ${parts}
     volume:document.getElementById("teddyLiveVolume"),volumeValue:document.getElementById("teddyLiveVolumeValue")
   };
   const live={active:false,starting:false,manualStop:false,provider:null,ws:null,pc:null,dc:null,stream:null,
-    captureCtx:null,captureNode:null,playCtx:null,outputCtx:null,gainNode:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set()};
+    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set()};
   const ENTRY_LABEL={yield:"產能／功能表3",work:"工作1-5／功能表4",calendar:"計畫／功能表5",materials:"耗材6-8／功能表7內層表3",attendance:"打卡／功能表10"};
 
   function setLiveTrace(text,color="#9fd8c8"){
@@ -5807,18 +5826,28 @@ ${modeLine}
     return new Uint8Array(out.buffer);
   }
   async function startGeminiCapture(stream,ws){
-    const Ctx=window.AudioContext||window.webkitAudioContext;live.captureCtx=new Ctx();
-    const src=live.captureCtx.createMediaStreamSource(stream),node=live.captureCtx.createScriptProcessor(4096,1,1);live.captureNode=node;
+    const Ctx=window.AudioContext||window.webkitAudioContext;live.captureCtx=new Ctx({latencyHint:"interactive"});
+    const src=live.captureCtx.createMediaStreamSource(stream),node=live.captureCtx.createScriptProcessor(2048,1,1);live.captureNode=node;
     node.onaudioprocess=e=>{if(ws.readyState!==1)return;const pcm=downsamplePCM(e.inputBuffer.getChannelData(0),live.captureCtx.sampleRate);ws.send(JSON.stringify({realtimeInput:{audio:{mimeType:"audio/pcm;rate=16000",data:bytesToBase64(pcm)}}}));};
-    src.connect(node);node.connect(live.captureCtx.destination);
+    // ScriptProcessor 必須接到輸出才會被瀏覽器驅動，但絕不能把麥克風送到喇叭。
+    // 用 0 gain sink 可避免監聽回授、爆音或短促 bi 聲。
+    const sink=live.captureCtx.createGain();sink.gain.value=0;live.captureSink=sink;src.connect(node);node.connect(sink);sink.connect(live.captureCtx.destination);
   }
   function stopGeminiAudio(){for(const s of live.sources){try{s.stop();}catch(_){}}live.sources.clear();live.playAt=0;}
   function playGeminiPCM(base64,rate=24000){
     const bytes=base64ToBytes(base64),view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),samples=new Float32Array(Math.floor(bytes.byteLength/2));
     for(let i=0;i<samples.length;i++)samples[i]=view.getInt16(i*2,true)/32768;
-    const Ctx=window.AudioContext||window.webkitAudioContext;if(!live.playCtx){live.playCtx=new Ctx();live.gainNode=live.playCtx.createGain();live.gainNode.gain.value=liveVolumeGain();live.gainNode.connect(live.playCtx.destination);}
-    const buf=live.playCtx.createBuffer(1,samples.length,rate);buf.copyToChannel(samples,0);const src=live.playCtx.createBufferSource();src.buffer=buf;src.connect(live.gainNode);
-    const now=live.playCtx.currentTime;live.playAt=Math.max(now,live.playAt||now);src.start(live.playAt);live.playAt+=buf.duration;live.sources.add(src);src.onended=()=>live.sources.delete(src);
+    const Ctx=window.AudioContext||window.webkitAudioContext;if(!live.playCtx){
+      live.playCtx=new Ctx({latencyHint:"interactive"});live.gainNode=live.playCtx.createGain();
+      live.gainNode.gain.value=Math.min(0.92,liveVolumeGain());
+      live.compressor=live.playCtx.createDynamicsCompressor();live.compressor.threshold.value=-12;live.compressor.knee.value=12;live.compressor.ratio.value=4;live.compressor.attack.value=0.003;live.compressor.release.value=0.12;
+      live.gainNode.connect(live.compressor);live.compressor.connect(live.playCtx.destination);
+    }
+    const buf=live.playCtx.createBuffer(1,samples.length,rate);buf.copyToChannel(samples,0);const src=live.playCtx.createBufferSource();src.buffer=buf;
+    const edge=live.playCtx.createGain();src.connect(edge);edge.connect(live.gainNode);
+    const now=live.playCtx.currentTime,start=Math.max(now+0.015,live.playAt||now+0.015),fade=Math.min(0.006,buf.duration/4);
+    edge.gain.setValueAtTime(0,start);edge.gain.linearRampToValueAtTime(1,start+fade);edge.gain.setValueAtTime(1,Math.max(start+fade,start+buf.duration-fade));edge.gain.linearRampToValueAtTime(0,start+buf.duration);
+    src.start(start);live.playAt=start+buf.duration-0.002;live.sources.add(src);src.onended=()=>{live.sources.delete(src);try{edge.disconnect();}catch(_){}};
   }
   async function parseGeminiMessage(raw){
     const text=raw instanceof Blob?await raw.text():String(raw),m=JSON.parse(text);
@@ -5872,9 +5901,11 @@ ${modeLine}
     live.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     const pc=new RTCPeerConnection();live.pc=pc;live.provider=mode;
     pc.ontrack=e=>{
-      const Ctx=window.AudioContext||window.webkitAudioContext;live.outputCtx=new Ctx();
-      const source=live.outputCtx.createMediaStreamSource(e.streams[0]);live.gainNode=live.outputCtx.createGain();live.gainNode.gain.value=liveVolumeGain();source.connect(live.gainNode);live.gainNode.connect(live.outputCtx.destination);
-      if(live.outputCtx.state==="suspended")live.outputCtx.resume().catch(()=>{});
+      // 最乾淨的路徑：WebRTC 遠端音訊直接交給瀏覽器原生音訊管線，
+      // 不再二次經 AudioContext 重建，避免 buffer 邊界 click/bi 與裝置切換雜音。
+      if(!live.remoteAudio){live.remoteAudio=document.createElement("audio");live.remoteAudio.autoplay=true;live.remoteAudio.playsInline=true;live.remoteAudio.style.display="none";document.body.appendChild(live.remoteAudio);}
+      live.remoteAudio.srcObject=e.streams[0];live.remoteAudio.volume=Math.min(1,Math.max(0.15,liveVolumeGain()));
+      live.remoteAudio.play().catch(()=>{});
     };
     live.stream.getTracks().forEach(t=>pc.addTrack(t,live.stream));const dc=pc.createDataChannel("oai-events");live.dc=dc;dc.onmessage=e=>handleOpenAIEvent(e).catch(err=>setStatus("GPT工具錯誤："+err.message,"#f0a8a8"));
     const offer=await pc.createOffer();await pc.setLocalDescription(offer);
@@ -5887,22 +5918,24 @@ ${modeLine}
   }
   async function disconnectLive(){
     live.manualStop=true;live.active=false;live.starting=false;flushGeminiTurn();stopGeminiAudio();
-    try{live.captureNode?.disconnect();}catch(_){}try{await live.captureCtx?.close();}catch(_){}try{await live.playCtx?.close();}catch(_){}try{await live.outputCtx?.close();}catch(_){}
-    try{live.ws?.close();}catch(_){}try{live.dc?.close();}catch(_){}try{live.pc?.close();}catch(_){}live.stream?.getTracks().forEach(t=>t.stop());
-    Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,playCtx:null,outputCtx:null,gainNode:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:""});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
+    try{live.captureNode?.disconnect();}catch(_){}try{live.captureSink?.disconnect();}catch(_){}try{await live.captureCtx?.close();}catch(_){}try{await live.playCtx?.close();}catch(_){}try{await live.outputCtx?.close();}catch(_){}
+    try{live.ws?.close();}catch(_){}try{live.dc?.close();}catch(_){}try{live.pc?.close();}catch(_){}try{if(live.remoteAudio){live.remoteAudio.pause();live.remoteAudio.srcObject=null;live.remoteAudio.remove();}}catch(_){}live.stream?.getTracks().forEach(t=>t.stop());
+    Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:""});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
   }
   async function startLive(){
     if(live.starting||live.active)return;live.starting=true;live.manualStop=false;setButtons(true);setStatus("連線中…","#e8a659");setLiveTrace("狀態：正在連線即時語音…","#e8c879");
     const mode=ui.model.value;localStorage.setItem("teddy_live_model_v39",mode);
     try{
       if(mode==="smart"){
-        try{await connectGemini();}catch(gErr){await disconnectLive();live.manualStop=false;live.starting=true;setButtons(true);setStatus("Gemini失敗，切換GPT Mini…","#e8a659");await connectOpenAI("gpt-mini-live");}
+        // 5.1.6 Clean Live：智慧模式優先使用原生 WebRTC 的 GPT Realtime Mini。
+        // Astra 仍只負責複雜推理；若 OpenAI Realtime 無法連線才退回 Gemini Live。
+        try{await connectOpenAI("gpt-mini-live");}catch(oErr){await disconnectLive();live.manualStop=false;live.starting=true;setButtons(true);setStatus("GPT Realtime失敗，切換Gemini Live…","#e8a659");await connectGemini();}
       }else if(mode==="gemini-live")await connectGemini();else await connectOpenAI(mode);
       live.active=true;live.starting=false;setButtons(true);
     }catch(e){await disconnectLive();setStatus("無法連線："+e.message,"#f0a8a8");}
   }
   ui.model.value=localStorage.getItem("teddy_live_model_v39")||"smart";
-  if(ui.volume){ui.volume.value=localStorage.getItem("teddy_live_volume_v41")||"125";ui.volume.oninput=applyLiveVolume;applyLiveVolume();}
+  if(ui.volume){ui.volume.value=localStorage.getItem("teddy_live_volume_v41")||"85";ui.volume.oninput=applyLiveVolume;applyLiveVolume();}
   ui.start.onclick=startLive;ui.stop.onclick=disconnectLive;
   window.addEventListener("beforeunload",()=>{try{live.ws?.close();live.pc?.close();}catch(_){}});
 })();
