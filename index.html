@@ -516,6 +516,17 @@
         </div>
 
         <div id="teddyChatLog" style="height:clamp(240px,34vh,380px);max-height:none;overflow-y:auto;font-size:14px;line-height:1.65;margin-bottom:8px;padding:4px 2px;"></div>
+        <div id="teddyHandsPanel" style="display:none;margin:0 0 8px;padding:9px 10px;background:#101714;border:1px solid #5a4530;border-radius:10px;font-size:11px;line-height:1.55;color:#d6ddd9;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <b style="color:#f0c27a;">✋ Teddy 待執行</b><span id="teddyHandsAuthBadge" style="color:#87d7c2;">未登入</span>
+          </div>
+          <pre id="teddyHandsPreview" style="white-space:pre-wrap;margin:0 0 7px;font-family:inherit;color:#b9c9c2;"></pre>
+          <div style="display:flex;gap:6px;">
+            <button type="button" id="teddyHandsConfirm" style="flex:1;border:none;border-radius:8px;background:#f0c27a;color:#17110a;font-weight:800;padding:7px;cursor:pointer;">確認寫入</button>
+            <button type="button" id="teddyHandsCancel" style="border:1px solid #405049;border-radius:8px;background:#18211e;color:#aebdb6;padding:7px 11px;cursor:pointer;">取消</button>
+          </div>
+          <div style="margin-top:5px;color:#73877e;">密碼只用於本次驗證，不寫入聊天紀錄、不儲存在瀏覽器。</div>
+        </div>
         <div id="teddyAttachmentChip" style="display:none;align-items:center;gap:7px;background:#141a18;border:1px solid #2a3532;border-radius:8px;padding:6px 9px;margin-bottom:7px;font-size:11px;color:#a8bbb3;">
           <span id="teddyAttachmentName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
           <button type="button" id="teddyAttachmentClear" style="border:none;background:none;color:#82938c;font-size:16px;cursor:pointer;">×</button>
@@ -773,7 +784,7 @@
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.1.4 Astra File Edition";
+    const TEDDY_VERSION = "Smart Teddy 5.1.5 Astra File Edition";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -2233,6 +2244,145 @@
     }
 
 
+    // ===== TEDDY Hands 5.1.5：A01 授權 → 草稿 → 復述 → 確認 → 寫入 V5.1 =====
+    let teddyHandsSession=null;   // 只存在記憶體；重新整理即失效
+    let teddyHandsPending=null;   // 待確認草稿；不自動寫入
+
+    function teddyHandsNowStamp(){
+      const d=new Date(),p=n=>String(n).padStart(2,"0");
+      return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function teddyHandsYmFromText(t){
+      const q=String(t||""),now=new Date(); let y=now.getFullYear(),m=now.getMonth()+1;
+      let x=q.match(/(20\d{2})\s*年/); if(x)y=+x[1];
+      x=q.match(/(?:^|[^\d])(1[0-2]|[1-9])\s*月/); if(x)m=+x[1];
+      if(/下個月|下月/.test(q)){const d=new Date(y,m,1);y=d.getFullYear();m=d.getMonth()+1;}
+      if(/上個月|上月/.test(q)){const d=new Date(y,m-2,1);y=d.getFullYear();m=d.getMonth()+1;}
+      return `${y}-${String(m).padStart(2,"0")}`;
+    }
+    function teddyHandsZoneFromText(t){
+      const q=String(t||"");
+      const pairs=[["p1",/(?:一期|p1)/i,"一期溫室"],["p2",/(?:二期|p2|總公司)/i,"二期溫室"],["zone3",/(?:三期|zone3)/i,"三期溫室"],["north4",/(?:四北|north4)/i,"四北溫室"],["south4",/(?:四南|south4)/i,"四南溫室"],["zone5",/(?:五期|zone5)/i,"五期溫室"]];
+      for(const [id,re,name] of pairs)if(re.test(q))return {id,name}; return null;
+    }
+    function teddyHandsWorkItemFromText(t){
+      const q=String(t||"");
+      let m=q.match(/(?:工作|工項|項目)\s*([1-5])/); if(m)return +m[1];
+      if(/打芽.*(?:地|底)|地芽/.test(q))return 2;
+      if(/打芽/.test(q))return 1;
+      if(/除草/.test(q))return 3;
+      if(/剪葉/.test(q))return 4;
+      if(/覆蓋/.test(q))return 5;
+      return null;
+    }
+    function teddyHandsParseDraft(t){
+      const q=String(t||"").trim(), zone=teddyHandsZoneFromText(q), ym=teddyHandsYmFromText(q);
+      const is68=/(?:功能表\s*7|6\s*[-到至~]\s*8|工作\s*[678]|工項\s*[678]|補水|灌溉|溝灌|噴灌|施肥|米糠|金旺|其他資材)/.test(q);
+      if(is68){
+        let itemId=null;if(/(?:工作|工項|項目)\s*6|補水|灌溉|溝灌|噴灌/.test(q))itemId=6;else if(/(?:工作|工項|項目)\s*7|施肥|米糠|金旺/.test(q))itemId=7;else if(/(?:工作|工項|項目)\s*8|其他資材/.test(q))itemId=8;
+        const n=q.match(/(\d+(?:\.\d+)?)\s*(噸|分鐘|包|kg|公斤)/i);
+        let material=""; if(/金旺/.test(q))material="金旺";else if(/米糠/.test(q))material="米糠";
+        if(itemId===8){const mm=q.match(/(?:其他資材|項目\s*8|工項\s*8|工作\s*8)\s*[:：]?\s*([^，。,.\s]+?)(?=\s*\d|[，。,.]|$)/);if(mm)material=mm[1];}
+        return {kind:"materials",menu:"功能表7・內層表3（6–8）",zone,ym,itemId,method:/噴灌/.test(q)?"噴灌":/溝灌|灌溉|補水/.test(q)?"溝灌":"",material,amount:n?Number(n[1]):null,unit:n?n[2]:"",raw:q};
+      }
+      const itemId=teddyHandsWorkItemFromText(q);
+      if(itemId || /功能表\s*4|工作\s*1\s*[-到至~]\s*5|工項\s*1\s*[-到至~]\s*5/.test(q)){
+        const cellM=q.match(/(?:格位|格|區位|定位點)\s*[:：]?\s*([A-Za-z0-9_-]+)/i);
+        const lvlM=q.match(/(?:等級|級別|層級|設定)\s*[:：]?\s*([1-5])/);
+        const personM=q.match(/(?:指派給|給|人員)\s*[:：]?\s*([A-Z]\d{2})/i);
+        return {kind:"work",menu:"功能表4・工作1–5",zone,ym,itemId,cellId:cellM?cellM[1]:"",level:lvlM?+lvlM[1]:null,recipientId:personM?personM[1].toUpperCase():"",raw:q};
+      }
+      return null;
+    }
+    function teddyHandsMissing(d){
+      const miss=[]; if(!d.zone)miss.push("溫室/分區"); if(!d.itemId)miss.push("工項編號/名稱");
+      if(d.kind==="work"){if(!d.cellId)miss.push("格位");if(!d.level)miss.push("級別1–5");}
+      if(d.kind==="materials"){if(d.itemId===6&&!d.method)miss.push("補水方式（溝灌/噴灌）");if(d.itemId===7&&!d.material)miss.push("肥料名稱");if(d.itemId===8&&!d.material)miss.push("資材名稱");if(!(Number(d.amount)>0))miss.push("用量");}
+      return miss;
+    }
+    function teddyHandsPreviewText(d){
+      const itemName=(typeof GH_WORK_ITEMS!=="undefined"&&GH_WORK_ITEMS[d.itemId])||`工作${d.itemId||"?"}`;
+      const lines=[`帳號：${teddyHandsSession?.id||"未登入"}`,`功能表：${d.menu}`,`月份：${d.ym}`,`溫室：${d.zone?.name||"未指定"}`,`工項：${d.itemId||"?"} ${itemName}`];
+      if(d.kind==="work"){lines.push(`格位：${d.cellId||"未指定"}`,`級別：${d.level||"未指定"}`);if(d.recipientId)lines.push(`指派：${d.recipientId}`);}
+      else {if(d.method)lines.push(`方式：${d.method}`);if(d.material)lines.push(`材料：${d.material}`);lines.push(`用量：${d.amount??"未指定"}${d.unit||""}`);}
+      return lines.join("\n");
+    }
+    function teddyHandsRender(){
+      const p=document.getElementById("teddyHandsPanel"),b=document.getElementById("teddyHandsAuthBadge"),pre=document.getElementById("teddyHandsPreview");
+      if(b)b.textContent=teddyHandsSession?`✓ ${teddyHandsSession.id} 已驗證`:"未登入";
+      if(!p)return; if(!teddyHandsPending){p.style.display="none";return;} p.style.display="block"; if(pre)pre.textContent=teddyHandsPreviewText(teddyHandsPending);
+    }
+    function teddyHandsPasswordPrompt(id){
+      return new Promise(resolve=>{
+        const old=document.getElementById("teddyHandsPasswordModal");if(old)old.remove();
+        const box=document.createElement("div");box.id="teddyHandsPasswordModal";box.style="position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:18px;";
+        box.innerHTML=`<div style="width:min(360px,100%);background:#141a18;border:1px solid #3e5149;border-radius:14px;padding:15px;color:#e8eeea;"><div style="font-weight:800;margin-bottom:6px;">🔐 Teddy 請你驗證 ${id}</div><div style="font-size:11px;color:#879991;margin-bottom:9px;">密碼只在這次驗證使用，不會加入聊天紀錄，也不會儲存。</div><input id="teddyHandsPw" type="password" autocomplete="off" style="width:100%;background:#0a0e0d;border:1px solid #34443e;border-radius:8px;padding:9px;color:#fff;margin-bottom:9px;" placeholder="請輸入密碼"><div style="display:flex;gap:7px;"><button id="teddyHandsPwOk" style="flex:1;border:0;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:8px;">驗證</button><button id="teddyHandsPwCancel" style="border:1px solid #405049;border-radius:8px;background:#18211e;color:#aebdb6;padding:8px 12px;">取消</button></div><div id="teddyHandsPwErr" style="min-height:16px;color:#ff8585;font-size:11px;margin-top:6px;"></div></div>`;
+        document.body.appendChild(box);const inp=box.querySelector("#teddyHandsPw");setTimeout(()=>inp.focus(),50);
+        const done=v=>{inp.value="";box.remove();resolve(v);};
+        box.querySelector("#teddyHandsPwCancel").onclick=()=>done(null);
+        box.querySelector("#teddyHandsPwOk").onclick=()=>done(inp.value);
+        inp.onkeydown=e=>{if(e.key==="Enter")box.querySelector("#teddyHandsPwOk").click();};
+      });
+    }
+    async function teddyHandsVerifyAccount(id,password){
+      if(!password)return null;
+      const db=await ghMainFirestore();
+      let docs=[];
+      for(const prefix of ["person:","people:","personnel:"]){
+        try{const snap=await db.collection("kv").where(firebase.firestore.FieldPath.documentId(),">=",prefix).where(firebase.firestore.FieldPath.documentId(),"<",prefix+"\uf8ff").get();docs.push(...snap.docs);}catch(_){}
+      }
+      // 部分版本把帳號資料放在一般 kv 文件中；只在前綴找不到時做一次完整掃描。
+      if(!docs.length){try{docs=await ghFetchAllDocs(db.collection("kv"));}catch(_){}}
+      const target=String(id||"").toUpperCase();
+      function candidates(v){const out=[];if(v&&typeof v==="object"){out.push(v);for(const x of Object.values(v)){if(Array.isArray(x))out.push(...x.filter(y=>y&&typeof y==="object"));}}return out;}
+      for(const doc of docs){const raw=doc.data()||{};let val=raw.value;try{if(typeof val==="string")val=JSON.parse(val);}catch(_){}
+        for(const a of candidates(val)){const aid=String(a.id||a.userId||a.account||"").toUpperCase();if(aid===target && String(a.password??a.pw??"")===String(password)){if(a.status&&a.status!=="active")throw new Error("此帳號目前不是啟用狀態");return {id:target,role:a.role||"designer",name:a.name||target};}}
+      }
+      return null;
+    }
+    async function teddyHandsLogin(id="A01"){
+      const pw=await teddyHandsPasswordPrompt(id); if(pw===null)return {ok:false,message:"已取消登入。"};
+      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。密碼不正確，或目前 Teddy 無法讀到完全體 V5.1 的帳號資料。`}; teddyHandsSession=acct; teddyHandsRender(); return {ok:true,message:`✓ ${id} 驗證成功。現在可以下達功能表4（工作1–5）或功能表7（6–8）的設定指令；我會先復述，等你確認才寫入。`};}
+      catch(e){return {ok:false,message:`登入失敗：${e.message}`};}
+      finally{ /* pw 僅存在此函式區域，不持久化 */ }
+    }
+    async function teddyHandsReadKv(key){
+      const db=await ghMainFirestore(),doc=await db.collection("kv").doc(key).get();if(!doc.exists)return null;let v=doc.data()?.value;try{if(typeof v==="string")v=JSON.parse(v);}catch(_){}return v;
+    }
+    async function teddyHandsWriteKv(key,value){
+      const db=await ghMainFirestore();
+      await db.collection("kv").doc(key).set({key,value:JSON.stringify(value),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    }
+    async function teddyHandsCommitWork(d){
+      const key=`worklog:${d.zone.id}:${d.cellId}:${d.ym}`;const old=await teddyHandsReadKv(key);const v=(old&&typeof old==="object")?old:{};const id=d.itemId,stamp=teddyHandsNowStamp();
+      v.levels={...(v.levels||{}),[id]:d.level};v.pending={...(v.pending||{}),[id]:true};v.timestamps={...(v.timestamps||{}),[id]:{...((v.timestamps||{})[id]||{}),changedAt:stamp}};
+      v.changeSenderId=teddyHandsSession.id;v.changeSenderName=teddyHandsSession.name||teddyHandsSession.id;
+      if(d.recipientId){const ids=Array.isArray(v.recipientIds)?[...v.recipientIds]:[];if(!ids.includes(d.recipientId))ids.push(d.recipientId);v.recipientIds=ids;v.recipientNames={...(v.recipientNames||{}),[d.recipientId]:d.recipientId};}
+      await teddyHandsWriteKv(key,v);const chk=await teddyHandsReadKv(key);if(Number(chk?.levels?.[id])!==Number(d.level)||!chk?.pending?.[id])throw new Error("寫入後驗證失敗");return key;
+    }
+    async function teddyHandsCommitMaterials(d){
+      const key=`zonework:${d.zone.id}:${d.ym}`;const old=await teddyHandsReadKv(key);const v=(old&&typeof old==="object")?old:{checks:{},extra:{},multi8Main:[],extra8:{},pending:{},timestamps:{},progress:{},confirmedBy:{},confirmedTotals:{},confirmHistory:[]};const id=d.itemId,stamp=teddyHandsNowStamp();
+      v.checks={...(v.checks||{})};v.extra={...(v.extra||{})};v.pending={...(v.pending||{}),[id]:true};v.timestamps={...(v.timestamps||{}),[id]:{...((v.timestamps||{})[id]||{}),changedAt:stamp}};
+      if(id===6){v.checks[6]=d.method;const field=d.method==="噴灌"?"minutes":"tons";v.extra[6]={...((v.extra||{})[6]||{}),[field]:d.amount};}
+      else if(id===7){v.checks[7]=d.material;v.extra[7]={...((v.extra||{})[7]||{}),bags:d.amount};}
+      else {const arr=Array.isArray(v.multi8Main)?[...v.multi8Main]:[];if(!arr.includes(d.material))arr.push(d.material);v.multi8Main=arr;v.extra8={...(v.extra8||{}),[d.material]:d.amount};}
+      await teddyHandsWriteKv(key,v);const chk=await teddyHandsReadKv(key);if(!chk?.pending?.[id])throw new Error("寫入後驗證失敗");return key;
+    }
+    async function teddyHandsCommitPending(){
+      if(!teddyHandsSession)throw new Error("尚未登入 A01");if(!teddyHandsPending)throw new Error("目前沒有待寫入設定");
+      const d=teddyHandsPending,miss=teddyHandsMissing(d);if(miss.length)throw new Error("資料不完整："+miss.join("、"));
+      const key=d.kind==="work"?await teddyHandsCommitWork(d):await teddyHandsCommitMaterials(d);teddyHandsPending=null;teddyHandsRender();return key;
+    }
+    function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
+    async function teddyHandsHandle(text){
+      const q=String(text||"").trim();
+      if(/(?:用|以)?\s*A01\s*(?:帳號)?\s*(?:登入|登錄|驗證)/i.test(q)){const r=await teddyHandsLogin("A01");return {handled:true,reply:r.message};}
+      if(/^(?:確認|確認寫入|寫入|確定|執行)$/i.test(q)&&teddyHandsPending){if(!teddyHandsSession)return {handled:true,reply:"這筆設定還沒寫入。請先說「用 A01 登入」，我會向你詢問密碼。"};try{const key=await teddyHandsCommitPending();return {handled:true,reply:`✓ 已寫入完全體 V5.1，並重新讀取驗證成功。位置：${key}`};}catch(e){return {handled:true,reply:`寫入失敗，沒有回報成功：${e.message}`};}}
+      if(/^(?:取消|不要寫入|取消寫入)$/i.test(q)&&teddyHandsPending){teddyHandsCancel();return {handled:true,reply:"好，已取消這筆待執行設定，沒有寫入 V5.1。"};}
+      const d=teddyHandsParseDraft(q);if(d){const miss=teddyHandsMissing(d);teddyHandsPending=d;teddyHandsRender();if(miss.length)return {handled:true,reply:`我已建立待執行草稿，但還缺：${miss.join("、")}。補齊後我會再完整復述，仍不會直接寫入。`};return {handled:true,reply:`我先復述一次，現在還沒有寫入：\n\n${teddyHandsPreviewText(d)}\n\n如果正確，請說「確認」或按「確認寫入」；要取消就說「取消」。`};}
+      return {handled:false};
+    }
+
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       let text = input.value.trim();
@@ -2247,6 +2397,16 @@
       const nameHit=teddyDetectPreferredName(text);
       if(nameHit)teddySavePreferredName(nameHit);
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
+
+      // Teddy Hands：登入／設定／確認寫入指令優先攔截，不交給模型猜測，也不會跳過確認。
+      const handsResult = await teddyHandsHandle(text);
+      if (handsResult && handsResult.handled) {
+        teddyUpdateLogDiv(thinkingDiv, handsResult.reply);
+        teddyHistory.push({ role: "assistant", text: handsResult.reply });
+        teddySaveHistory();
+        teddySpeak(handsResult.reply, "gentle");
+        return;
+      }
 
       // V3.1 Core abilities run locally first: faster and cannot be lost by model routing.
       const localReply = teddyV31LocalCoreReply(text);
@@ -2469,6 +2629,14 @@
         alert("TEDDY 無法讀取這個檔案："+(err?.message||err));
       }
     };
+    document.getElementById("teddyHandsConfirm")?.addEventListener("click", async () => {
+      const btn=document.getElementById("teddyHandsConfirm"); if(btn)btn.disabled=true;
+      try{if(!teddyHandsSession){const r=await teddyHandsLogin("A01");teddyAppendLog("teddy",r.message);if(!r.ok)return;}const key=await teddyHandsCommitPending();const msg=`✓ 已寫入完全體 V5.1，並重新讀取驗證成功。位置：${key}`;teddyAppendLog("teddy",msg);teddyHistory.push({role:"assistant",text:msg});teddySaveHistory();teddySpeak(msg,"gentle");}
+      catch(e){teddyAppendLog("teddy","寫入失敗，沒有回報成功："+e.message);}
+      finally{if(btn)btn.disabled=false;}
+    });
+    document.getElementById("teddyHandsCancel")?.addEventListener("click",()=>{teddyHandsCancel();teddyAppendLog("teddy","好，這筆沒有寫入完全體 V5.1。");});
+
     document.getElementById("teddyChatInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") teddySend();
     });
