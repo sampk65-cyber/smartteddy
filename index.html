@@ -396,7 +396,22 @@
     .dual-mode-btn.active{background:#19342c;border-color:#5eead4;color:#d9fff2;}
     .dual-mode-status{margin:-6px 0 10px;text-align:center;font-size:11px;color:#74827c;}
 
-  </style>
+  
+/* ===== 5.2.1 Live Avatar ===== */
+#teddyLiveAvatarWrap{position:relative;max-width:320px;margin:0 auto 16px;border:2px solid #5eead4;border-radius:28px;overflow:hidden;background:#0b100e;box-shadow:0 0 0 3px rgba(94,234,212,.08),0 10px 28px rgba(0,0,0,.35)}
+#teddyLiveAvatarWrap img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;transform:scale(.96)}
+#teddyLiveAvatarWrap.talking img{animation:teddyHeadTalk .9s ease-in-out infinite alternate}
+#teddyLiveAvatarWrap.listening{box-shadow:0 0 0 3px rgba(94,234,212,.14),0 0 28px rgba(94,234,212,.15)}
+#teddyLiveAvatarWrap.stopped{border-color:#ff6b6b;box-shadow:0 0 0 3px rgba(255,107,107,.08),0 10px 28px rgba(0,0,0,.35)}
+#teddyMouth{position:absolute;left:50%;top:63.8%;width:34px;height:10px;transform:translate(-50%,-50%);border-radius:50% 50% 55% 55%;background:rgba(45,12,12,.82);box-shadow:0 0 4px rgba(0,0,0,.35);opacity:0;pointer-events:none}
+#teddyLiveAvatarWrap.talking #teddyMouth{opacity:.78;animation:teddyMouthTalk .16s ease-in-out infinite alternate}
+#teddyLiveAvatarWrap.listening #teddyMouth,#teddyLiveAvatarWrap.stopped #teddyMouth{opacity:0}
+#teddyLiveAvatarStatus{position:absolute;left:12px;bottom:12px;padding:6px 10px;border-radius:999px;background:rgba(8,16,14,.78);border:1px solid rgba(94,234,212,.45);font-size:12px;color:#d9fff2;backdrop-filter:blur(6px)}
+#teddyLiveAvatarWrap.stopped #teddyLiveAvatarStatus{border-color:rgba(255,107,107,.55);color:#ff9b9b}
+@keyframes teddyMouthTalk{from{height:8px;width:31px;transform:translate(-50%,-50%) scaleY(.7)}to{height:22px;width:36px;transform:translate(-50%,-50%) scaleY(1)}}
+@keyframes teddyHeadTalk{from{transform:scale(.955) translateY(0)}to{transform:scale(.965) translateY(-1px)}}
+
+</style>
 
   <!-- Firebase SDK (CDN，純 HTML 用) -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -415,7 +430,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.0 Astra · Work Assign + Report Routing · 2026-09-08</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.1 Astra · Work Assign + Report Routing · 2026-09-08</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -6130,5 +6145,29 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 </script>
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
+
+<script>
+(function(){
+  const wrap=()=>document.getElementById('teddyLiveAvatarWrap');
+  const status=()=>document.getElementById('teddyLiveAvatarStatus');
+  window.setTeddyAvatarState=function(state,label){
+    const w=wrap(), st=status(); if(!w||!st)return;
+    w.classList.remove('talking','listening','stopped');
+    w.classList.add(state||'stopped');
+    st.textContent=label || (state==='talking'?'🗣️ Teddy 正在回答':state==='listening'?'🎧 正在聽你說話':'🔴 已停止');
+  };
+  // Observe existing live-status text without touching audio code.
+  const sync=()=>{
+    const txt=document.body.innerText||'';
+    if(/正在回答|Teddy.*說|model.*speaking/i.test(txt)) setTeddyAvatarState('talking');
+    else if(/正在聽|已連線.*聽|Gemini Live.*正在/i.test(txt)) setTeddyAvatarState('listening');
+    else if(/已停止|尚未連線|即時語音已停止/i.test(txt)) setTeddyAvatarState('stopped');
+  };
+  const mo=new MutationObserver(()=>{clearTimeout(window.__teddyAvatarSyncT);window.__teddyAvatarSyncT=setTimeout(sync,40)});
+  mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true});
+  setTimeout(sync,300);
+})();
+</script>
+
 </body>
 </html>
