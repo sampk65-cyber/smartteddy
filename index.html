@@ -398,19 +398,44 @@
 
   
 
-/* ===== 5.2.2 SAFE Live Avatar: 不修改任何 Base64 圖片資料 ===== */
-.teddy-live-avatar-shell{position:relative;width:100%;height:180px;margin-bottom:8px;border-radius:14px;overflow:hidden;background:#0b100e;border:2px solid #5eead4;box-shadow:0 8px 24px rgba(0,0,0,.30)}
-.teddy-live-avatar-shell .teddy-photo{width:100%;height:100%;margin:0;object-fit:contain;object-position:center;transform:scale(.96);transition:transform .18s ease,filter .18s ease}
-.teddy-live-avatar-shell.listening{box-shadow:0 0 0 3px rgba(94,234,212,.10),0 8px 24px rgba(0,0,0,.30)}
-.teddy-live-avatar-shell.talking .teddy-photo{animation:teddyFaceTalk .55s ease-in-out infinite alternate}
-.teddy-live-avatar-shell.stopped{border-color:#ff6b6b;box-shadow:0 0 0 3px rgba(255,107,107,.08),0 8px 24px rgba(0,0,0,.30)}
-.teddy-live-mouth{position:absolute;left:50%;top:65%;width:24px;height:6px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(55,16,18,.75);box-shadow:0 0 3px rgba(0,0,0,.4);opacity:0;pointer-events:none}
-.teddy-live-avatar-shell.talking .teddy-live-mouth{opacity:.78;animation:teddyMouthTalkSafe .15s ease-in-out infinite alternate}
-.teddy-live-avatar-shell.listening .teddy-live-mouth,.teddy-live-avatar-shell.stopped .teddy-live-mouth{opacity:0}
-.teddy-live-avatar-badge{position:absolute;left:10px;bottom:10px;padding:5px 9px;border-radius:999px;background:rgba(7,16,13,.80);border:1px solid rgba(94,234,212,.45);font-size:11px;color:#d9fff2;backdrop-filter:blur(6px);pointer-events:none}
-.teddy-live-avatar-shell.stopped .teddy-live-avatar-badge{color:#ff9b9b;border-color:rgba(255,107,107,.55)}
-@keyframes teddyMouthTalkSafe{from{height:5px;width:22px;transform:translate(-50%,-50%) scaleY(.7)}to{height:15px;width:27px;transform:translate(-50%,-50%) scaleY(1)}}
-@keyframes teddyFaceTalk{from{transform:scale(.958) translateY(0)}to{transform:scale(.968) translateY(-1px)}}
+/* ===== 5.2.3 LIVE PORTRAIT AVATAR =====
+   原則：不畫假嘴巴、不碰即時語音音訊管線。
+   以同一張 Teddy 照片的「下半臉局部影像」做細微形變，模擬下顎/口鼻動作。 */
+.teddy-live-avatar-shell{
+  position:relative;width:100%;height:220px;margin-bottom:8px;border-radius:18px;
+  overflow:hidden;background:#08100e;border:2px solid #5eead4;
+  box-shadow:0 10px 28px rgba(0,0,0,.34);isolation:isolate;
+}
+.teddy-live-avatar-stage{position:absolute;inset:0;overflow:hidden;background:#08100e}
+.teddy-live-avatar-stage .teddy-photo,
+.teddy-live-avatar-layer{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;
+  object-fit:contain!important;object-position:center!important;pointer-events:none;user-select:none;
+}
+.teddy-live-avatar-stage .teddy-photo{z-index:1;transform:scale(.965);transition:filter .22s ease,transform .3s ease}
+.teddy-live-avatar-layer{z-index:2;transform:scale(.965);will-change:transform,clip-path;opacity:1}
+/* 真實照片區域：只讓口鼻/下顎這一塊動，不額外畫嘴 */
+.teddy-live-avatar-layer.muzzle{clip-path:ellipse(12.5% 10.5% at 50% 35.5%);transform-origin:50% 35.5%}
+.teddy-live-avatar-layer.jaw{clip-path:ellipse(10.5% 8.2% at 50% 39.2%);transform-origin:50% 36.5%;z-index:3}
+.teddy-live-avatar-glow{position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 50% 35%,rgba(94,234,212,.045),transparent 34%);opacity:.15;transition:opacity .25s}
+.teddy-live-avatar-badge{position:absolute;z-index:6;left:12px;bottom:12px;padding:6px 10px;border-radius:999px;background:rgba(7,16,13,.84);border:1px solid rgba(94,234,212,.48);font-size:12px;color:#d9fff2;backdrop-filter:blur(7px);pointer-events:none}
+.teddy-live-avatar-shell.listening{box-shadow:0 0 0 3px rgba(94,234,212,.10),0 10px 28px rgba(0,0,0,.34)}
+.teddy-live-avatar-shell.listening .teddy-live-avatar-stage .teddy-photo{animation:teddyListenBreath 3.8s ease-in-out infinite}
+.teddy-live-avatar-shell.listening .teddy-live-avatar-glow{opacity:.42}
+.teddy-live-avatar-shell.talking{box-shadow:0 0 0 3px rgba(94,234,212,.16),0 10px 32px rgba(0,0,0,.40)}
+.teddy-live-avatar-shell.talking .teddy-live-avatar-stage .teddy-photo{animation:teddyTalkHead 2.15s ease-in-out infinite}
+.teddy-live-avatar-shell.talking .teddy-live-avatar-glow{opacity:.7}
+.teddy-live-avatar-shell.thinking{border-color:#e8c879;box-shadow:0 0 0 3px rgba(232,200,121,.10),0 10px 28px rgba(0,0,0,.34)}
+.teddy-live-avatar-shell.thinking .teddy-live-avatar-stage .teddy-photo{animation:teddyThink 2.8s ease-in-out infinite}
+.teddy-live-avatar-shell.thinking .teddy-live-avatar-badge{color:#ffe7a8;border-color:rgba(232,200,121,.55)}
+.teddy-live-avatar-shell.stopped{border-color:#ff6b6b;box-shadow:0 0 0 3px rgba(255,107,107,.08),0 10px 28px rgba(0,0,0,.30)}
+.teddy-live-avatar-shell.stopped .teddy-live-avatar-stage .teddy-photo{filter:saturate(.92) brightness(.94)}
+.teddy-live-avatar-shell.stopped .teddy-live-avatar-layer{filter:saturate(.92) brightness(.94)}
+.teddy-live-avatar-shell.stopped .teddy-live-avatar-badge{color:#ff9b9b;border-color:rgba(255,107,107,.58)}
+@keyframes teddyListenBreath{0%,100%{transform:scale(.965) translateY(0)}50%{transform:scale(.969) translateY(-.7px)}}
+@keyframes teddyTalkHead{0%,100%{transform:scale(.966) translate(0,0) rotate(0deg)}25%{transform:scale(.971) translate(.4px,-.6px) rotate(.12deg)}70%{transform:scale(.969) translate(-.35px,-.2px) rotate(-.1deg)}}
+@keyframes teddyThink{0%,100%{transform:scale(.965) translateX(0)}50%{transform:scale(.968) translateX(1px)}}
+@media (max-width:420px){.teddy-live-avatar-shell{height:205px}}
 </style>
 
   <!-- Firebase SDK (CDN，純 HTML 用) -->
@@ -430,7 +455,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.2 Astra · Safe Live Avatar · 2026-09-10</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.3 Astra · Live Portrait · 2026-09-10</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -6146,36 +6171,68 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<script id="teddySafeAvatar521Fix">
+<script id="teddyLivePortrait523">
 (function(){
-  function setupSafeAvatar(){
+  function setupLivePortrait(){
     const img=document.querySelector('#teddyPanel .teddy-photo');
     if(!img || img.closest('.teddy-live-avatar-shell')) return;
+
     const shell=document.createElement('div');
     shell.className='teddy-live-avatar-shell stopped';
     img.parentNode.insertBefore(shell,img);
-    shell.appendChild(img);
-    const mouth=document.createElement('div');mouth.className='teddy-live-mouth';shell.appendChild(mouth);
+
+    const stage=document.createElement('div');
+    stage.className='teddy-live-avatar-stage';
+    shell.appendChild(stage);stage.appendChild(img);
+
+    // 使用照片本身當作臉部圖層；沒有另外畫嘴巴。
+    const muzzle=img.cloneNode(true);muzzle.removeAttribute('id');muzzle.className='teddy-live-avatar-layer muzzle';stage.appendChild(muzzle);
+    const jaw=img.cloneNode(true);jaw.removeAttribute('id');jaw.className='teddy-live-avatar-layer jaw';stage.appendChild(jaw);
+    const glow=document.createElement('div');glow.className='teddy-live-avatar-glow';shell.appendChild(glow);
     const badge=document.createElement('div');badge.className='teddy-live-avatar-badge';badge.textContent='🔴 已停止';shell.appendChild(badge);
 
-    function setAvatarState(state,label){
-      shell.classList.remove('talking','listening','stopped');
-      shell.classList.add(state);
-      badge.textContent=label;
+    let state='stopped',raf=0,t0=performance.now(),level=0;
+    const lerp=(a,b,t)=>a+(b-a)*t;
+
+    function setState(next,label){
+      if(next!==state){state=next;level=0;}
+      shell.classList.remove('talking','listening','thinking','stopped');
+      shell.classList.add(next);badge.textContent=label;
+      if(next==='talking'&&!raf){t0=performance.now();raf=requestAnimationFrame(animate);}
+      if(next!=='talking'){
+        if(raf){cancelAnimationFrame(raf);raf=0;}
+        muzzle.style.transform='scale(.965)';jaw.style.transform='scale(.965)';
+      }
     }
+
+    function animate(now){
+      if(state!=='talking'){raf=0;return;}
+      const t=(now-t0)/1000;
+      // 不採規律開合，使用多組不同頻率合成，較接近自然說話節奏。
+      const target=Math.max(0,Math.min(1,
+        .18 + .38*Math.abs(Math.sin(t*7.7)) + .27*Math.abs(Math.sin(t*13.1+.7)) + .14*Math.abs(Math.sin(t*3.9+1.4))
+      ));
+      level=lerp(level,target,.24);
+      const jY=level*2.7, jS=1+level*.050, mX=1+level*.012, mY=1+level*.025;
+      muzzle.style.transform=`scale(.965) translateY(${(level*.55).toFixed(2)}px) scale(${mX.toFixed(4)},${mY.toFixed(4)})`;
+      jaw.style.transform=`scale(.965) translateY(${jY.toFixed(2)}px) scaleY(${jS.toFixed(4)})`;
+      raf=requestAnimationFrame(animate);
+    }
+
     function sync(){
       const s=(document.getElementById('teddyLiveStatus')?.textContent||'').trim();
       const t=(document.getElementById('teddyLiveTrace')?.textContent||'').trim();
       const all=s+' '+t;
-      if(/Teddy\s*正在回答|正在回答|回答：|Teddy：/i.test(all)) setAvatarState('talking','🗣️ Teddy 正在回答');
-      else if(/正在聽|聽到你了|你正在說|已連線/i.test(all)) setAvatarState('listening','🎧 Teddy 正在聽');
-      else if(/已停止|尚未連線|尚未開始|無法連線|斷線/i.test(all)) setAvatarState('stopped','🔴 已停止');
+      if(/Astra.*思考|正在思考|深度思考|分析中/i.test(all)) setState('thinking','🧠 Teddy 正在思考');
+      else if(/Teddy\s*正在回答|正在回答|回答：|Teddy：/i.test(all)) setState('talking','🗣️ Teddy 正在回答');
+      else if(/正在聽|聽到你了|你正在說|已連線/i.test(all)) setState('listening','🎧 Teddy 正在聽');
+      else if(/已停止|尚未連線|尚未開始|無法連線|斷線/i.test(all)) setState('stopped','🔴 已停止');
     }
     const targets=[document.getElementById('teddyLiveStatus'),document.getElementById('teddyLiveTrace')].filter(Boolean);
     const ob=new MutationObserver(sync);targets.forEach(el=>ob.observe(el,{subtree:true,childList:true,characterData:true,attributes:true}));
     sync();
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setupSafeAvatar,{once:true}); else setupSafeAvatar();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupLivePortrait,{once:true});else setupLivePortrait();
 })();
 </script>
 </body>
