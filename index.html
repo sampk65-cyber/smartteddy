@@ -415,7 +415,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.1.8 Astra · Voice Transcript + Hands · 2026-09-08</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.0 Astra · Work Assign + Report Routing · 2026-09-08</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -2260,6 +2260,8 @@
     // ===== TEDDY Hands 5.1.6：A01 授權 → 草稿 → 復述 → 確認 → 寫入 V5.1 =====
     let teddyHandsSession=null;   // 只存在記憶體；重新整理即失效
     let teddyHandsPending=null;   // 待確認草稿；不自動寫入
+    let teddyHandsWorkMode=null; // assign / report
+    let teddyHandsFlow={};       // 工作入口導引狀態
 
     function teddyHandsNowStamp(){
       const d=new Date(),p=n=>String(n).padStart(2,"0");
@@ -2288,6 +2290,30 @@
       if(/覆蓋/.test(q))return 5;
       return null;
     }
+    function teddyHandsSetWorkMode(mode){
+      teddyHandsWorkMode=mode; teddyHandsPending=null; teddyHandsFlow={}; teddyHandsRender();
+      try{if(typeof ghSelectedEntry!=="undefined"){ghSelectedEntry="work";if(typeof ghSetEntryButtonState==="function")ghSetEntryButtonState("work");}}catch(_){}
+      return mode==="assign"
+        ? "已進入工作指派。請告訴我溫室、平面圖區域，以及要設定的工作1–8；我會逐項補問，完整復述後才寫入。"
+        : "已進入工作回報。請告訴我功能表4要回報的溫室、年月與回報項目；我會先復述，確認後才寫入。";
+    }
+    function teddyHandsAreaFromText(t){
+      const q=String(t||"");
+      const m=q.match(/(?:區域|格位|格|區位|定位點|平面圖)\s*[:：]?\s*([A-Za-z0-9_-]+)/i);
+      return m?m[1].toUpperCase():"";
+    }
+    function teddyHandsReportParse(t){
+      const q=String(t||"").trim(),zone=teddyHandsZoneFromText(q),ym=teddyHandsYmFromText(q);
+      let itemId=teddyHandsWorkItemFromText(q);
+      if(!itemId){let m=q.match(/(?:工作|工項|項目|回報)\s*([1-8])/);if(m)itemId=+m[1];}
+      if(!itemId){if(/補水|灌溉|溝灌|噴灌/.test(q))itemId=6;else if(/施肥|米糠|金旺/.test(q))itemId=7;else if(/其他資材/.test(q))itemId=8;}
+      const area=teddyHandsAreaFromText(q);
+      const prog=q.match(/(?:進度|完成度|級別)\s*[:：]?\s*([1-5])/);
+      const n=q.match(/(\d+(?:\.\d+)?)\s*(噸|分鐘|包|kg|公斤)/i);
+      let material="";if(/金旺/.test(q))material="金旺";else if(/米糠/.test(q))material="米糠";
+      if(itemId===8){const mm=q.match(/(?:其他資材|項目\s*8|工項\s*8|工作\s*8)\s*[:：]?\s*([^，。, .]+?)(?=\s*\d|[，。,.]|$)/);if(mm)material=mm[1];}
+      return {kind:"report",menu:"工作入口→功能表4→回報",zone,ym,itemId,cellId:area,progress:prog?+prog[1]:null,amount:n?Number(n[1]):null,unit:n?n[2]:"",material,method:/噴灌/.test(q)?"噴灌":/溝灌|灌溉|補水/.test(q)?"溝灌":"",raw:q};
+    }
     function teddyHandsParseDraft(t){
       const q=String(t||"").trim(), zone=teddyHandsZoneFromText(q), ym=teddyHandsYmFromText(q);
       const is68=/(?:功能表\s*7|6\s*[-到至~]\s*8|工作\s*[678]|工項\s*[678]|補水|灌溉|溝灌|噴灌|施肥|米糠|金旺|其他資材)/.test(q);
@@ -2296,27 +2322,29 @@
         const n=q.match(/(\d+(?:\.\d+)?)\s*(噸|分鐘|包|kg|公斤)/i);
         let material=""; if(/金旺/.test(q))material="金旺";else if(/米糠/.test(q))material="米糠";
         if(itemId===8){const mm=q.match(/(?:其他資材|項目\s*8|工項\s*8|工作\s*8)\s*[:：]?\s*([^，。,.\s]+?)(?=\s*\d|[，。,.]|$)/);if(mm)material=mm[1];}
-        return {kind:"materials",menu:"功能表7・內層表3（6–8）",zone,ym,itemId,method:/噴灌/.test(q)?"噴灌":/溝灌|灌溉|補水/.test(q)?"溝灌":"",material,amount:n?Number(n[1]):null,unit:n?n[2]:"",raw:q};
+        return {kind:"materials",menu:"工作入口→溫室→平面圖→區域→工作6–8",zone,ym,itemId,cellId:teddyHandsAreaFromText(q),method:/噴灌/.test(q)?"噴灌":/溝灌|灌溉|補水/.test(q)?"溝灌":"",material,amount:n?Number(n[1]):null,unit:n?n[2]:"",raw:q};
       }
       const itemId=teddyHandsWorkItemFromText(q);
       if(itemId || /功能表\s*4|工作\s*1\s*[-到至~]\s*5|工項\s*1\s*[-到至~]\s*5/.test(q)){
-        const cellM=q.match(/(?:格位|格|區位|定位點)\s*[:：]?\s*([A-Za-z0-9_-]+)/i);
+        const area=teddyHandsAreaFromText(q);
         const lvlM=q.match(/(?:等級|級別|層級|設定)\s*[:：]?\s*([1-5])/);
         const personM=q.match(/(?:指派給|給|人員)\s*[:：]?\s*([A-Z]\d{2})/i);
-        return {kind:"work",menu:"功能表4・工作1–5",zone,ym,itemId,cellId:cellM?cellM[1]:"",level:lvlM?+lvlM[1]:null,recipientId:personM?personM[1].toUpperCase():"",raw:q};
+        return {kind:"work",menu:"工作入口→溫室→平面圖→區域→工作1–5",zone,ym,itemId,cellId:area,level:lvlM?+lvlM[1]:null,recipientId:personM?personM[1].toUpperCase():"",raw:q};
       }
       return null;
     }
     function teddyHandsMissing(d){
       const miss=[]; if(!d.zone)miss.push("溫室/分區"); if(!d.itemId)miss.push("工項編號/名稱");
-      if(d.kind==="work"){if(!d.cellId)miss.push("格位");if(!d.level)miss.push("級別1–5");}
-      if(d.kind==="materials"){if(d.itemId===6&&!d.method)miss.push("補水方式（溝灌/噴灌）");if(d.itemId===7&&!d.material)miss.push("肥料名稱");if(d.itemId===8&&!d.material)miss.push("資材名稱");if(!(Number(d.amount)>0))miss.push("用量");}
+      if(d.kind==="work"){if(!d.cellId)miss.push("平面圖區域");if(!d.level)miss.push("級別1–5");}
+      if(d.kind==="materials"){if(!d.cellId)miss.push("平面圖區域");if(d.itemId===6&&!d.method)miss.push("補水方式（溝灌/噴灌）");if(d.itemId===7&&!d.material)miss.push("肥料名稱");if(d.itemId===8&&!d.material)miss.push("資材名稱");if(!(Number(d.amount)>0))miss.push("用量");}
+      if(d.kind==="report"){if(!d.zone)miss.push("溫室");if(!d.itemId)miss.push("回報項目");if(d.itemId<=5&&!d.cellId)miss.push("平面圖區域");if(d.itemId<=5&&!d.progress)miss.push("進度1–5");if(d.itemId>=6&&!(Number(d.amount)>0))miss.push("回報用量");}
       return miss;
     }
     function teddyHandsPreviewText(d){
       const itemName=(typeof GH_WORK_ITEMS!=="undefined"&&GH_WORK_ITEMS[d.itemId])||`工作${d.itemId||"?"}`;
       const lines=[`帳號：${teddyHandsSession?.id||"未登入"}`,`功能表：${d.menu}`,`月份：${d.ym}`,`溫室：${d.zone?.name||"未指定"}`,`工項：${d.itemId||"?"} ${itemName}`];
-      if(d.kind==="work"){lines.push(`格位：${d.cellId||"未指定"}`,`級別：${d.level||"未指定"}`);if(d.recipientId)lines.push(`指派：${d.recipientId}`);}
+      if(d.kind==="work"){lines.push(`平面圖區域：${d.cellId||"未指定"}`,`級別：${d.level||"未指定"}`);if(d.recipientId)lines.push(`指派：${d.recipientId}`);}
+      else if(d.kind==="report"){lines.push(`路徑：功能表4 → ${d.zone?.name||"未指定"} → ${d.ym} → 回報項目${d.itemId||"?"}`);if(d.cellId)lines.push(`平面圖區域：${d.cellId}`);if(d.progress)lines.push(`回報進度：${d.progress}`);if(d.method)lines.push(`方式：${d.method}`);if(d.material)lines.push(`材料：${d.material}`);if(d.amount)lines.push(`回報用量：${d.amount}${d.unit||""}`);}
       else {if(d.method)lines.push(`方式：${d.method}`);if(d.material)lines.push(`材料：${d.material}`);lines.push(`用量：${d.amount??"未指定"}${d.unit||""}`);}
       return lines.join("\n");
     }
@@ -2374,7 +2402,9 @@
     }
     async function teddyHandsLogin(id="A01"){
       const pw=await teddyHandsPasswordPrompt(id); if(pw===null)return {ok:false,message:"已取消登入。"};
-      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。已直接查詢 V5.1 的 person:${id} 帳號；請確認輸入的是完整密碼或密碼後3碼。`}; teddyHandsSession=acct; teddyHandsRender(); return {ok:true,message:`✓ ${id} 驗證成功。現在可以下達功能表4（工作1–5）或功能表7（6–8）的設定指令；我會先復述，等你確認才寫入。`};}
+      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。已直接查詢 V5.1 的 person:${id} 帳號；請確認輸入的是完整密碼或密碼後3碼。`}; teddyHandsSession=acct; teddyHandsRender(); teddyHandsWorkMode=null;teddyHandsFlow={};
+        try{if(typeof ghSelectedEntry!=="undefined"){ghSelectedEntry="work";if(typeof ghSetEntryButtonState==="function")ghSetEntryButtonState("work");}}catch(_){}
+        return {ok:true,message:`✓ ${id} 驗證成功。要進行「工作指派」還是「工作回報」？\n工作指派：工作入口 → 溫室 → 平面圖 → 區域 → 工作1–8 → 復述確認 → 寫入。\n工作回報：工作入口 → 功能表4 → 溫室 → 年月 → 回報項目。`};}
       catch(e){return {ok:false,message:`登入失敗：${e.message}`};}
       finally{ /* pw 僅存在此函式區域，不持久化 */ }
     }
@@ -2400,18 +2430,39 @@
       else {const arr=Array.isArray(v.multi8Main)?[...v.multi8Main]:[];if(!arr.includes(d.material))arr.push(d.material);v.multi8Main=arr;v.extra8={...(v.extra8||{}),[d.material]:d.amount};}
       await teddyHandsWriteKv(key,v);const chk=await teddyHandsReadKv(key);if(!chk?.pending?.[id])throw new Error("寫入後驗證失敗");return key;
     }
+    async function teddyHandsCommitReport(d){
+      const stamp=teddyHandsNowStamp(),pid=teddyHandsSession.id;
+      if(d.itemId<=5){
+        const key=`worklog:${d.zone.id}:${d.cellId}:${d.ym}`,old=await teddyHandsReadKv(key),v=(old&&typeof old==="object")?old:{};
+        v.progress={...(v.progress||{}),[d.itemId]:d.progress};
+        v.pending={...(v.pending||{}),[d.itemId]:d.progress===1?false:true};
+        v.confirmedBy={...(v.confirmedBy||{})};const arr=Array.isArray(v.confirmedBy[d.itemId])?[...v.confirmedBy[d.itemId]]:[];if(!arr.includes(pid))arr.push(pid);v.confirmedBy[d.itemId]=arr;
+        v.timestamps={...(v.timestamps||{}),[d.itemId]:{...((v.timestamps||{})[d.itemId]||{}),ackAt:stamp,reportedAt:stamp}};
+        await teddyHandsWriteKv(key,v);return key;
+      }
+      const key=`zonework:${d.zone.id}:${d.ym}`,old=await teddyHandsReadKv(key),v=(old&&typeof old==="object")?old:{checks:{},extra:{},multi8Main:[],extra8:{},pending:{},progress:{},confirmedBy:{},confirmedTotals:{},confirmHistory:[]};
+      const label=(typeof GH_WORK_ITEMS!=="undefined"&&GH_WORK_ITEMS[d.itemId])||`工作${d.itemId}`;
+      const hist=Array.isArray(v.confirmHistory)?[...v.confirmHistory]:[];hist.push({itemId:d.itemId,itemName:label,rowKey:d.material||d.method||label,qty:Number(d.amount),personId:pid,personName:teddyHandsSession.name||pid,at:stamp,confirmedAt:stamp,area:d.cellId||""});v.confirmHistory=hist;
+      v.pending={...(v.pending||{}),[d.itemId]:false};v.progress={...(v.progress||{}),[d.itemId]:1};
+      await teddyHandsWriteKv(key,v);return key;
+    }
     async function teddyHandsCommitPending(){
       if(!teddyHandsSession)throw new Error("尚未登入 A01");if(!teddyHandsPending)throw new Error("目前沒有待寫入設定");
       const d=teddyHandsPending,miss=teddyHandsMissing(d);if(miss.length)throw new Error("資料不完整："+miss.join("、"));
-      const key=d.kind==="work"?await teddyHandsCommitWork(d):await teddyHandsCommitMaterials(d);teddyHandsPending=null;teddyHandsRender();return key;
+      const key=d.kind==="report"?await teddyHandsCommitReport(d):(d.kind==="work"?await teddyHandsCommitWork(d):await teddyHandsCommitMaterials(d));teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
     async function teddyHandsHandle(text){
       const q=String(text||"").trim();
       if(/(?:用|以)?\s*A01\s*(?:帳號)?\s*(?:登入|登錄|驗證)/i.test(q)){const r=await teddyHandsLogin("A01");return {handled:true,reply:r.message};}
+      if(teddyHandsSession&&/^(?:工作)?指派(?:工作)?$/.test(q))return {handled:true,reply:teddyHandsSetWorkMode("assign")};
+      if(teddyHandsSession&&/^(?:工作)?回報(?:工作)?$/.test(q))return {handled:true,reply:teddyHandsSetWorkMode("report")};
       if(/^(?:確認|確認寫入|寫入|確定|執行)$/i.test(q)&&teddyHandsPending){if(!teddyHandsSession)return {handled:true,reply:"這筆設定還沒寫入。請先說「用 A01 登入」，我會向你詢問密碼。"};try{const key=await teddyHandsCommitPending();return {handled:true,reply:`✓ 已寫入完全體 V5.1，並重新讀取驗證成功。位置：${key}`};}catch(e){return {handled:true,reply:`寫入失敗，沒有回報成功：${e.message}`};}}
       if(/^(?:取消|不要寫入|取消寫入)$/i.test(q)&&teddyHandsPending){teddyHandsCancel();return {handled:true,reply:"好，已取消這筆待執行設定，沒有寫入 V5.1。"};}
-      const d=teddyHandsParseDraft(q);if(d){const miss=teddyHandsMissing(d);teddyHandsPending=d;teddyHandsRender();if(miss.length)return {handled:true,reply:`我已建立待執行草稿，但還缺：${miss.join("、")}。補齊後我會再完整復述，仍不會直接寫入。`};return {handled:true,reply:`我先復述一次，現在還沒有寫入：\n\n${teddyHandsPreviewText(d)}\n\n如果正確，請說「確認」或按「確認寫入」；要取消就說「取消」。`};}
+      let d=null;
+      if(teddyHandsWorkMode==="report"||/回報/.test(q))d=teddyHandsReportParse(q);
+      else d=teddyHandsParseDraft(q);
+      if(d){const miss=teddyHandsMissing(d);teddyHandsPending=d;teddyHandsRender();if(miss.length)return {handled:true,reply:`目前走「${teddyHandsWorkMode==="report"?"工作回報":"工作指派"}」路線，還缺：${miss.join("、")}。${teddyHandsWorkMode==="report"?"路徑是：工作入口 → 功能表4 → 溫室 → 年月 → 回報項目。":"路徑是：工作入口 → 溫室 → 平面圖 → 區域 → 工作1–8。"}`};return {handled:true,reply:`我先復述一次，現在還沒有寫入：\n\n${teddyHandsPreviewText(d)}\n\n如果正確，請說「確認」或按「確認寫入」；要取消就說「取消」。`};}
       return {handled:false};
     }
 
@@ -5080,9 +5131,94 @@ ${parts}
       return hasZone && hasTime && (asksContent || true);
     }
 
+    // ===== V5.2 功能表7 十表語意路由（目前先鎖定使用者指定的 1/3/4/5/10） =====
+    // 表一：施肥統計；表三：分區施肥內容；表四：留言板；表五：天氣；表十：登入 IP。
+    function ghFunction7Table(q){
+      const t=String(q||"").replace(/\s+/g,"");
+      if(/(?:功能表?7|表)?(?:十|10).*(?:登入|IP)|(?:登入|IP).*(?:表十|表10|功能表7)/i.test(t) || /登入IP|登入位址|登入來源/.test(t))return 10;
+      if(/(?:功能表?7|表)?(?:五|5).*(?:天氣|氣候)|(?:天氣|氣候).*(?:表五|表5|功能表7)/.test(t) || /溫室天氣|氣象紀錄|每小時天氣/.test(t))return 5;
+      if(/(?:功能表?7|表)?(?:四|4).*(?:留言|公告)|(?:留言|公告).*(?:表四|表4|功能表7)|留言板|留言版/.test(t))return 4;
+      if(/(?:功能表?7|表)?(?:三|3).*(?:施肥|肥料|分區)|(?:分區).*(?:施肥|肥料)|(?:施肥|肥料).*(?:分區)/.test(t))return 3;
+      if(/(?:功能表?7|表)?(?:一|1).*(?:施肥|肥料|統計)|(?:施肥|肥料).*(?:統計|總計|合計|用量)|施肥統計/.test(t))return 1;
+      // 明確說「功能表7表X」但不是目前已定義的表，先不猜。
+      const m=t.match(/功能表?7.*表(?:第)?([0-9]+|[一二三四五六七八九十]+)/);
+      if(m){ const map={一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10}; return map[m[1]]||Number(m[1])||null; }
+      return null;
+    }
+    function ghIsFunction7Question(q){
+      const t=String(q||"");
+      return ghFunction7Table(t)!=null || /功能表\s*7|報表.*(?:施肥|留言|天氣|IP)|登入IP|留言板|留言版|溫室天氣|氣象紀錄/.test(t);
+    }
+    function ghFunction7DateMatch(r,req){
+      if(!req)return true;
+      const blob=(String(r.key||"")+" "+ghSafePreview(r.data,1200)+" "+String(r.updatedAt||""));
+      if(req.ym)return blob.includes(req.ym) || blob.includes(req.ym.replace('-','/'));
+      if(req.year)return blob.includes(String(req.year));
+      return true;
+    }
+    function ghFunction7ZoneMatch(r,zone){
+      if(!zone)return true;
+      const blob=(String(r.key||"")+" "+ghSafePreview(r.data,1200)).toLowerCase();
+      return [zone.id,zone.name,zone.yield,...zone.aliases].some(x=>blob.includes(String(x||"").toLowerCase()));
+    }
+    async function ghFunction7Answer(q){
+      const table=ghFunction7Table(q);
+      if(!table)return '請告訴我功能表7要看哪一張表。已建立的路由是：表一施肥統計、表三分區施肥內容、表四留言板、表五天氣、表十登入IP。';
+      if(![1,3,4,5,10].includes(table))return `功能表7表${table}目前還沒有建立專用語意路由；我不會猜資料來源。`;
+      const req=ghDateRequest(q), zone=ghFindZone(q);
+      if(table===3){
+        const cache=await ghReadEntry('materials',false);
+        const ans=v6MaterialsAnswer(q,cache.rows);
+        return ans||'功能表7表三目前沒有查到符合條件的分區施肥內容。';
+      }
+      const docs=await ghFetchCollection(GH_MAIN.projectId,GH_MAIN.apiKey,'kv',1000);
+      if(table===1){
+        const rows=docs.filter(r=>String(r.key||'').startsWith('zonework:') && ghFunction7DateMatch(r,req) && ghFunction7ZoneMatch(r,zone));
+        const items=[];
+        for(const r of rows){
+          const hs=r.data?.function3Work6to8?.confirmedHistory||r.data?.confirmedHistory||[];
+          for(const h of hs){
+            const kind=String(h.kind||h.type||'');
+            const material=String(h.material||h.name||'');
+            const itemId=Number(h.itemId||0);
+            if(!(itemId===7 || /施肥|肥料/.test(kind) || /米糠|金旺|肥|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂|微量元素/.test(material)))continue;
+            items.push({zone:r.key,material:material||'未註明',amount:Number(h.amount??h.qty??h.quantity??0)||0,unit:h.unit||'',at:h.confirmedAt||h.at||''});
+          }
+        }
+        if(!items.length)return '功能表7表一目前沒有查到符合條件的施肥統計。';
+        const agg={};
+        for(const x of items){const k=x.material+'|'+x.unit;agg[k]=(agg[k]||0)+x.amount;}
+        const summary=Object.entries(agg).map(([k,v])=>{const [m,u]=k.split('|');return `${m} ${Math.round(v*100)/100}${u}`;}).join('、');
+        return `功能表7表一施肥統計：${summary}。共 ${items.length} 筆已確認施肥紀錄。`;
+      }
+      let selected=[];
+      if(table===4){
+        selected=docs.filter(r=>/^(zonenotice:)|notice|message|留言|公告/i.test(String(r.key||'')) || /留言|公告|message|notice/i.test(ghSafePreview(r.data,1000)));
+      }else if(table===5){
+        selected=docs.filter(r=>/weather|climate|氣候|天氣|meteo|cwa/i.test(String(r.key||'')) || /temperature|humidity|rain|wind|氣溫|濕度|降雨|風速|站號|station/i.test(ghSafePreview(r.data,1000)));
+      }else if(table===10){
+        const ipRe=/(?:\d{1,3}\.){3}\d{1,3}/;
+        selected=docs.filter(r=>/login|signin|accesslog|loginlog|ip|登入/i.test(String(r.key||'')) || ipRe.test(ghSafePreview(r.data,1200)));
+      }
+      selected=selected.filter(r=>ghFunction7DateMatch(r,req)&&ghFunction7ZoneMatch(r,zone));
+      if(!selected.length){
+        const name={4:'留言板',5:'天氣',10:'登入IP'}[table];
+        return `功能表7表${table}（${name}）目前沒有讀到符合條件的資料。`;
+      }
+      selected.sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+      const rows=selected.slice(0,40).map(r=>({key:r.key,updatedAt:r.updatedAt,data:r.data}));
+      const tableName={4:'留言板內容',5:'天氣紀錄',10:'登入IP與時間'}[table];
+      const prompt=`【固定資料路由：功能表7・表${table}・${tableName}】\n使用者問題：${q}\n只能根據下方資料回答。先直接回答問題，再補必要日期/分區/數值。找不到就說沒有資料，不得改看其他表。`;
+      const payload={selectedEntry:{id:'function7',label:'功能表7',table:`表${table}・${tableName}`},records:rows,coverage:{totalRecords:rows.length}};
+      return await ghAskAI(prompt,payload);
+    }
+
     function ghRouteV51Question(q,topicHint=null){
       const t=String(q||"");
-      // 固定五入口優先順序：產能 → 打卡 → 耗材6-8 → 計畫 → 工作1-5。
+      // V5.2：功能表7內部報表先依語意鎖定表格，避免「登入IP」被誤導到功能表10打卡。
+      // 使用者指定：表一施肥統計、表三分區施肥內容、表四留言板、表五天氣、表十登入IP。
+      if(ghIsFunction7Question(t))return {id:"function7",label:`功能表7・表${ghFunction7Table(t)||"?"}`};
+      // 其他固定入口優先順序：產能 → 打卡 → 耗材6-8 → 計畫 → 工作1-5。
       // 先看本句明確關鍵字；只有本句沒有入口訊號時，才承接上一輪 topic。
       if(ghIsYieldQuestion(t))return {id:"yield",label:"功能表3・產能"};
       if(ghIsAttendanceQuestion(t))return {id:"attendance",label:"功能表10・打卡"};
@@ -5090,6 +5226,7 @@ ${parts}
       if(ghIsCalendarQuestion(t))return {id:"calendar",label:"功能表5・計畫"};
       if(ghIsWorkQuestion(t))return {id:"work",label:"功能表4・工作1-5"};
 
+      if(topicHint==="function7")return {id:"function7",label:"功能表7"};
       if(topicHint==="yield")return {id:"yield",label:"功能表3・產能"};
       if(topicHint==="attendance")return {id:"attendance",label:"功能表10・打卡"};
       if(topicHint==="materials")return {id:"materials",label:"功能表7・內層表3"};
@@ -5102,6 +5239,7 @@ ${parts}
       const t=String(q||"").replace(/\s+/g,"");
       const addressed=/teddy|泰迪|松鼠|pongchi/i.test(t);
       if(!addressed)return null;
+      if(ghIsFunction7Question(t))return "function7";
       if(/產能|產量|收成|採收|品質/.test(t))return "yield";
       if(/打卡|出勤|上下班|工時|請假/.test(t))return "attendance";
       // 耗材（工作表七・分區耗材統計）跟工作1-5是分開的入口，即使背後都讀 zonework，
@@ -5194,6 +5332,7 @@ ${parts}
     // Step 1 Read -> Step 2 Understand -> Step 3 Organize -> Step 4 Answer.
     // The selected button is the only data domain allowed for the current question.
     const GH_ENTRY_META={
+      function7:{label:"報表",table:"功能表7・十表路由",categories:["zonework","zonenotice","report","other"]},
       yield:{label:"產能",table:"功能表3",categories:["yield","yield_archive"]},
       work:{label:"工作",table:"功能表4・工作1-5",categories:["worklog"]},
       calendar:{label:"計畫",table:"功能表5",categories:["calendar"]},
@@ -5542,7 +5681,9 @@ ${parts}
 
   async function ghAnswerSelectedEntry(entry,q){
     const resolved=ghResolveConversation(q);
-    const effective=v6EffectiveQuestion(entry,resolved.effective),cache=await ghReadEntry(entry,false);
+    const effective=v6EffectiveQuestion(entry,resolved.effective);
+    if(entry==="function7")return ghFunction7Answer(effective);
+    const cache=await ghReadEntry(entry,false);
     if(entry==="calendar")return v6PlanAnswer(effective,cache.rows);
     if(entry==="materials")return v6MaterialsAnswer(effective,cache.rows);
     if(entry==="attendance")return v6AttendanceAnswer(cache.rows,effective);
@@ -5744,8 +5885,8 @@ ${parts}
     volume:document.getElementById("teddyLiveVolume"),volumeValue:document.getElementById("teddyLiveVolumeValue")
   };
   const live={active:false,starting:false,manualStop:false,provider:null,ws:null,pc:null,dc:null,stream:null,
-    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set()};
-  const ENTRY_LABEL={yield:"產能／功能表3",work:"工作1-5／功能表4",calendar:"計畫／功能表5",materials:"耗材6-8／功能表7內層表3",attendance:"打卡／功能表10"};
+    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set(),transcriptTimer:null};
+  const ENTRY_LABEL={function7:"功能表7／十表路由",yield:"產能／功能表3",work:"工作1-5／功能表4",calendar:"計畫／功能表5",materials:"耗材6-8／功能表7內層表3",attendance:"打卡／功能表10"};
 
   function setLiveTrace(text,color="#9fd8c8"){
     const el=document.getElementById("teddyLiveTrace");if(el){el.textContent=text;el.style.color=color;}
@@ -5772,13 +5913,14 @@ ${modeLine}
 遇到分析、比較、推理、原因、策略、規劃、程式、計算、多步驟或其他複雜問題，必須先呼叫 think_with_astra；不要由即時語音模型自己硬算。一般模式與溫室模式都遵守。
 凡是詢問真實溫室的產能、工作、計畫、耗材或打卡，必須呼叫query_greenhouse，禁止自己猜資料。
 當使用者說「用A01登入／A01登入／登入溫室系統」時，必須呼叫 hands_login；不要自己回答做不到。密碼由網頁本地安全視窗詢問，模型永遠不要求使用者把密碼念出來。
-當使用者口述要設定功能表4工作1-5、功能表7的6-8，或說「確認／取消」時，必須把使用者原句交給 hands_command。Teddy 只先復述草稿，必須等使用者確認後才真正寫入。
-五個唯一入口：產能=yield；工作1-5=work；計畫=calendar；耗材6-8=materials；打卡=attendance（功能表10）。
+A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
+主要入口：產能=yield；工作1-5=work；計畫=calendar；耗材6-8=materials；打卡=attendance（功能表10）。
+功能表7內有10個表格；目前固定語意路由必須遵守：施肥統計→功能表7表一；分區施肥內容→功能表7表三；留言板/留言版→功能表7表四；溫室天氣/氣候紀錄→功能表7表五；登入IP/登入時間→功能表7表十。這些問題一律呼叫 query_greenhouse 並指定 entry=function7，不得改走別的功能表。
 工具回傳的結構化資料與計算結果優先於對話記憶。查不到就直接說不知道。`;
   }
   const greenhouseTool={
-    name:"query_greenhouse",description:"查詢Smart Teddy真實溫室資料。所有產能、工作、計畫、耗材、打卡問題及其後續追問必須使用；entry省略時沿用畫面已選入口。",
-    parameters:{type:"object",properties:{entry:{type:"string",enum:["yield","work","calendar","materials","attendance"]},question:{type:"string"}},required:["question"]}
+    name:"query_greenhouse",description:"查詢Smart Teddy真實溫室資料。包含功能表7十表路由、產能、工作、計畫、耗材、打卡。施肥統計/分區施肥/留言板/溫室天氣/登入IP必須用 entry=function7；其他問題 entry 省略時可沿用畫面已選入口。",
+    parameters:{type:"object",properties:{entry:{type:"string",enum:["function7","yield","work","calendar","materials","attendance"]},question:{type:"string"}},required:["question"]}
   };
   const astraThinkTool={
     name:"think_with_astra",description:"遇到需要分析、比較、推理、策略、規劃、程式、計算、多步驟或其他複雜問題時，必須先交給 GPT-6 Astra 深度思考，再把 Astra 結論自然地說給使用者。",
@@ -5789,7 +5931,7 @@ ${modeLine}
     parameters:{type:"object",properties:{account:{type:"string",enum:["A01"]}},required:[]}
   };
   const handsCommandTool={
-    name:"hands_command",description:"處理 V5.1 寫入操作：功能表4工作1-5、功能表7的6-8、確認寫入或取消。必須把使用者原句完整傳入 command。",
+    name:"hands_command",description:"處理 V5.1 工作入口操作：登入後的工作指派/工作回報選擇、指派路徑（溫室→平面圖→區域→工作1-8）、回報路徑（功能表4→溫室→年月→回報項目）、確認寫入或取消。必須把使用者原句完整傳入 command。",
     parameters:{type:"object",properties:{command:{type:"string"}},required:["command"]}
   };
   async function liveAstraThink(question){
@@ -5850,9 +5992,15 @@ ${modeLine}
     }catch(_){}
   }
   function flushGeminiTurn(){
+    if(live.transcriptTimer){clearTimeout(live.transcriptTimer);live.transcriptTimer=null;}
     if(live.inputText.trim())rememberTurn("user",live.inputText);
     if(live.outputText.trim())rememberTurn("assistant",live.outputText);
     live.inputText="";live.outputText="";
+  }
+  function scheduleGeminiTranscriptFlush(delay=850){
+    // Gemini 的 outputTranscription 偶爾會比 turnComplete 晚到；延後少許只影響文字紀錄，不碰音訊播放。
+    if(live.transcriptTimer)clearTimeout(live.transcriptTimer);
+    live.transcriptTimer=setTimeout(()=>flushGeminiTurn(),delay);
   }
   function bytesToBase64(bytes){let s="";const step=0x8000;for(let i=0;i<bytes.length;i+=step)s+=String.fromCharCode(...bytes.subarray(i,i+step));return btoa(s);}
   function base64ToBytes(s){const b=atob(s),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
@@ -5891,13 +6039,13 @@ ${modeLine}
     if(m.setupComplete){setStatus("Gemini Live・正在聽", "#5eead4");setLiveTrace("狀態：已連線，正在聽你說話。","#5eead4");return;}
     if(m.serverContent){
       const sc=m.serverContent;if(sc.interrupted)stopGeminiAudio();
-      if(sc.inputTranscription?.text){live.inputText+=sc.inputTranscription.text;setLiveTrace(`你正在說：${live.inputText}`,"#d8fff1");}
-      if(sc.outputTranscription?.text){live.outputText+=sc.outputTranscription.text;setLiveTrace(`Teddy 正在回答：${live.outputText}`,"#9fd8c8");}
+      if(sc.inputTranscription?.text){live.inputText+=sc.inputTranscription.text;setLiveTrace(`你正在說：${live.inputText}`,"#d8fff1");scheduleGeminiTranscriptFlush(1200);}
+      if(sc.outputTranscription?.text){live.outputText+=sc.outputTranscription.text;setLiveTrace(`Teddy 正在回答：${live.outputText}`,"#9fd8c8");scheduleGeminiTranscriptFlush(950);}
       for(const p of sc.modelTurn?.parts||[]){
-        if(p?.text && !String(p.text).startsWith("{") && !live.outputText.includes(String(p.text))) live.outputText+=String(p.text);
+        if(p?.text && !String(p.text).startsWith("{") && !live.outputText.includes(String(p.text))){live.outputText+=String(p.text);scheduleGeminiTranscriptFlush(950);}
         const d=p.inlineData||p.inline_data;if(d?.data&&String(d.mimeType||d.mime_type||"").includes("audio"))playGeminiPCM(d.data,24000);
       }
-      if(sc.turnComplete)flushGeminiTurn();
+      if(sc.turnComplete)scheduleGeminiTranscriptFlush(1100);
     }
     if(m.toolCall?.functionCalls){
       setLiveTrace("已理解問題。正在選擇溫室入口並讀取真實資料…","#e8c879");
