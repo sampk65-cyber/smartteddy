@@ -401,58 +401,7 @@
 /* ===== 5.2.3 LIVE PORTRAIT AVATAR =====
    原則：不畫假嘴巴、不碰即時語音音訊管線。
    以同一張 Teddy 照片的「下半臉局部影像」做細微形變，模擬下顎/口鼻動作。 */
-.teddy-live-avatar-shell{
-  position:relative;width:100%;height:220px;margin-bottom:8px;border-radius:18px;
-  overflow:hidden;background:#08100e;border:2px solid #5eead4;
-  box-shadow:0 10px 28px rgba(0,0,0,.34);isolation:isolate;
-}
-.teddy-live-avatar-stage{position:absolute;inset:0;overflow:hidden;background:#08100e}
-.teddy-live-avatar-stage .teddy-photo,
-.teddy-live-avatar-layer{
-  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;
-  object-fit:contain!important;object-position:center!important;pointer-events:none;user-select:none;
-}
-.teddy-live-avatar-stage .teddy-photo{z-index:1;transform:scale(.965);transition:filter .22s ease,transform .3s ease}
-.teddy-live-avatar-layer{z-index:2;transform:scale(.965);will-change:transform,clip-path;opacity:1}
-/* 真實照片區域：只讓口鼻/下顎這一塊動，不額外畫嘴 */
-.teddy-live-avatar-layer.muzzle{clip-path:ellipse(12.5% 10.5% at 50% 35.5%);transform-origin:50% 35.5%}
-.teddy-live-avatar-layer.jaw{clip-path:ellipse(10.5% 8.2% at 50% 39.2%);transform-origin:50% 36.5%;z-index:3}
-.teddy-live-avatar-glow{position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 50% 35%,rgba(94,234,212,.045),transparent 34%);opacity:.15;transition:opacity .25s}
-.teddy-live-avatar-badge{position:absolute;z-index:6;left:12px;bottom:12px;padding:6px 10px;border-radius:999px;background:rgba(7,16,13,.84);border:1px solid rgba(94,234,212,.48);font-size:12px;color:#d9fff2;backdrop-filter:blur(7px);pointer-events:none}
-.teddy-live-avatar-shell.listening{box-shadow:0 0 0 3px rgba(94,234,212,.10),0 10px 28px rgba(0,0,0,.34)}
-.teddy-live-avatar-shell.listening .teddy-live-avatar-stage .teddy-photo{animation:teddyListenBreath 3.8s ease-in-out infinite}
-.teddy-live-avatar-shell.listening .teddy-live-avatar-glow{opacity:.42}
-.teddy-live-avatar-shell.talking{box-shadow:0 0 0 3px rgba(94,234,212,.16),0 10px 32px rgba(0,0,0,.40)}
-.teddy-live-avatar-shell.talking .teddy-live-avatar-stage .teddy-photo{animation:teddyTalkHead 2.15s ease-in-out infinite}
-.teddy-live-avatar-shell.talking .teddy-live-avatar-glow{opacity:.7}
-.teddy-live-avatar-shell.thinking{border-color:#e8c879;box-shadow:0 0 0 3px rgba(232,200,121,.10),0 10px 28px rgba(0,0,0,.34)}
-.teddy-live-avatar-shell.thinking .teddy-live-avatar-stage .teddy-photo{animation:teddyThink 2.8s ease-in-out infinite}
-.teddy-live-avatar-shell.thinking .teddy-live-avatar-badge{color:#ffe7a8;border-color:rgba(232,200,121,.55)}
-.teddy-live-avatar-shell.stopped{border-color:#ff6b6b;box-shadow:0 0 0 3px rgba(255,107,107,.08),0 10px 28px rgba(0,0,0,.30)}
-.teddy-live-avatar-shell.stopped .teddy-live-avatar-stage .teddy-photo{filter:saturate(.92) brightness(.94)}
-.teddy-live-avatar-shell.stopped .teddy-live-avatar-layer{filter:saturate(.92) brightness(.94)}
-.teddy-live-avatar-shell.stopped .teddy-live-avatar-badge{color:#ff9b9b;border-color:rgba(255,107,107,.58)}
-@keyframes teddyListenBreath{0%,100%{transform:scale(.965) translateY(0)}50%{transform:scale(.969) translateY(-.7px)}}
-@keyframes teddyTalkHead{0%,100%{transform:scale(.966) translate(0,0) rotate(0deg)}25%{transform:scale(.971) translate(.4px,-.6px) rotate(.12deg)}70%{transform:scale(.969) translate(-.35px,-.2px) rotate(-.1deg)}}
-@keyframes teddyThink{0%,100%{transform:scale(.965) translateX(0)}50%{transform:scale(.968) translateX(1px)}}
-@media (max-width:420px){.teddy-live-avatar-shell{height:205px}}
-
-/* ===== 5.2.6 EXPRESSIVE 2.5D AVATAR ===== */
-.teddy-live-avatar-stage{--jaw:1;--muzzleY:0px;--muzzleX:1;--blink:0;--tilt:0deg}
-.teddy-live-avatar-layer.muzzle{z-index:3;transition:transform 70ms linear;transform:scale(.965) translateY(var(--muzzleY)) scaleX(var(--muzzleX));}
-.teddy-live-avatar-layer.jaw{z-index:4;transition:transform 65ms linear;transform:scale(.965) translateY(calc(var(--jaw) * 2.8px)) scaleY(calc(1 + var(--jaw) * .045));}
-.teddy-avatar-eye{position:absolute;z-index:5;width:8.5%;height:4.5%;top:27.5%;border-radius:55% 55% 48% 48%;background:rgba(78,58,46,.94);opacity:0;transform:scaleY(.15);transition:opacity 45ms ease,transform 55ms ease;pointer-events:none;filter:blur(.2px)}
-.teddy-avatar-eye.left{left:40.2%;transform:rotate(-5deg) scaleY(.15)}
-.teddy-avatar-eye.right{right:40.2%;transform:rotate(5deg) scaleY(.15)}
-.teddy-live-avatar-shell.blink .teddy-avatar-eye{opacity:.88;transform:scaleY(1)}
-.teddy-live-avatar-shell.blink .teddy-avatar-eye.left{transform:rotate(-5deg) scaleY(1)}
-.teddy-live-avatar-shell.blink .teddy-avatar-eye.right{transform:rotate(5deg) scaleY(1)}
-.teddy-live-avatar-shell.talking .teddy-live-avatar-stage .teddy-photo{animation:none!important;transform:scale(.965)!important}
-.teddy-live-avatar-shell.listening .teddy-live-avatar-stage .teddy-photo{animation:teddyListenBreath 4.6s ease-in-out infinite}
-.teddy-live-avatar-shell.thinking .teddy-live-avatar-stage .teddy-photo{animation:teddyThink 3.2s ease-in-out infinite}
-.teddy-live-avatar-shell.talking .teddy-live-avatar-layer.muzzle,.teddy-live-avatar-shell.talking .teddy-live-avatar-layer.jaw{filter:saturate(1.02)}
-
-</style>
+/* TEDDY 5.2.7: avatar animation removed by request; original static photo retained. */
 
   <!-- Firebase SDK (CDN，純 HTML 用) -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -477,7 +426,7 @@
 </style>
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.6 Sol · VisionFix + ModeLock + ExpressiveAvatar · 2026-09-12</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.7 Sol · StaticAvatar + FileProgress + WebLinkReader · 2026-09-12</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -589,9 +538,16 @@
           </div>
           <div style="margin-top:5px;color:#73877e;">密碼只用於本次驗證，不寫入聊天紀錄、不儲存在瀏覽器。</div>
         </div>
-        <div id="teddyAttachmentChip" style="display:none;align-items:center;gap:7px;background:#141a18;border:1px solid #2a3532;border-radius:8px;padding:6px 9px;margin-bottom:7px;font-size:11px;color:#a8bbb3;">
-          <span id="teddyAttachmentName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-          <button type="button" id="teddyAttachmentClear" style="border:none;background:none;color:#82938c;font-size:16px;cursor:pointer;">×</button>
+        <div id="teddyAttachmentChip" style="display:none;background:#141a18;border:1px solid #2a3532;border-radius:8px;padding:7px 9px;margin-bottom:7px;font-size:11px;color:#a8bbb3;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span id="teddyAttachmentName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+            <span id="teddyAttachmentPct" style="min-width:34px;text-align:right;color:#5eead4;font-variant-numeric:tabular-nums;"></span>
+            <button type="button" id="teddyAttachmentClear" style="border:none;background:none;color:#82938c;font-size:16px;cursor:pointer;">×</button>
+          </div>
+          <div id="teddyAttachmentProgressWrap" style="display:none;margin-top:6px;height:5px;border-radius:999px;background:#25302c;overflow:hidden;">
+            <div id="teddyAttachmentProgress" style="height:100%;width:0%;background:#5eead4;transition:width .14s ease;"></div>
+          </div>
+          <div id="teddyAttachmentStage" style="display:none;margin-top:4px;color:#73877e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
         </div>
         <div style="display:flex;gap:8px;">
           <input id="teddyAttachmentInput" type="file" accept="*/*" style="display:none;" />
@@ -1858,8 +1814,11 @@
 
       const visualGuard = teddyAttachment?.kind === "image"
         ? "\n\n【本輪視覺附件規則】你已收到一張真正的圖片，不是檔名或外部連結。必須直接看圖回答。先描述你實際看見的關鍵內容，再回答使用者問題。禁止聲稱『看不到圖片』『只能看到檔名』『打不開連結』，除非 API 本身回報 image decode error。" : "";
+      const lastUserText=[...teddyHistory].reverse().find(h=>h.role==="user")?.text||"";
+      const urlGuard=/https?:\/\//i.test(lastUserText)
+        ? "\n\n【本輪網址規則】使用者提供了網頁連結。你必須使用 web_search 嘗試實際讀取/搜尋該網址的頁面內容與可索引資訊後再回答。不可只看網址字串臆測。若頁面需要登入、遭 robots/權限/CORS/付費牆阻擋，請明確指出限制。" : "";
       const input = [
-        { role: "developer", content: [{ type: "input_text", text: teddyBuildSystemPrompt() + visualGuard }] },
+        { role: "developer", content: [{ type: "input_text", text: teddyBuildSystemPrompt() + visualGuard + urlGuard }] },
         ...teddyHistory.map((h) => {
           const isAssistant = h.role === "assistant";
           return {
@@ -2544,6 +2503,10 @@
       if(teddyAttachment?.kind==="text")text+=(text?"\n\n":"")+`【附件：${teddyAttachment.name}｜${teddyAttachment.format||"文件"}】\n`+teddyAttachment.text;
       else if(teddyAttachment?.kind==="image")text+=(text?" ":"")+`【本輪已實際附加圖片：${teddyAttachment.name}】請以「圖片本身」為第一資料來源，直接辨識像素、OCR 文字、介面、圖表、人物/物件與畫面關係後回答。不要把附件誤認成網址，不要只描述檔名，也不要要求重傳；只有 API 明確回報圖片解碼失敗時才能說無法讀圖。`;
       else if(teddyAttachment?.kind==="file")text+=(text?" ":"")+`我附加了檔案「${teddyAttachment.name}」。請先自行判斷檔案類型、可讀內容與適合的分析方式，再依我的問題回答；若格式確實不受支援，請明確說明原因。`;
+      const teddyUrls=(text.match(/https?:\/\/[^\s<>"'）)】]+/gi)||[]);
+      if(teddyUrls.length){
+        text += `\n\n【網頁連結讀取要求】本輪包含網頁連結：${teddyUrls.join(" 、 ")}。請使用 web_search 實際開啟/搜尋這些網址與其可讀內容，再根據頁面內容回答；不要只根據網址字面猜測。若網站阻擋存取或需要登入，請明確說明哪些內容無法取得。`;
+      }
       if (!text) return;
       input.value = "";
       teddyActiveSkill = teddyDetectSkill(text);
@@ -2699,7 +2662,7 @@
     const teddyAttachmentInput=document.getElementById("teddyAttachmentInput");
     const teddyAttachmentChip=document.getElementById("teddyAttachmentChip");
     document.getElementById("teddyAttachmentBtn").onclick=()=>teddyAttachmentInput.click();
-    document.getElementById("teddyAttachmentClear").onclick=()=>{teddyAttachment=null;teddyAttachmentInput.value="";teddyAttachmentChip.style.display="none";};
+    document.getElementById("teddyAttachmentClear").onclick=()=>{teddyAttachment=null;teddyAttachmentInput.value="";teddyAttachmentChip.style.display="none";teddySetAttachmentProgress(0,"");};
     async function teddyExtractPdf(file){
       if(!window.pdfjsLib) throw new Error("PDF 解析器尚未載入，請等 1 秒再試一次。");
       try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }catch(_){}
@@ -2755,24 +2718,51 @@
       return out.join("\n\n").slice(0,180000);
     }
 
+    function teddySetAttachmentProgress(percent, stage){
+      const bar=document.getElementById("teddyAttachmentProgress");
+      const wrap=document.getElementById("teddyAttachmentProgressWrap");
+      const pct=document.getElementById("teddyAttachmentPct");
+      const st=document.getElementById("teddyAttachmentStage");
+      const n=Math.max(0,Math.min(100,Math.round(Number(percent)||0)));
+      if(wrap)wrap.style.display=n>=100?"none":"block";
+      if(bar)bar.style.width=n+"%";
+      if(pct)pct.textContent=n>=100?"✓":(n+"%");
+      if(st){st.style.display=stage?"block":"none";st.textContent=stage||"";}
+    }
+    function teddyReadDataUrlWithProgress(file, label){
+      return new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onprogress=(e)=>{if(e.lengthComputable)teddySetAttachmentProgress(8+Math.round((e.loaded/e.total)*55),label||"正在讀取檔案…");};
+        r.onload=()=>res(String(r.result));
+        r.onerror=()=>rej(new Error("檔案讀取失敗"));
+        r.readAsDataURL(file);
+      });
+    }
+
     async function teddyReadAttachmentFile(file){
       const ext=(file.name.split(".").pop()||"").toLowerCase();
       if(file.type.startsWith("image/")){
-        const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=()=>rej(new Error("照片讀取失敗"));r.readAsDataURL(file);});
+        teddySetAttachmentProgress(8,"正在讀取圖片像素…");
+        const dataUrl=await teddyReadDataUrlWithProgress(file,"正在讀取圖片像素…");
+        teddySetAttachmentProgress(72,"圖片已讀取，正在準備視覺分析…");
         return {kind:"image",name:file.name,mime:file.type,data:dataUrl.split(",")[1],format:"圖片"};
       }
       let text="",format="文件";
-      if(ext==="pdf"){ text=await teddyExtractPdf(file); format="PDF"; }
-      else if(ext==="xlsx"||ext==="xls"){ text=await teddyExtractExcel(file); format="Excel"; }
-      else if(ext==="docx"){ text=await teddyExtractDocx(file); format="Word"; }
-      else if(ext==="pptx"){ text=await teddyExtractPptx(file); format="PowerPoint"; }
+      teddySetAttachmentProgress(12,"正在讀取檔案…");
+      if(ext==="pdf"){ teddySetAttachmentProgress(35,"正在解析 PDF 文字…"); text=await teddyExtractPdf(file); format="PDF"; }
+      else if(ext==="xlsx"||ext==="xls"){ teddySetAttachmentProgress(35,"正在解析 Excel 工作表…"); text=await teddyExtractExcel(file); format="Excel"; }
+      else if(ext==="docx"){ teddySetAttachmentProgress(35,"正在解析 Word 文件…"); text=await teddyExtractDocx(file); format="Word"; }
+      else if(ext==="pptx"){ teddySetAttachmentProgress(35,"正在解析 PowerPoint…"); text=await teddyExtractPptx(file); format="PowerPoint"; }
       else if(["txt","md","csv","tsv","json"].includes(ext)||file.type.startsWith("text/")){
-        text=await file.text(); format=ext.toUpperCase()||"文字";
+        teddySetAttachmentProgress(45,"正在讀取文字內容…"); text=await file.text(); format=ext.toUpperCase()||"文字";
       } else {
         // 不預先拒絕未知格式：交給 Astra Responses API 的 input_file 自行判斷。
-        const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=()=>rej(new Error("檔案讀取失敗"));r.readAsDataURL(file);});
+        teddySetAttachmentProgress(8,"正在讀取檔案…");
+        const dataUrl=await teddyReadDataUrlWithProgress(file,"正在讀取檔案…");
+        teddySetAttachmentProgress(72,"檔案已讀取，正在準備分析…");
         return {kind:"file",name:file.name,mime:file.type||"application/octet-stream",data:dataUrl.split(",")[1],format:ext?ext.toUpperCase():"檔案"};
       }
+      teddySetAttachmentProgress(82,"正在整理可分析內容…");
       text=String(text||"").trim().slice(0,180000);
       if(!text)throw new Error("這個檔案沒有讀到可分析的文字內容。");
       return {kind:"text",name:file.name,mime:file.type||"text/plain",text,format};
@@ -2782,14 +2772,17 @@
       const file=e.target.files?.[0]; if(!file)return;
       if(file.size>25e6){alert("附件請小於 25MB");e.target.value="";return;}
       const nameEl=document.getElementById("teddyAttachmentName");
-      teddyAttachmentChip.style.display="flex";
-      nameEl.textContent="⏳ 正在讀取 "+file.name;
+      teddyAttachmentChip.style.display="block";
+      nameEl.textContent="⏳ "+file.name;
+      teddySetAttachmentProgress(2,"準備讀取附件…");
       try{
         teddyAttachment=await teddyReadAttachmentFile(file);
+        teddySetAttachmentProgress(94,"附件已讀取，準備送交 Teddy…");
         const icon=teddyAttachment.kind==="image"?"🖼 ":(teddyAttachment.kind==="file"?"📦 ":"📄 ");
-        nameEl.textContent=icon+file.name+" · 已讀取";
+        nameEl.textContent=icon+file.name+" · 已就緒";
+        teddySetAttachmentProgress(100,"已完成，可直接提問");
       }catch(err){
-        teddyAttachment=null; teddyAttachmentInput.value=""; teddyAttachmentChip.style.display="none";
+        teddyAttachment=null; teddyAttachmentInput.value=""; teddySetAttachmentProgress(0,""); teddyAttachmentChip.style.display="none";
         alert("TEDDY 無法讀取這個檔案："+(err?.message||err));
       }
     };
@@ -6018,12 +6011,12 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     parameters:{type:"object",properties:{command:{type:"string"}},required:["command"]}
   };
   const browseWebTool={
-    name:"browse_web",description:"需要瀏覽網頁、查最新資料、查使用者提到的網站/網址或核對線上資訊時使用。把要查的完整問題放入 query。",
+    name:"browse_web",description:"需要瀏覽網頁、查最新資料、讀取使用者貼上的網站/網址或核對線上資訊時必須使用。若使用者提供 URL，query 必須保留完整 URL，並要求實際讀取該頁面內容。",
     parameters:{type:"object",properties:{query:{type:"string"}},required:["query"]}
   };
   async function liveBrowseWeb(query){
     const key=loadKeys().openai;if(!key)return{ok:false,error:"尚未設定 OpenAI API Key"};
-    const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"medium"},tools:[{type:"web_search"}],input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的網頁瀏覽核心。使用繁體中文，根據實際搜尋到的網頁回答；找不到就明說。回覆精簡，供即時語音朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(query||"")}]}]})},90000);
+    const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"medium"},tools:[{type:"web_search"}],input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的網頁瀏覽核心。使用繁體中文。若 query 含 URL，必須優先嘗試讀取/搜尋該網址本身及可索引內容；若網站需要登入、遭權限/robots/付費牆阻擋，要明確說明。不可只根據網址字串猜測。根據實際取得的網頁內容回答；找不到就明說。回覆精簡，供即時語音朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(query||"")}]}]})},90000);
     const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Web HTTP ${r.status}`);
     if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:teddyAstraUsageCost(d.usage)});
     const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
@@ -6235,55 +6228,6 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<script id="teddyExpressiveAvatar526">
-(function(){
-  function setupExpressiveAvatar(){
-    const img=document.querySelector('#teddyPanel .teddy-photo');
-    if(!img)return;
-    let shell=img.closest('.teddy-live-avatar-shell');
-    if(!shell){
-      shell=document.createElement('div');shell.className='teddy-live-avatar-shell stopped';
-      img.parentNode.insertBefore(shell,img);
-      const stage=document.createElement('div');stage.className='teddy-live-avatar-stage';shell.appendChild(stage);stage.appendChild(img);
-    }
-    const stage=shell.querySelector('.teddy-live-avatar-stage');
-    // 用原照片本身建立口鼻/下顎兩層，形成真正局部表情，不是貼一個假嘴。
-    if(!stage.querySelector('.muzzle')){
-      const muzzle=img.cloneNode(true);muzzle.removeAttribute('id');muzzle.className='teddy-live-avatar-layer muzzle';stage.appendChild(muzzle);
-      const jaw=img.cloneNode(true);jaw.removeAttribute('id');jaw.className='teddy-live-avatar-layer jaw';stage.appendChild(jaw);
-      const le=document.createElement('i');le.className='teddy-avatar-eye left';stage.appendChild(le);
-      const re=document.createElement('i');re.className='teddy-avatar-eye right';stage.appendChild(re);
-    }
-    let glow=shell.querySelector('.teddy-live-avatar-glow');if(!glow){glow=document.createElement('div');glow.className='teddy-live-avatar-glow';shell.appendChild(glow);}
-    let badge=shell.querySelector('.teddy-live-avatar-badge');if(!badge){badge=document.createElement('div');badge.className='teddy-live-avatar-badge';shell.appendChild(badge);}
-    let talkTimer=null,blinkTimer=null,state='stopped',step=0;
-    const visemes=[
-      [0.15,0.0,1.00],[0.52,0.5,1.01],[0.92,1.4,.985],[0.35,.25,1.025],
-      [0.72,.85,.995],[0.20,.05,1.00],[1.00,1.8,.98],[0.46,.4,1.015]
-    ];
-    function stopTalk(){if(talkTimer){clearInterval(talkTimer);talkTimer=null;}stage.style.setProperty('--jaw','0');stage.style.setProperty('--muzzleY','0px');stage.style.setProperty('--muzzleX','1');}
-    function startTalk(){if(talkTimer)return;talkTimer=setInterval(()=>{const v=visemes[(step++ + Math.floor(Math.random()*3))%visemes.length];stage.style.setProperty('--jaw',String(v[0]));stage.style.setProperty('--muzzleY',v[1]+'px');stage.style.setProperty('--muzzleX',String(v[2]));},78+Math.floor(Math.random()*28));}
-    function blink(){shell.classList.add('blink');setTimeout(()=>shell.classList.remove('blink'),105+Math.random()*55);}
-    function scheduleBlink(){clearTimeout(blinkTimer);blinkTimer=setTimeout(()=>{blink();scheduleBlink();},2200+Math.random()*3600);}
-    function setState(next,label){
-      if(state===next&&badge.textContent===label)return;state=next;
-      shell.classList.remove('talking','listening','thinking','stopped');shell.classList.add(next);badge.textContent=label;
-      if(next==='talking')startTalk();else stopTalk();
-    }
-    function sync(){
-      const s=(document.getElementById('teddyLiveStatus')?.textContent||'').trim();
-      const t=(document.getElementById('teddyLiveTrace')?.textContent||'').trim();
-      const all=s+' '+t;
-      if(/Astra.*思考|正在思考|深度思考|分析中/i.test(all))setState('thinking','🧠 Teddy 正在思考');
-      else if(/Teddy\s*正在回答|正在回答|回答：|Teddy：/i.test(all))setState('talking','🗣️ Teddy 正在回答');
-      else if(/正在聽|聽到你了|你正在說|已連線/i.test(all))setState('listening','🎧 Teddy 正在聽');
-      else setState('stopped','🔴 已停止');
-    }
-    const ob=new MutationObserver(sync);[document.getElementById('teddyLiveStatus'),document.getElementById('teddyLiveTrace')].filter(Boolean).forEach(el=>ob.observe(el,{subtree:true,childList:true,characterData:true,attributes:true}));
-    scheduleBlink();sync();
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupExpressiveAvatar,{once:true});else setupExpressiveAvatar();
-})();
-</script>
+<!-- TEDDY 5.2.7: animated avatar intentionally disabled; static original photo only. -->
 </body>
 </html>
