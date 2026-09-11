@@ -453,9 +453,15 @@
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
+
+<style id="teddyUnifiedVoice525">
+/* 5.2.5：單一對話、單一主語音。即時語音是唯一主聲線；舊單次TTS/試聽/語音開關隱藏。 */
+#teddyVoiceToggle,#teddyVoicePreview,#btnGreenhouseMic,#btnGreenhouseVoice,#btnGreenhouseVoicePreview{display:none!important;}
+#teddyChipmunkToggle{display:inline-flex!important;}
+</style>
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.4 Sol · Vision + Web · 2026-09-12</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.5 Sol · Vision + Web · 2026-09-12</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -824,7 +830,7 @@
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.2.4 Sol Vision + Web Edition";
+    const TEDDY_VERSION = "Smart Teddy 5.2.5 Sol Vision + Web Edition";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -1550,7 +1556,7 @@
       const modeRules = greenhouseOn
         ? "【目前模式：溫室模式】只有在這個模式才把溫室產能、工作、計畫、耗材、打卡當成主要上下文；結構化 V5.1 資料優先於筆記與聊天。"
         : "【目前模式：一般模式】不要因為使用者提到『工作』、檔案、照片、網頁或分析，就自行切成溫室/工作模式。除非使用者明確要求進入溫室模式或查 V5.1 真實資料，否則保持一般模式。";
-      let prompt = TEDDY_SYSTEM_PROMPT + "\n\n【Smart Teddy 5.2.4 規則】\n可直接看懂使用者本次附加的圖片/截圖，並可讀取各類常見檔案。若本次附有圖片，圖片像素就是目前可見內容：必須直接分析圖片，不得說『打不開連結／看不到截圖／請重新上傳』，除非 API 明確回報圖片解碼失敗。附件內容是本次回答的重要依據；先忠實讀取附件，再回答，不可只依檔名猜測。需要最新網頁資訊時可使用網頁搜尋。\n" + modeRules + "\n\n【目前啟用 Skill：" + skill.name + "】\n" + skill.prompt;
+      let prompt = TEDDY_SYSTEM_PROMPT + "\n\n【Smart Teddy 5.2.5 規則】\n可直接看懂使用者本次附加的圖片/截圖，並可讀取各類常見檔案。若本次附有圖片，圖片像素就是目前可見內容：必須直接分析圖片，不得說『打不開連結／看不到截圖／請重新上傳』，除非 API 明確回報圖片解碼失敗。附件內容是本次回答的重要依據；先忠實讀取附件，再回答，不可只依檔名猜測。需要最新網頁資訊時可使用網頁搜尋。\n" + modeRules + "\n\n【目前啟用 Skill：" + skill.name + "】\n" + skill.prompt;
       prompt += teddyV31CorePrompt(currentMessage);
       prompt += teddyV3SkillPrompt(currentMessage);
       prompt += `\n\n【Teddy 即時自我狀態】
@@ -2529,8 +2535,12 @@
       if(nameHit)teddySavePreferredName(nameHit);
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
-      // Teddy Hands：登入／設定／確認寫入指令優先攔截，不交給模型猜測，也不會跳過確認。
-      const handsResult = await teddyHandsHandle(text);
+      // Teddy Hands：只有「明確進入工作/溫室」或使用者直接下工作指令時才啟動。
+      // 一般模式下的照片、檔案、網頁、一般聊天不得被工作解析器攔截。
+      const greenhouseActive = document.getElementById("greenhousePanel")?.style.display !== "none";
+      const explicitHandsCommand = /(?:^|\s)(?:工作|進入工作|工作模式|溫室模式|工作指派|工作回報|用\s*A01\s*登入|A01\s*登入|登入溫室系統|確認寫入|取消寫入)(?:$|[，。！？!?\s])/i.test(text)
+        || (!!teddyHandsPending && /^(?:確認|確認寫入|寫入|確定|執行|取消|不要寫入|取消寫入)$/i.test(text.trim()));
+      const handsResult = (greenhouseActive || explicitHandsCommand) ? await teddyHandsHandle(text) : {handled:false};
       if (handsResult && handsResult.handled) {
         teddyUpdateLogDiv(thinkingDiv, handsResult.reply);
         teddyHistory.push({ role: "assistant", text: handsResult.reply });
@@ -3317,7 +3327,7 @@ ${parts}
       const panel=document.getElementById("greenhousePanel");
       if(p)p.classList.toggle("active",!farm);
       if(g)g.classList.toggle("active",farm);
-      if(s)s.textContent=farm?"🌱 工作模式 · Smart Teddy 4.4-2（工作記憶）":"🐿 一般模式";
+      if(s)s.textContent=farm?"🌱 溫室模式 · 工作資料":"🐿 一般模式 · 不處理工作路由";
       if(panel)panel.style.display=farm?"flex":"none";
       const liveBox=document.getElementById("teddyLiveBox");
       const liveTarget=document.getElementById(farm?"greenhouseLiveMount":"teddyLiveHome");
@@ -5956,7 +5966,7 @@ ${parts}
     return `你是Smart Teddy 4.4-2，一隻甜美、年輕、聲線細緻、反應靈活的繁體中文松鼠工作助理。說話自然明亮、語速微快但咬字清楚，不要刻意裝幼童。
 ${memory}
 ${modeLine}
-模式切換是使用者控制的 UI 狀態。不要因為使用者提到「工作」、溫室、檔案、圖片或網站，就自行宣稱已切換模式；只有使用者明確要求切換時才切換語意上下文。
+模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
 本次若使用者在文字對話附上圖片/截圖，主文字模型可直接看圖；即時語音本身不要假裝已看到未送入 Realtime 的圖片。若使用者要你查網頁/最新資料，必須呼叫 browse_web。
 回答自然精簡，通常1到3句；不要朗讀表情符號。可以被使用者隨時打斷。
 遇到分析、比較、推理、原因、策略、規劃、程式、計算、多步驟或其他複雜問題，必須先呼叫 think_with_astra；不要由即時語音模型自己硬算。一般模式與溫室模式都遵守。
@@ -6193,54 +6203,22 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<script id="teddyLivePortrait523">
+<script id="teddyLivePortrait525">
 (function(){
   function setupLivePortrait(){
     const img=document.querySelector('#teddyPanel .teddy-photo');
     if(!img || img.closest('.teddy-live-avatar-shell')) return;
-
     const shell=document.createElement('div');
     shell.className='teddy-live-avatar-shell stopped';
     img.parentNode.insertBefore(shell,img);
-
-    const stage=document.createElement('div');
-    stage.className='teddy-live-avatar-stage';
-    shell.appendChild(stage);stage.appendChild(img);
-
-    // 使用照片本身當作臉部圖層；沒有另外畫嘴巴。
-    const muzzle=img.cloneNode(true);muzzle.removeAttribute('id');muzzle.className='teddy-live-avatar-layer muzzle';stage.appendChild(muzzle);
-    const jaw=img.cloneNode(true);jaw.removeAttribute('id');jaw.className='teddy-live-avatar-layer jaw';stage.appendChild(jaw);
+    const stage=document.createElement('div');stage.className='teddy-live-avatar-stage';shell.appendChild(stage);stage.appendChild(img);
     const glow=document.createElement('div');glow.className='teddy-live-avatar-glow';shell.appendChild(glow);
     const badge=document.createElement('div');badge.className='teddy-live-avatar-badge';badge.textContent='🔴 已停止';shell.appendChild(badge);
-
-    let state='stopped',raf=0,t0=performance.now(),level=0;
-    const lerp=(a,b,t)=>a+(b-a)*t;
-
     function setState(next,label){
-      if(next!==state){state=next;level=0;}
-      shell.classList.remove('talking','listening','thinking','stopped');
-      shell.classList.add(next);badge.textContent=label;
-      if(next==='talking'&&!raf){t0=performance.now();raf=requestAnimationFrame(animate);}
-      if(next!=='talking'){
-        if(raf){cancelAnimationFrame(raf);raf=0;}
-        muzzle.style.transform='scale(.965)';jaw.style.transform='scale(.965)';
-      }
+      shell.classList.remove('talking','listening','thinking','stopped');shell.classList.add(next);badge.textContent=label;
+      // 不再用裁切嘴巴/下顎假動畫。只有整體自然微動，直到換成真正 rigged avatar。
+      img.style.transform='';
     }
-
-    function animate(now){
-      if(state!=='talking'){raf=0;return;}
-      const t=(now-t0)/1000;
-      // 不採規律開合，使用多組不同頻率合成，較接近自然說話節奏。
-      const target=Math.max(0,Math.min(1,
-        .18 + .38*Math.abs(Math.sin(t*7.7)) + .27*Math.abs(Math.sin(t*13.1+.7)) + .14*Math.abs(Math.sin(t*3.9+1.4))
-      ));
-      level=lerp(level,target,.24);
-      const jY=level*2.7, jS=1+level*.050, mX=1+level*.012, mY=1+level*.025;
-      muzzle.style.transform=`scale(.965) translateY(${(level*.55).toFixed(2)}px) scale(${mX.toFixed(4)},${mY.toFixed(4)})`;
-      jaw.style.transform=`scale(.965) translateY(${jY.toFixed(2)}px) scaleY(${jS.toFixed(4)})`;
-      raf=requestAnimationFrame(animate);
-    }
-
     function sync(){
       const s=(document.getElementById('teddyLiveStatus')?.textContent||'').trim();
       const t=(document.getElementById('teddyLiveTrace')?.textContent||'').trim();
@@ -6251,8 +6229,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       else if(/已停止|尚未連線|尚未開始|無法連線|斷線/i.test(all)) setState('stopped','🔴 已停止');
     }
     const targets=[document.getElementById('teddyLiveStatus'),document.getElementById('teddyLiveTrace')].filter(Boolean);
-    const ob=new MutationObserver(sync);targets.forEach(el=>ob.observe(el,{subtree:true,childList:true,characterData:true,attributes:true}));
-    sync();
+    const ob=new MutationObserver(sync);targets.forEach(el=>ob.observe(el,{subtree:true,childList:true,characterData:true,attributes:true}));sync();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupLivePortrait,{once:true});else setupLivePortrait();
 })();
