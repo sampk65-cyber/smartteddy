@@ -426,7 +426,7 @@
 </style>
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.7 Sol · StaticAvatar + FileProgress + WebLinkReader · 2026-09-12</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.9 · GPT-6 Astra Routing + UnifiedTranscript + V5.1C8.9 PageReader · 2026-09-12</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -1803,6 +1803,7 @@
       // GPT-6 Astra: tools must use the Responses API.
       const oaTools = [
         { type: "web_search" },
+        { type:"function", name:"inspect_v51_page", description:"讀取目前網頁內嵌完全體 V5.1C8.9 的可見介面、功能入口、表格與固定路由。只在溫室模式可用；回答此頁/功能表/路徑問題時先呼叫。", parameters:{type:"object",properties:{question:{type:"string"}},required:[]}, strict:false },
         ...TEDDY_TOOLS.map((t) => ({
           type: "function",
           name: t.name,
@@ -1817,8 +1818,10 @@
       const lastUserText=[...teddyHistory].reverse().find(h=>h.role==="user")?.text||"";
       const urlGuard=/https?:\/\//i.test(lastUserText)
         ? "\n\n【本輪網址規則】使用者提供了網頁連結。你必須使用 web_search 嘗試實際讀取/搜尋該網址的頁面內容與可索引資訊後再回答。不可只看網址字串臆測。若頁面需要登入、遭 robots/權限/CORS/付費牆阻擋，請明確指出限制。" : "";
+      const v51PageGuard=(window.TEDDY_APP_MODE==="greenhouse")
+        ? "\n\n【V5.1C8.9 網頁規則】你正在 Teddy 內嵌的完全體 V5.1C8.9 溫室模式。當問題涉及目前頁面、功能表、按鈕、表格、操作路徑或版本內容時，必須先呼叫 inspect_v51_page 取得目前 DOM 與固定路由，再回答；不得憑印象猜。" : "";
       const input = [
-        { role: "developer", content: [{ type: "input_text", text: teddyBuildSystemPrompt() + visualGuard + urlGuard }] },
+        { role: "developer", content: [{ type: "input_text", text: teddyBuildSystemPrompt() + visualGuard + urlGuard + v51PageGuard }] },
         ...teddyHistory.map((h) => {
           const isAssistant = h.role === "assistant";
           return {
@@ -1860,8 +1863,8 @@
           body: JSON.stringify((()=>{
             const visualOnly = teddyAttachment?.kind === "image";
             const mode = window.TEDDY_APP_MODE || "general";
-            const allowedTools = visualOnly ? [] : (mode === "greenhouse" ? oaTools : oaTools.filter(t=>t.type==="web_search" || !["greenhouse_query","teddy_hands_login","teddy_hands_command"].includes(t.name)));
-            const body={model:"gpt-5.6-sol",reasoning:{effort:"high"},input:conversationInput};
+            const allowedTools = visualOnly ? [] : (mode === "greenhouse" ? oaTools : oaTools.filter(t=>t.type==="web_search" || !["greenhouse_query","teddy_hands_login","teddy_hands_command","inspect_v51_page"].includes(t.name)));
+            const body={model:"gpt-6-astra",reasoning:{effort:"high"},input:conversationInput};
             if(allowedTools.length){body.tools=allowedTools;body.tool_choice="auto";}
             return body;
           })()),
@@ -1898,7 +1901,7 @@
         for (const call of calls) {
           let args = {};
           try { args = typeof call.arguments === "string" ? JSON.parse(call.arguments || "{}") : (call.arguments || {}); } catch (_) {}
-          const result = await teddyRunTool(call.name, args);
+          const result = call.name==="inspect_v51_page" ? teddyInspectV51Page(args?.question||"") : await teddyRunTool(call.name, args);
           toolOutputs.push({
             type: "function_call_output",
             call_id: call.call_id || call.id,
@@ -2036,7 +2039,7 @@
       const cached=Number(x.input_tokens_details?.cached_tokens??x.cached??0)||0;
       const output=Number(x.output_tokens??x.output??0)||0;
       const uncached=Math.max(0,input-cached);
-      // GPT-5.6 Sol: input $4/M, output $20/M. Cached input is estimated here at the normal input rate unless billing returns a separate amount.
+      // GPT-6 Astra：標準輸入 $10/M、快取輸入 $1/M、輸出 $50/M；實際帳單仍以 OpenAI API usage/billing 為準。
       // >272K input request: full request input/cache x2, output x1.5.
       const long=input>272000;
       return (uncached/1e6)*10*(long?2:1)+(cached/1e6)*1*(long?2:1)+(output/1e6)*50*(long?1.5:1);
@@ -2245,9 +2248,10 @@
     }
 
     // 5.1：複雜問題固定優先交給 GPT-6 Astra；一般／溫室模式共用。
+    // 5.2.9：只有實際送出 model=gpt-6-astra 才顯示/計入 Astra；API 無權限時直接回報錯誤，不假裝成功、不偷偷降級。
     function teddyIsComplexQuestion(message){
       const t=String(message||"");
-      return /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入/.test(t) || t.length>90;
+      return /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入|完全體|V5\.?1|C8\.?9|功能表|網頁結構/.test(t) || t.length>90;
     }
     function teddyChooseProvider(message,keys,context="general"){
       const t=String(message||"");
@@ -2572,7 +2576,7 @@
           if (!keys.anthropic) reply = "尚未設定 Claude 的 API Key，請先到「⚙️ 設定 Key」設定。";
           else { result = await teddyChatWithClaude(keys.anthropic, onStatus); provider = "anthropic"; }
         } else if (pref === "openai") {
-          if (!keys.openai) reply = "尚未設定 GPT-5.6 Sol 的 OpenAI API Key，請先到「⚙️ 設定 Key」設定。";
+          if (!keys.openai) reply = "尚未設定 GPT-6 Astra 的 OpenAI API Key，請先到「⚙️ 設定 Key」設定。";
           else { result = await teddyChatWithOpenAI(keys.openai, onStatus); provider = "openai"; }
         } else if (pref === "gemini") {
           if (!keys.google) reply = "尚未設定 Gemini 的 API Key，請先到「⚙️ 設定 Key」設定。";
@@ -3351,13 +3355,17 @@ ${parts}
 
     function ghLog(role,text){
       const box=document.getElementById("greenhouseLog"); if(!box)return;
+      const clean=String(text||"").trim(); if(!clean)return;
+      // 防止工具回覆與語音逐字稿同一內容被重複寫入。
+      const last=box.lastElementChild;
+      const rendered=(role==="user"?"你：":"TEDDY：")+clean;
+      if(last && String(last.textContent||"").trim()===rendered)return;
       const d=document.createElement("div");
       d.style.margin="0 0 9px";
-      d.style.color=role==="user"?"#d8fff1":"#a9c3b9";
-      d.textContent=(role==="user"?"你：":"Pongchi：")+text;
+      d.style.color=role==="user"?"#d8fff1":"#f0b66d";
+      d.textContent=rendered;
       box.appendChild(d); box.scrollTop=box.scrollHeight;
-      // V5.1 溫室模式只有 ghSpeak() 可以發聲。
-      // ghLog 只負責顯示文字，避免「寫入訊息時唸一次、ghSpeak 又唸一次」造成重疊。
+      // 只顯示文字，不在這裡額外發聲，避免重複播放。
     }
 
     function ghDecode(v){
@@ -4411,7 +4419,7 @@ ${parts}
         const r=await teddyFetch("https://api.openai.com/v1/responses",{
           method:"POST",
           headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},
-          body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"high"},input:[{role:"developer",content:[{type:"input_text",text:system}]},{role:"user",content:[{type:"input_text",text:content}]}]})
+          body:JSON.stringify({model:"gpt-6-astra",reasoning:{effort:"high"},input:[{role:"developer",content:[{type:"input_text",text:system}]},{role:"user",content:[{type:"input_text",text:content}]}]})
         },90000);
         const d=await r.json();
         if(!r.ok)throw new Error(d?.error?.message||`Astra HTTP ${r.status}`);
@@ -5979,7 +5987,7 @@ ${parts}
     const selected=typeof ghSelectedEntry!=="undefined"&&ghSelectedEntry?ghSelectedEntry:null;
     const modeLine=greenhouseOn
       ?`目前在溫室模式${selected?`，使用者已選「${ENTRY_LABEL[selected]}」`:"，尚未選入口"}。溫室問題與後續追問必須使用query_greenhouse；若使用者沒重複主題，沿用已選入口。`
-      :"目前在一般模式；只有談到真實溫室紀錄時才使用query_greenhouse。";
+      :"目前在一般模式；禁止自行進入溫室/工作路由。只有使用者明確切換到溫室模式，或明確說『工作／進入工作／溫室模式』後，才可使用溫室工具。";
     return `你是Smart Teddy 4.4-2，一隻甜美、年輕、聲線細緻、反應靈活的繁體中文松鼠工作助理。說話自然明亮、語速微快但咬字清楚，不要刻意裝幼童。
 ${memory}
 ${modeLine}
@@ -5992,6 +6000,7 @@ ${modeLine}
 A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
 主要入口：產能=yield；工作1-5=work；計畫=calendar；耗材6-8=materials；打卡=attendance（功能表10）。
 功能表7內有10個表格；目前固定語意路由必須遵守：施肥統計→功能表7表一；分區施肥內容→功能表7表三；留言板/留言版→功能表7表四；溫室天氣/氣候紀錄→功能表7表五；登入IP/登入時間→功能表7表十。這些問題一律呼叫 query_greenhouse 並指定 entry=function7，不得改走別的功能表。
+當使用者問目前這個 V5.1C8.9 網頁本身、功能在哪裡、按鈕/表格/路徑、目前畫面能做什麼時，必須先呼叫 inspect_v51_page 讀取目前頁面與固定路由，再回答，不准只靠記憶猜。
 工具回傳的結構化資料與計算結果優先於對話記憶。查不到就直接說不知道。`;
   }
   const greenhouseTool={
@@ -6014,6 +6023,45 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     name:"browse_web",description:"需要瀏覽網頁、查最新資料、讀取使用者貼上的網站/網址或核對線上資訊時必須使用。若使用者提供 URL，query 必須保留完整 URL，並要求實際讀取該頁面內容。",
     parameters:{type:"object",properties:{query:{type:"string"}},required:["query"]}
   };
+  const inspectV51PageTool={
+    name:"inspect_v51_page",
+    description:"讀取目前 Teddy 頁面內嵌的完全體 V5.1C8.9 溫室介面結構、目前可見文字、按鈕、表格/入口與固定路由。當使用者問『這個網頁有什麼』『現在在哪個功能』『功能表/表格/路線怎麼走』『V5.1C8.9內容』時必須先用這個工具，不准憑記憶猜。",
+    parameters:{type:"object",properties:{question:{type:"string"}},required:[]}
+  };
+  function teddyInspectV51Page(question=""){
+    const root=document.getElementById("greenhousePanel")||document.body;
+    const visible=[];
+    const nodes=[...root.querySelectorAll("h1,h2,h3,h4,button,[role=button],label,th,td,summary,.cap-title,.name,.vendor")];
+    for(const el of nodes){
+      const st=getComputedStyle(el);
+      if(st.display==="none"||st.visibility==="hidden")continue;
+      const t=String(el.innerText||el.textContent||"").replace(/\s+/g," ").trim();
+      if(t && t.length<=140 && !visible.includes(t))visible.push(t);
+      if(visible.length>=120)break;
+    }
+    const routeMap={
+      version:"完全體 V5.1C8.9 路由知識層",
+      mode:window.TEDDY_APP_MODE||"general",
+      main:{
+        "產能":"功能表3／產能資料",
+        "工作":"工作入口→溫室→平面圖→區域→工作1–8；回報走功能表4",
+        "計畫":"功能表5／年度計畫",
+        "施肥":"功能表7；統計看表一，分區施肥內容看表三",
+        "打卡":"功能表10／出勤打卡"
+      },
+      function7:{
+        "表一":"施肥統計",
+        "表三":"分區施肥內容／6–8資料",
+        "表四":"留言板內容",
+        "表五":"天氣／氣候紀錄",
+        "表十":"登入IP與登入時間（依權限顯示）",
+        note:"功能表7共有10個表格；未在此映射的表格，必須以目前頁面 DOM 或實際資料為準，不可自行猜名稱。"
+      },
+      workAssign:"A01登入→工作指派→溫室→平面圖→區域→工作1–8→復述→確認→寫入",
+      workReport:"A01登入→工作回報→功能表4→溫室→年月→回報項目→復述→確認→寫入"
+    };
+    return {ok:true,question:String(question||""),routeMap,visibleUi:visible,currentUrl:location.href};
+  }
   async function liveBrowseWeb(query){
     const key=loadKeys().openai;if(!key)return{ok:false,error:"尚未設定 OpenAI API Key"};
     const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"medium"},tools:[{type:"web_search"}],input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的網頁瀏覽核心。使用繁體中文。若 query 含 URL，必須優先嘗試讀取/搜尋該網址本身及可索引內容；若網站需要登入、遭權限/robots/付費牆阻擋，要明確說明。不可只根據網址字串猜測。根據實際取得的網頁內容回答；找不到就明說。回覆精簡，供即時語音朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(query||"")}]}]})},90000);
@@ -6023,8 +6071,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     return{ok:true,answer:answer||"網頁搜尋沒有回傳文字。"};
   }
   async function liveAstraThink(question){
-    const key=loadKeys().openai;if(!key)return{ok:false,error:"尚未設定 GPT-5.6 Sol 的 OpenAI API Key"};
-    const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"high"},input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的深度推理核心（GPT-5.6 Sol）。使用繁體中文，先給結論，再給必要理由；內容會交回即時語音模型朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(question||"")}]}]})},90000);
+    const key=loadKeys().openai;if(!key)return{ok:false,error:"尚未設定 GPT-6 Astra 的 OpenAI API Key"};
+    const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",reasoning:{effort:"high"},input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的深度推理核心（GPT-6 Astra）。使用繁體中文，先給結論，再給必要理由；內容會交回即時語音模型朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(question||"")}]}]})},90000);
     const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Astra HTTP ${r.status}`);
     if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:teddyAstraUsageCost(d.usage)});
     const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
@@ -6042,7 +6090,11 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       try{const r=await teddyHandsHandle(command);if(!r?.handled)return{ok:false,error:"這句話沒有形成可執行的 V5.1 設定，請補充分區、功能表、工項/資材與數值。"};if(r.reply){rememberTurn("assistant",r.reply);setLiveTrace(r.reply.slice(0,180),"#9fd8c8");}return{ok:true,answer:r.reply};}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="browse_web"){setLiveTrace("🌐 Teddy 正在瀏覽網頁…","#e8c879");try{const r=await liveBrowseWeb(args?.query||"");setLiveTrace("🌐 網頁資料已取得，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("網頁瀏覽失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
-    if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑5.6 Sol 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace("🧠 Sol 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Sol 思考失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
+    if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace("🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 思考失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
+    if(name==="inspect_v51_page"){
+      setLiveTrace("🔎 Teddy 正在讀取 V5.1C8.9 畫面與路由…","#e8c879");
+      try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1C8.9 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
+    }
     if(name==="query_greenhouse"){
       const question=String(args?.question||"");
       let entry=ENTRY_LABEL[args?.entry]?args.entry:null;
@@ -6077,7 +6129,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       teddyHistory.push({role,text:clean,source:"live",at:Date.now()});
       teddySaveHistory();teddyAppendLog(role==="user"?"user":"teddy",clean);
       const greenhouseOn=document.getElementById("greenhousePanel")?.style.display!=="none";
-      if(greenhouseOn&&role==="user"&&typeof ghLog==="function")ghLog("user",clean);
+      // 一般與溫室模式共用同一份歷史；溫室畫面也必須同步顯示「你」與「TEDDY」雙方逐字稿。
+      if(greenhouseOn&&typeof ghLog==="function")ghLog(role==="user"?"user":"assistant",clean);
     }catch(_){}
   }
   function flushGeminiTurn(){
@@ -6145,7 +6198,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   function liveToolDeclarations(){
     const greenhouse=(window.TEDDY_APP_MODE==="greenhouse");
     return greenhouse
-      ? [greenhouseTool,astraThinkTool,handsLoginTool,handsCommandTool,browseWebTool]
+      ? [greenhouseTool,inspectV51PageTool,astraThinkTool,handsLoginTool,handsCommandTool,browseWebTool]
       : [astraThinkTool,browseWebTool];
   }
   function liveOpenAITools(){return liveToolDeclarations().map(t=>({type:"function",...t}));}
