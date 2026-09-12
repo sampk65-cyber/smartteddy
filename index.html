@@ -426,7 +426,7 @@
 </style>
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.2.9 · GPT-6 Astra Routing + UnifiedTranscript + V5.1C8.9 PageReader · 2026-09-12</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.3.0 · Mode Return Fix + GPT-6 Astra Routing + UnifiedTranscript + V5.1C8.9 PageReader · 2026-09-12</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -5839,13 +5839,13 @@ ${parts}
       });
       ghSetEntryButtonState(null);
 
-      if(p)p.onclick=()=>setUiMode("pongchi");
+      if(p)p.onclick=()=>setUiMode("general");
       if(g)g.onclick=()=>{
         setUiMode("greenhouse");
         const st=document.getElementById("greenhouseStatus");
         if(st)st.textContent="V5.1 已就緒・先選功能，再問分析內容";
       };
-      if(close)close.onclick=()=>setUiMode("pongchi");
+      if(close)close.onclick=()=>setUiMode("general");
       if(send)send.onclick=ghSend;
       // 5.2.6：每次載入預設一般模式，避免舊狀態/工作資料誤接管一般聊天。
       setUiMode("general");
@@ -5902,7 +5902,7 @@ ${parts}
       };
       const yx=document.getElementById("btnYieldImportCancel");
       if(yx)yx.onclick=()=>{ghYieldImportDraft=null;document.getElementById("ghYieldImportConfirm").style.display="none";ghLog("assistant","已取消歷史資料匯入。");};
-      setUiMode("pongchi");
+      setUiMode("general");
     });
 
 </script>
@@ -5916,7 +5916,7 @@ ${parts}
           <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
           <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-08-23-docid-fix-v3</div>
         </div>
-        <button type="button" id="btnGreenhouseClose" style="display:none;border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:7px 10px;cursor:pointer;">🐿 回一般模式</button>
+        <button type="button" id="btnGreenhouseClose" style="display:inline-flex;align-items:center;justify-content:center;border:1px solid #5eead4;background:#10251f;color:#d9fff0;border-radius:9px;padding:8px 12px;cursor:pointer;font-weight:800;">🐿 回一般模式</button>
       </div>
       <div id="ghEntryButtons" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:9px;">
         <button type="button" class="gh-entry-btn" data-entry="yield" style="border:1px solid #355248;background:#18231f;color:#cde6dc;border-radius:9px;padding:9px 4px;font-size:12px;font-weight:800;cursor:pointer;">產能</button>
