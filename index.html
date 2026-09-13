@@ -5964,7 +5964,7 @@ ${parts}
         <div>
           <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
           <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
-          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-08-23-docid-fix-v3</div>
+          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 5.3.3-single-brain-live</div>
         </div>
         <button type="button" id="btnGreenhouseClose" style="display:inline-flex;align-items:center;justify-content:center;border:1px solid #5eead4;background:#10251f;color:#d9fff0;border-radius:9px;padding:8px 12px;cursor:pointer;font-weight:800;">🐿 回一般模式</button>
       </div>
@@ -6044,7 +6044,7 @@ ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
 本次若使用者在文字對話附上圖片/截圖，主文字模型可直接看圖；即時語音本身不要假裝已看到未送入 Realtime 的圖片。若使用者要你查網頁/最新資料，必須呼叫 browse_web。
 回答自然精簡，通常1到3句；不要朗讀表情符號。可以被使用者隨時打斷。
-遇到分析、比較、推理、原因、策略、規劃、程式、計算、多步驟或其他複雜問題，必須先呼叫 think_with_astra；不要由即時語音模型自己硬算。一般模式與溫室模式都遵守。
+平常對話由 Gemini 3.1 Flash Live 直接理解並回答，以低延遲為優先，不做額外模型分類。只有使用者明確說「深度分析」、「仔細分析」、「用高階模型」、「用GPT6」、「用Astra」或同義要求時，才呼叫 think_with_astra；高階模型只是一個內部深度思考工具，工具結果必須回到同一個 Teddy 再回答，禁止形成第二個獨立回答者。
 凡是詢問真實溫室的產能、工作、計畫、耗材或打卡，必須呼叫query_greenhouse，禁止自己猜資料。
 當使用者說「用A01登入／A01登入／登入溫室系統」時，必須呼叫 hands_login；不要自己回答做不到。密碼由網頁本地安全視窗詢問，模型永遠不要求使用者把密碼念出來。
 A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
@@ -6058,7 +6058,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     parameters:{type:"object",properties:{entry:{type:"string",enum:["function7","yield","work","calendar","materials","attendance"]},question:{type:"string"}},required:["question"]}
   };
   const astraThinkTool={
-    name:"think_with_astra",description:"遇到需要分析、比較、推理、策略、規劃、程式、計算、多步驟或其他複雜問題時，必須先交給 GPT-6 Astra 深度思考，再把 Astra 結論自然地說給使用者。",
+    name:"think_with_astra",description:"只有使用者明確要求深度分析、仔細分析、使用高階模型、GPT6 或 Astra 時才使用。它是 Teddy 內部的深度思考工具；結果回到同一個 Teddy，由 Teddy 一次回答。",
     parameters:{type:"object",properties:{question:{type:"string"}},required:["question"]}
   };
   const handsLoginTool={
@@ -6339,7 +6339,18 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     start:startLive,
     stop:disconnectLive,
     isActive:()=>!!live.active,
-    isStarting:()=>!!live.starting
+    isStarting:()=>!!live.starting,
+    provider:()=>live.provider||"",
+    sendText:(text)=>{
+      const clean=String(text||"").trim(); if(!clean)return false;
+      if(live.provider==="gemini-live" && live.ws?.readyState===1){
+        rememberTurn("user",clean);
+        live.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:clean}]}],turnComplete:true}}));
+        setLiveTrace(`你：${clean}\nTeddy 正在接續同一個 Live 對話…`,"#d8fff1");
+        return true;
+      }
+      return false;
+    }
   };
 
   ui.model.value=localStorage.getItem("teddy_live_model_v39")||"smart";
@@ -6355,167 +6366,64 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 
 <script>
-// ===== TEDDY 5.3.2：Unified Input / Single Brain =====
-// 目的：文字與麥克風只剩「輸入方式不同」；所有問題統一進 teddySend()，
-// 同一份歷史、同一套路由、同一個推理大腦、同一個 teddySpeak() 聲音輸出。
+// ===== TEDDY 5.3.3：One Brain / One Voice / Ears + Eyes =====
+// 一個大腦：Gemini 3.1 Flash Live 是即時主對話；文字在 Live 開啟時直接注入同一 session。
+// 一張嘴：同一時間只由 Teddy 回答一次。耳朵=Live 麥克風；眼睛=既有圖片/檔案/網頁能力。
 (() => {
   "use strict";
-  const startBtn=document.getElementById("teddyLiveStart");
-  const stopBtn=document.getElementById("teddyLiveStop");
-  const statusEl=document.getElementById("teddyLiveStatus");
-  const modelEl=document.getElementById("teddyLiveModel");
-  const traceEl=document.getElementById("teddyLiveTrace");
-  if(!startBtn||!stopBtn) return;
-
-  // 不再讓即時語音模型成為第二個回答大腦。這個區塊現在只負責「聽」。
-  if(modelEl){
-    modelEl.innerHTML='<option value="unified-input">Teddy 單一大腦｜語音輸入</option>';
-    modelEl.value='unified-input';
-    modelEl.disabled=true;
-  }
-  const subtitle=startBtn.closest('#teddyLiveBox')?.querySelector('div[style*="font-size:10px"]');
-  if(subtitle) subtitle.textContent='語音只負責輸入・回答統一由 Teddy 同一大腦處理';
-
-  let recognition=null;
-  let listening=false;
-  let manualStop=true;
-  let restartTimer=null;
-  let finalBuffer='';
-
-  function setStatus(text,color='#86a399'){
-    if(!statusEl)return;
-    statusEl.textContent=text;
-    statusEl.style.color=color;
-    statusEl.style.fontWeight='800';
-    statusEl.style.padding='2px 7px';
-    statusEl.style.borderRadius='999px';
-    statusEl.style.border=`1px solid ${color}`;
-    statusEl.style.background=color==='#5eead4'?'rgba(94,234,212,.10)':(color==='#ff6b6b'?'rgba(255,70,70,.12)':'rgba(232,166,89,.08)');
-  }
-  function setTrace(text,color='#9fd8c8'){
-    if(!traceEl)return;
-    traceEl.style.display='block';
-    traceEl.textContent=text;
-    traceEl.style.color=color;
-  }
-  function setButtons(on){
-    startBtn.disabled=on;
-    stopBtn.disabled=!on;
-  }
-
-  async function submitVoiceText(text){
-    const clean=String(text||'').trim();
-    if(!clean)return;
-    const input=document.getElementById('teddyChatInput');
-    if(!input)return;
-    setTrace(`你：${clean}\n→ 已送入 Teddy 同一大腦`, '#d8fff1');
-    input.value=clean;
-    // 唯一回答入口：跟手動輸入完全相同。
-    await teddySend();
-  }
-
-  function buildRecognition(){
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR)return null;
-    const r=new SR();
-    r.lang='zh-TW';
-    r.continuous=true;
-    r.interimResults=true;
-    r.maxAlternatives=1;
-    r.onstart=()=>{
-      listening=true;
-      setButtons(true);
-      setStatus('Teddy・正在聽','#5eead4');
-      setTrace('狀態：正在聽你說話；語音與文字共用同一個 Teddy 大腦。','#5eead4');
-    };
-    r.onresult=(ev)=>{
-      let interim='';
-      let finals=[];
-      for(let i=ev.resultIndex;i<ev.results.length;i++){
-        const t=ev.results[i][0]?.transcript||'';
-        if(ev.results[i].isFinal) finals.push(t); else interim+=t;
-      }
-      if(interim) setTrace(`你正在說：${interim}`,'#d8fff1');
-      if(finals.length){
-        finalBuffer+=(finalBuffer?' ':'')+finals.join(' ');
-        const sendText=finalBuffer.trim();
-        finalBuffer='';
-        // 一次最終語句 = 一個 turn。先停聽，避免回答時又開第二回合。
-        try{r.stop();}catch(_){ }
-        listening=false;
-        submitVoiceText(sendText).catch(e=>{
-          setStatus('語音送出失敗','#f0a8a8');
-          setTrace('語音送出失敗：'+e.message,'#f0a8a8');
-        });
-      }
-    };
-    r.onerror=(ev)=>{
-      if(ev.error==='aborted'||ev.error==='no-speech')return;
-      setStatus('語音辨識錯誤','#f0a8a8');
-      setTrace('語音辨識錯誤：'+ev.error,'#f0a8a8');
-    };
-    r.onend=()=>{
-      listening=false;
-      if(manualStop){
-        setButtons(false);
-        setStatus('● 已停止','#ff6b6b');
-        return;
-      }
-      // teddySend 完成後 Single Brain 會呼叫 start() 恢復；這裡不自行搶著重開。
-      if(!(window.TEDDY_BRAIN?.active?.kind==='text')){
-        clearTimeout(restartTimer);
-        restartTimer=setTimeout(()=>startUnifiedVoice(),350);
-      }else{
-        setStatus('Teddy・正在思考','#e8a659');
-      }
-    };
-    return r;
-  }
-
-  async function startUnifiedVoice(){
-    if(listening)return;
-    manualStop=false;
-    // 文字正在回答時，僅排隊恢復麥克風，不建立任何第二模型 session。
-    if(window.TEDDY_BRAIN?.active?.kind==='text'){
-      if(window.TEDDY_BRAIN) window.TEDDY_BRAIN.pendingLiveStart=true;
-      setStatus('等待目前回答完成…','#e8a659');
-      setTrace('狀態：Teddy 正在完成同一輪回答；完成後再繼續聽。','#e8c879');
-      return;
+  const modelSel=document.getElementById('teddyModelSelect');
+  const voiceSel=document.getElementById('teddyVoiceStyleSelect');
+  if(modelSel) modelSel.style.display='none';
+  if(voiceSel) voiceSel.style.display='none';
+  const settingsPanel=document.getElementById('teddySettingsPanel');
+  if(settingsPanel){
+    const row=settingsPanel.querySelector('div');
+    if(row && !document.getElementById('teddySingleBrainLabel')){
+      const label=document.createElement('div');
+      label.id='teddySingleBrainLabel';
+      label.textContent='🧠 Teddy 單一大腦・模型由內部工具處理';
+      label.style.cssText='font-size:11px;color:#86a399;padding:3px 2px;';
+      row.prepend(label);
     }
-    if(!recognition) recognition=buildRecognition();
-    if(!recognition){
-      setStatus('瀏覽器不支援語音輸入','#f0a8a8');
-      setTrace('此瀏覽器沒有 SpeechRecognition。請改用 Chrome/Android，文字輸入仍可正常使用同一大腦。','#f0a8a8');
-      return;
+  }
+  const liveModel=document.getElementById('teddyLiveModel');
+  if(liveModel){
+    liveModel.innerHTML='<option value="gemini-live">Gemini 3.1 Flash Live（Teddy 主大腦）</option>';
+    liveModel.value='gemini-live';
+    liveModel.disabled=true;
+  }
+  const liveBox=document.getElementById('teddyLiveBox');
+  const smalls=liveBox?.querySelectorAll('div');
+  if(smalls){
+    for(const el of smalls){
+      if((el.textContent||'').includes('語音控制')){ el.textContent='👂 耳朵：即時聆聽・🧠 同一大腦・👄 同一個 Teddy 回答'; break; }
     }
-    try{ recognition.start(); }
-    catch(e){ if(!/already started/i.test(String(e.message||e))) throw e; }
   }
-
-  async function stopUnifiedVoice(){
-    manualStop=true;
-    clearTimeout(restartTimer);
-    try{recognition?.stop();}catch(_){ }
-    try{recognition?.abort();}catch(_){ }
-    listening=false;
-    setButtons(false);
-    setStatus('● 已停止','#ff6b6b');
-    setTrace('狀態：語音輸入已停止。','#ff7b7b');
+  // 包裝唯一文字入口：Live 已啟動時，文字直接送進同一 Gemini Live session，不另開文字模型。
+  const originalSend=window.teddySend;
+  if(typeof originalSend==='function'){
+    window.teddySend=async function(){
+      const input=document.getElementById('teddyChatInput');
+      const raw=String(input?.value||'').trim();
+      const ctl=window.TEDDY_LIVE_CONTROL;
+      // 有附件時保留既有「眼睛」路徑，因為附件需要既有 vision/file/web 工具處理。
+      const hasAttachment=!!window.teddyAttachment || (typeof teddyAttachment!=='undefined' && !!teddyAttachment);
+      if(raw && !hasAttachment && ctl?.isActive?.() && ctl?.provider?.()==='gemini-live'){
+        if(ctl.sendText(raw)){
+          if(input)input.value='';
+          return;
+        }
+      }
+      return originalSend.apply(this,arguments);
+    };
   }
-
-  // 覆寫 5.3.1 的 Live controller：不再啟動 Gemini/GPT Realtime 回答模型。
-  window.TEDDY_LIVE_CONTROL={
-    start:startUnifiedVoice,
-    stop:stopUnifiedVoice,
-    isActive:()=>!!listening,
-    isStarting:()=>false,
-    mode:'unified-input-only'
-  };
-  startBtn.onclick=startUnifiedVoice;
-  stopBtn.onclick=stopUnifiedVoice;
-  setButtons(false);
-  setStatus('● 已停止','#ff6b6b');
-  setTrace('狀態：文字與語音現在共用同一個 Teddy 大腦。','#9fd8c8');
+  // 送出按鈕/Enter 原先可能持有舊函式引用，重新綁到目前唯一入口。
+  const send=document.getElementById('teddyChatSend');
+  if(send) send.onclick=()=>window.teddySend?.();
+  const input=document.getElementById('teddyChatInput');
+  if(input){
+    input.onkeydown=(e)=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();window.teddySend?.();} };
+  }
 })();
 </script>
 
