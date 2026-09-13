@@ -2612,8 +2612,13 @@
       const keys = loadKeys();
       const modelSelect = document.getElementById("teddyModelSelect");
       let pref = modelSelect ? modelSelect.value : "auto";
-      // 使用者要求：複雜問題不論目前一般／溫室模式或手動模型選擇，都優先 Astra。
-      if ((teddyIsComplexQuestion(text) || teddyAttachment) && keys.openai) pref = "openai";
+      // 5.3.4 單一 Teddy：取消「每句自動判斷複雜度→切模型」。
+      // 一般文字固定走快速 Gemini；只有明確要求深度思考、需要 Web/原生二進位檔案時，才把高階模型當內部工具。
+      const explicitDeep = /(?:深度分析|仔細分析|深入分析|高階模型|GPT\s*6|GPT6|Astra|完整推理|詳細推理)/i.test(text);
+      const hasUrl = /https?:\/\//i.test(text);
+      const nativeBinary = teddyAttachment?.kind === "file";
+      if ((explicitDeep || hasUrl || nativeBinary) && keys.openai) pref = "openai";
+      else if (keys.google) pref = "gemini";
       const btn = document.getElementById("teddyChatSend");
       btn.disabled = true;
       try {
@@ -5964,7 +5969,7 @@ ${parts}
         <div>
           <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
           <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
-          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 5.3.3-single-brain-live</div>
+          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 5.3.4-one-teddy-core</div>
         </div>
         <button type="button" id="btnGreenhouseClose" style="display:inline-flex;align-items:center;justify-content:center;border:1px solid #5eead4;background:#10251f;color:#d9fff0;border-radius:9px;padding:8px 12px;cursor:pointer;font-weight:800;">🐿 回一般模式</button>
       </div>
@@ -6017,7 +6022,7 @@ ${parts}
     volume:document.getElementById("teddyLiveVolume"),volumeValue:document.getElementById("teddyLiveVolumeValue")
   };
   const live={active:false,starting:false,manualStop:false,provider:null,ws:null,pc:null,dc:null,stream:null,
-    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set(),transcriptTimer:null};
+    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set(),transcriptTimer:null,contextPrimed:false};
   const ENTRY_LABEL={function7:"功能表7／十表路由",yield:"產能／功能表3",work:"工作1-5／功能表4",calendar:"計畫／功能表5",materials:"耗材6-8／功能表7內層表3",attendance:"打卡／功能表10"};
 
   function setLiveTrace(text,color="#9fd8c8"){
@@ -6044,7 +6049,7 @@ ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
 本次若使用者在文字對話附上圖片/截圖，主文字模型可直接看圖；即時語音本身不要假裝已看到未送入 Realtime 的圖片。若使用者要你查網頁/最新資料，必須呼叫 browse_web。
 回答自然精簡，通常1到3句；不要朗讀表情符號。可以被使用者隨時打斷。
-平常對話由 Gemini 3.1 Flash Live 直接理解並回答，以低延遲為優先，不做額外模型分類。只有使用者明確說「深度分析」、「仔細分析」、「用高階模型」、「用GPT6」、「用Astra」或同義要求時，才呼叫 think_with_astra；高階模型只是一個內部深度思考工具，工具結果必須回到同一個 Teddy 再回答，禁止形成第二個獨立回答者。
+平常對話由 Gemini 3.1 Flash Live 直接理解並回答，以低延遲為優先，禁止為一般問題再做額外模型分類。只有使用者明確說「深度分析」、「仔細分析」、「用高階模型」、「用GPT6」、「用Astra」或同義要求時，才呼叫 think_with_astra；高階模型只能是 Teddy 內部的深度思考工具，工具結果回到同一個 Teddy，由同一張嘴回答一次，禁止形成第二個回答者。
 凡是詢問真實溫室的產能、工作、計畫、耗材或打卡，必須呼叫query_greenhouse，禁止自己猜資料。
 當使用者說「用A01登入／A01登入／登入溫室系統」時，必須呼叫 hands_login；不要自己回答做不到。密碼由網頁本地安全視窗詢問，模型永遠不要求使用者把密碼念出來。
 A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
@@ -6226,9 +6231,24 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     edge.gain.setValueAtTime(0,start);edge.gain.linearRampToValueAtTime(1,start+fade);edge.gain.setValueAtTime(1,Math.max(start+fade,start+buf.duration-fade));edge.gain.linearRampToValueAtTime(0,start+buf.duration);
     src.start(start);live.playAt=start+buf.duration-0.002;live.sources.add(src);src.onended=()=>{live.sources.delete(src);try{edge.disconnect();}catch(_){}};
   }
+  function primeGeminiContext(){
+    if(live.contextPrimed || live.provider!=="gemini-live" || live.ws?.readyState!==1)return;
+    const turns=(Array.isArray(teddyHistory)?teddyHistory:[]).slice(-16).map(h=>({
+      role:h.role==="assistant"?"model":"user",
+      parts:[{text:String(h.text||"").slice(0,5000)}]
+    })).filter(t=>t.parts[0].text.trim());
+    if(!turns.length){ live.contextPrimed=true; return; }
+    try{
+      // 只灌入上下文，不要求模型立即回答；之後語音/文字直接延續同一話題。
+      live.ws.send(JSON.stringify({clientContent:{turns,turnComplete:false}}));
+      live.contextPrimed=true;
+      setLiveTrace("狀態：已接續目前 Teddy 對話，正在聽你說話。","#5eead4");
+    }catch(_){ }
+  }
+
   async function parseGeminiMessage(raw){
     const text=raw instanceof Blob?await raw.text():String(raw),m=JSON.parse(text);
-    if(m.setupComplete){setStatus("Gemini Live・正在聽", "#5eead4");setLiveTrace("狀態：已連線，正在聽你說話。","#5eead4");return;}
+    if(m.setupComplete){setStatus("Teddy・正在聽", "#5eead4");primeGeminiContext();if(!live.contextPrimed)setLiveTrace("狀態：已連線，正在聽你說話。","#5eead4");return;}
     if(m.serverContent){
       const sc=m.serverContent;if(sc.interrupted)stopGeminiAudio();
       if(sc.inputTranscription?.text){live.inputText+=sc.inputTranscription.text;setLiveTrace(`你正在說：${live.inputText}`,"#d8fff1");scheduleGeminiTranscriptFlush(1200);}
@@ -6310,7 +6330,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     flushGeminiTurn();stopGeminiAudio();
     try{live.captureNode?.disconnect();}catch(_){}try{live.captureSink?.disconnect();}catch(_){}try{await live.captureCtx?.close();}catch(_){}try{await live.playCtx?.close();}catch(_){}try{await live.outputCtx?.close();}catch(_){}
     try{live.ws?.close();}catch(_){}try{live.dc?.close();}catch(_){}try{live.pc?.close();}catch(_){}try{if(live.remoteAudio){live.remoteAudio.pause();live.remoteAudio.srcObject=null;live.remoteAudio.remove();}}catch(_){}live.stream?.getTracks().forEach(t=>t.stop());
-    Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:""});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
+    Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:"",contextPrimed:false});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
   }
   async function startLive(){
     if(live.starting||live.active)return;
@@ -6366,8 +6386,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 
 <script>
-// ===== TEDDY 5.3.3：One Brain / One Voice / Ears + Eyes =====
-// 一個大腦：Gemini 3.1 Flash Live 是即時主對話；文字在 Live 開啟時直接注入同一 session。
+// ===== TEDDY 5.3.4：One Teddy Core / One Brain / One Voice / Ears + Eyes =====
+// 一個大腦：Gemini 3.1 Flash Live 是即時主對話；一般文字固定走快速 Gemini，Live 開啟時直接注入同一 session；不再每句自動切模型。
 // 一張嘴：同一時間只由 Teddy 回答一次。耳朵=Live 麥克風；眼睛=既有圖片/檔案/網頁能力。
 (() => {
   "use strict";
@@ -6381,7 +6401,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     if(row && !document.getElementById('teddySingleBrainLabel')){
       const label=document.createElement('div');
       label.id='teddySingleBrainLabel';
-      label.textContent='🧠 Teddy 單一大腦・模型由內部工具處理';
+      label.textContent='🧠 Teddy 單一大腦・👂耳朵・👁️眼睛・👄單一回答';
       label.style.cssText='font-size:11px;color:#86a399;padding:3px 2px;';
       row.prepend(label);
     }
@@ -6427,7 +6447,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 })();
 </script>
 
-<!-- TEDDY 5.3.2: unified input, single brain, single voice output; greenhouse routes/memory locked. -->
+<!-- TEDDY 5.3.4: one Teddy core; fast Live brain, shared history bridge, explicit deep-tool escalation; greenhouse routes/memory locked. -->
 
 </body>
 </html>
