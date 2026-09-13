@@ -2501,6 +2501,49 @@
       return {handled:false};
     }
 
+
+    // ===== TEDDY 5.3.1：單一大腦協調器 =====
+    // 只協調「誰有發言權」，不改動記憶、聲音、溫室路由或既有 AI 功能。
+    const teddyBrain = window.TEDDY_BRAIN = window.TEDDY_BRAIN || {
+      seq: 0,
+      active: null,
+      pendingLiveStart: false,
+      resumeLiveAfterText: false
+    };
+    function teddyBrainSetActive(kind, meta={}) {
+      const token = `${Date.now()}-${++teddyBrain.seq}`;
+      teddyBrain.active = { token, kind, startedAt: Date.now(), ...meta };
+      return token;
+    }
+    function teddyBrainClear(token, kind) {
+      if (!teddyBrain.active) return;
+      if (token && teddyBrain.active.token !== token) return;
+      if (kind && teddyBrain.active.kind !== kind) return;
+      teddyBrain.active = null;
+    }
+    async function teddyBrainEnterText() {
+      const liveCtl = window.TEDDY_LIVE_CONTROL;
+      // 文字成為新輸入時，先暫停即時語音的回答權；完成後自動恢復。
+      if (liveCtl?.isActive?.() || liveCtl?.isStarting?.()) {
+        teddyBrain.resumeLiveAfterText = true;
+        try { await liveCtl.stop(); } catch (_) {}
+      }
+      // 若仍有舊文字回合，拒絕重複啟動第二個文字大腦。
+      if (teddyBrain.active?.kind === 'text') return null;
+      return teddyBrainSetActive('text', { source: 'manual' });
+    }
+    async function teddyBrainFinishText(token) {
+      teddyBrainClear(token, 'text');
+      const shouldResume = teddyBrain.resumeLiveAfterText || teddyBrain.pendingLiveStart;
+      teddyBrain.resumeLiveAfterText = false;
+      teddyBrain.pendingLiveStart = false;
+      if (shouldResume) {
+        setTimeout(() => {
+          try { window.TEDDY_LIVE_CONTROL?.start?.(); } catch (_) {}
+        }, 250);
+      }
+    }
+
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       let text = input.value.trim();
@@ -2512,7 +2555,10 @@
         text += `\n\n【網頁連結讀取要求】本輪包含網頁連結：${teddyUrls.join(" 、 ")}。請使用 web_search 實際開啟/搜尋這些網址與其可讀內容，再根據頁面內容回答；不要只根據網址字面猜測。若網站阻擋存取或需要登入，請明確說明哪些內容無法取得。`;
       }
       if (!text) return;
+      const teddyBrainToken = await teddyBrainEnterText();
+      if (!teddyBrainToken) return;
       input.value = "";
+      try {
       teddyActiveSkill = teddyDetectSkill(text);
       teddyAppendLog("user", text);
       teddyHistory.push({ role: "user", text });
@@ -2611,6 +2657,10 @@
       const ac=document.getElementById("teddyAttachmentChip"),af=document.getElementById("teddyAttachmentInput");
       if(ac)ac.style.display="none";if(af)af.value="";
       btn.disabled = false;
+      } finally {
+        // 不論成功、失敗或途中 return，都釋放本回合唯一發言權。
+        await teddyBrainFinishText(teddyBrainToken);
+      }
     }
 
     const teddySkillSelect = document.getElementById("teddySkillSelect");
@@ -6255,13 +6305,25 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     setStatus(`${openAIModel(mode)}・正在聽`,"#5eead4");
   }
   async function disconnectLive(){
-    live.manualStop=true;live.active=false;live.starting=false;flushGeminiTurn();stopGeminiAudio();
+    live.manualStop=true;live.active=false;live.starting=false;
+    if(window.TEDDY_BRAIN?.active?.kind==="live") window.TEDDY_BRAIN.active=null;
+    flushGeminiTurn();stopGeminiAudio();
     try{live.captureNode?.disconnect();}catch(_){}try{live.captureSink?.disconnect();}catch(_){}try{await live.captureCtx?.close();}catch(_){}try{await live.playCtx?.close();}catch(_){}try{await live.outputCtx?.close();}catch(_){}
     try{live.ws?.close();}catch(_){}try{live.dc?.close();}catch(_){}try{live.pc?.close();}catch(_){}try{if(live.remoteAudio){live.remoteAudio.pause();live.remoteAudio.srcObject=null;live.remoteAudio.remove();}}catch(_){}live.stream?.getTracks().forEach(t=>t.stop());
     Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:""});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
   }
   async function startLive(){
-    if(live.starting||live.active)return;live.starting=true;live.manualStop=false;setButtons(true);setStatus("連線中…","#e8a659");setLiveTrace("狀態：正在連線即時語音…","#e8c879");
+    if(live.starting||live.active)return;
+    // 單一大腦規則：文字仍在思考/回答時，按即時語音只排隊，不建立第二個回答 Session。
+    if(window.TEDDY_BRAIN?.active?.kind==="text"){
+      window.TEDDY_BRAIN.pendingLiveStart=true;
+      setStatus("等待目前回答完成…","#e8a659");
+      setLiveTrace("狀態：已排隊開啟麥克風；目前 Teddy 仍在完成同一輪文字回答。","#e8c879");
+      return;
+    }
+    live.starting=true;live.manualStop=false;
+    if(window.TEDDY_BRAIN) window.TEDDY_BRAIN.active={token:`live-${Date.now()}`,kind:"live",source:"microphone",startedAt:Date.now()};
+    setButtons(true);setStatus("連線中…","#e8a659");setLiveTrace("狀態：正在連線即時語音…","#e8c879");
     const mode=ui.model.value;localStorage.setItem("teddy_live_model_v39",mode);
     try{
       if(mode==="smart"){
@@ -6272,6 +6334,14 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       live.active=true;live.starting=false;setButtons(true);
     }catch(e){await disconnectLive();setStatus("無法連線："+e.message,"#f0a8a8");}
   }
+  // 對外只暴露啟停狀態，供單一大腦協調器使用；音訊管線與聲線完全不改。
+  window.TEDDY_LIVE_CONTROL={
+    start:startLive,
+    stop:disconnectLive,
+    isActive:()=>!!live.active,
+    isStarting:()=>!!live.starting
+  };
+
   ui.model.value=localStorage.getItem("teddy_live_model_v39")||"smart";
   if(ui.volume){ui.volume.value=localStorage.getItem("teddy_live_volume_v41")||"85";ui.volume.oninput=applyLiveVolume;applyLiveVolume();}
   ui.start.onclick=startLive;ui.stop.onclick=disconnectLive;
@@ -6281,6 +6351,6 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<!-- TEDDY 5.2.7: animated avatar intentionally disabled; static original photo only. -->
+<!-- TEDDY 5.3.1: single-brain orchestration; memory/voice/greenhouse routes locked. -->
 </body>
 </html>
