@@ -6351,6 +6351,175 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<!-- TEDDY 5.3.1: single-brain orchestration; memory/voice/greenhouse routes locked. -->
+
+
+
+<script>
+// ===== TEDDY 5.3.2：Unified Input / Single Brain =====
+// 目的：文字與麥克風只剩「輸入方式不同」；所有問題統一進 teddySend()，
+// 同一份歷史、同一套路由、同一個推理大腦、同一個 teddySpeak() 聲音輸出。
+(() => {
+  "use strict";
+  const startBtn=document.getElementById("teddyLiveStart");
+  const stopBtn=document.getElementById("teddyLiveStop");
+  const statusEl=document.getElementById("teddyLiveStatus");
+  const modelEl=document.getElementById("teddyLiveModel");
+  const traceEl=document.getElementById("teddyLiveTrace");
+  if(!startBtn||!stopBtn) return;
+
+  // 不再讓即時語音模型成為第二個回答大腦。這個區塊現在只負責「聽」。
+  if(modelEl){
+    modelEl.innerHTML='<option value="unified-input">Teddy 單一大腦｜語音輸入</option>';
+    modelEl.value='unified-input';
+    modelEl.disabled=true;
+  }
+  const subtitle=startBtn.closest('#teddyLiveBox')?.querySelector('div[style*="font-size:10px"]');
+  if(subtitle) subtitle.textContent='語音只負責輸入・回答統一由 Teddy 同一大腦處理';
+
+  let recognition=null;
+  let listening=false;
+  let manualStop=true;
+  let restartTimer=null;
+  let finalBuffer='';
+
+  function setStatus(text,color='#86a399'){
+    if(!statusEl)return;
+    statusEl.textContent=text;
+    statusEl.style.color=color;
+    statusEl.style.fontWeight='800';
+    statusEl.style.padding='2px 7px';
+    statusEl.style.borderRadius='999px';
+    statusEl.style.border=`1px solid ${color}`;
+    statusEl.style.background=color==='#5eead4'?'rgba(94,234,212,.10)':(color==='#ff6b6b'?'rgba(255,70,70,.12)':'rgba(232,166,89,.08)');
+  }
+  function setTrace(text,color='#9fd8c8'){
+    if(!traceEl)return;
+    traceEl.style.display='block';
+    traceEl.textContent=text;
+    traceEl.style.color=color;
+  }
+  function setButtons(on){
+    startBtn.disabled=on;
+    stopBtn.disabled=!on;
+  }
+
+  async function submitVoiceText(text){
+    const clean=String(text||'').trim();
+    if(!clean)return;
+    const input=document.getElementById('teddyChatInput');
+    if(!input)return;
+    setTrace(`你：${clean}\n→ 已送入 Teddy 同一大腦`, '#d8fff1');
+    input.value=clean;
+    // 唯一回答入口：跟手動輸入完全相同。
+    await teddySend();
+  }
+
+  function buildRecognition(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return null;
+    const r=new SR();
+    r.lang='zh-TW';
+    r.continuous=true;
+    r.interimResults=true;
+    r.maxAlternatives=1;
+    r.onstart=()=>{
+      listening=true;
+      setButtons(true);
+      setStatus('Teddy・正在聽','#5eead4');
+      setTrace('狀態：正在聽你說話；語音與文字共用同一個 Teddy 大腦。','#5eead4');
+    };
+    r.onresult=(ev)=>{
+      let interim='';
+      let finals=[];
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        const t=ev.results[i][0]?.transcript||'';
+        if(ev.results[i].isFinal) finals.push(t); else interim+=t;
+      }
+      if(interim) setTrace(`你正在說：${interim}`,'#d8fff1');
+      if(finals.length){
+        finalBuffer+=(finalBuffer?' ':'')+finals.join(' ');
+        const sendText=finalBuffer.trim();
+        finalBuffer='';
+        // 一次最終語句 = 一個 turn。先停聽，避免回答時又開第二回合。
+        try{r.stop();}catch(_){ }
+        listening=false;
+        submitVoiceText(sendText).catch(e=>{
+          setStatus('語音送出失敗','#f0a8a8');
+          setTrace('語音送出失敗：'+e.message,'#f0a8a8');
+        });
+      }
+    };
+    r.onerror=(ev)=>{
+      if(ev.error==='aborted'||ev.error==='no-speech')return;
+      setStatus('語音辨識錯誤','#f0a8a8');
+      setTrace('語音辨識錯誤：'+ev.error,'#f0a8a8');
+    };
+    r.onend=()=>{
+      listening=false;
+      if(manualStop){
+        setButtons(false);
+        setStatus('● 已停止','#ff6b6b');
+        return;
+      }
+      // teddySend 完成後 Single Brain 會呼叫 start() 恢復；這裡不自行搶著重開。
+      if(!(window.TEDDY_BRAIN?.active?.kind==='text')){
+        clearTimeout(restartTimer);
+        restartTimer=setTimeout(()=>startUnifiedVoice(),350);
+      }else{
+        setStatus('Teddy・正在思考','#e8a659');
+      }
+    };
+    return r;
+  }
+
+  async function startUnifiedVoice(){
+    if(listening)return;
+    manualStop=false;
+    // 文字正在回答時，僅排隊恢復麥克風，不建立任何第二模型 session。
+    if(window.TEDDY_BRAIN?.active?.kind==='text'){
+      if(window.TEDDY_BRAIN) window.TEDDY_BRAIN.pendingLiveStart=true;
+      setStatus('等待目前回答完成…','#e8a659');
+      setTrace('狀態：Teddy 正在完成同一輪回答；完成後再繼續聽。','#e8c879');
+      return;
+    }
+    if(!recognition) recognition=buildRecognition();
+    if(!recognition){
+      setStatus('瀏覽器不支援語音輸入','#f0a8a8');
+      setTrace('此瀏覽器沒有 SpeechRecognition。請改用 Chrome/Android，文字輸入仍可正常使用同一大腦。','#f0a8a8');
+      return;
+    }
+    try{ recognition.start(); }
+    catch(e){ if(!/already started/i.test(String(e.message||e))) throw e; }
+  }
+
+  async function stopUnifiedVoice(){
+    manualStop=true;
+    clearTimeout(restartTimer);
+    try{recognition?.stop();}catch(_){ }
+    try{recognition?.abort();}catch(_){ }
+    listening=false;
+    setButtons(false);
+    setStatus('● 已停止','#ff6b6b');
+    setTrace('狀態：語音輸入已停止。','#ff7b7b');
+  }
+
+  // 覆寫 5.3.1 的 Live controller：不再啟動 Gemini/GPT Realtime 回答模型。
+  window.TEDDY_LIVE_CONTROL={
+    start:startUnifiedVoice,
+    stop:stopUnifiedVoice,
+    isActive:()=>!!listening,
+    isStarting:()=>false,
+    mode:'unified-input-only'
+  };
+  startBtn.onclick=startUnifiedVoice;
+  stopBtn.onclick=stopUnifiedVoice;
+  setButtons(false);
+  setStatus('● 已停止','#ff6b6b');
+  setTrace('狀態：文字與語音現在共用同一個 Teddy 大腦。','#9fd8c8');
+})();
+</script>
+
+<!-- TEDDY 5.3.2: unified input, single brain, single voice output; greenhouse routes/memory locked. -->
+
 </body>
 </html>
