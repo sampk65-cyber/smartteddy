@@ -424,9 +424,25 @@
 #teddyVoiceToggle,#teddyVoicePreview,#btnGreenhouseMic,#btnGreenhouseVoice,#btnGreenhouseVoicePreview{display:none!important;}
 #teddyChipmunkToggle{display:inline-flex!important;}
 </style>
+
+<style id="teddy55OneBrainCleanup">
+/* TEDDY 5.5：一個大腦、一個耳朵、一對眼睛、兩種語音。
+   舊的多風格語音選單僅隱藏；底層相容節點保留，避免影響其他功能。 */
+#teddyVoiceStyle,
+#teddyVoicePreset,
+#teddyStyleSelect,
+#voiceStyleSelect,
+#voicePresetSelect,
+#teddyVoiceModeSelect,
+.voice-style-select,
+.voice-preset-select,
+.teddy-voice-style,
+.teddy-voice-preset { display:none !important; }
+</style>
+
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.4 · Dual Live Engine · Leda + Shimmer · Astra · Other Functions Locked · 2026-09-15</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.5 · One Brain · One Ear · One Pair of Eyes · Two Voices · Leda + Marin · 2026-09-15</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -501,12 +517,12 @@
             </button>
             <button type="button" id="teddyEngineGPT" data-engine="gpt-full-live"
               style="min-height:48px;border:1px solid #3b4944;border-radius:10px;background:#151c19;color:#9ba9a2;font-size:12px;font-weight:900;cursor:pointer;">
-              ✨ GPT‑Live‑1＋Astra<br><span style="font-size:10px;font-weight:600;opacity:.82;">Shimmer</span>
+              ✨ GPT‑Live‑1＋Astra<br><span style="font-size:10px;font-weight:600;opacity:.82;">Marin</span>
             </button>
           </div>
           <select id="teddyLiveModel" aria-label="Teddy Live engine" style="display:none;">
             <option value="gemini-live">Flash Live 3.1 · Leda</option>
-            <option value="gpt-full-live">GPT‑Live‑1＋Astra · Shimmer</option>
+            <option value="gpt-full-live">GPT‑Live‑1＋Astra · Marin</option>
           </select>
           <div id="teddyDualLiveUsage" style="margin:0 0 8px;padding:7px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.55;color:#8fa69d;">
             ⚡ Flash：0 分鐘　0.00 MB<br>✨ GPT：0 分鐘　0.00 MB
@@ -520,7 +536,7 @@
             <button type="button" id="teddyLiveStart" style="flex:1;border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:8px;cursor:pointer;">開始即時對話</button>
             <button type="button" id="teddyLiveStop" disabled style="border:1px solid #4b5e57;border-radius:8px;background:#18231f;color:#9fb4ab;padding:8px 11px;cursor:pointer;">停止</button>
           </div>
-          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Flash：Leda　｜　GPT：Shimmer　｜　兩引擎手動切換，不自動改人格或路由。</div>
+          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Flash：Leda　｜　GPT：Marin　｜　兩引擎手動切換，不自動改人格或路由。</div>
           <div id="teddyLiveTrace" style="display:none;">狀態：尚未開始。</div>
         </div>
 
@@ -6066,7 +6082,7 @@ ${parts}
     ui.model.value=engine;
     localStorage.setItem("teddy_live_model_v39",engine);
     teddyDualPaintButtons();
-    setStatus(engine==="gemini-live"?"Flash Live 3.1 · Leda":"GPT‑Live‑1＋Astra · Shimmer","#9fd8c8");
+    setStatus(engine==="gemini-live"?"Flash Live 3.1 · Leda":"GPT‑Live‑1＋Astra · Marin","#9fd8c8");
   }
 
 
@@ -6347,7 +6363,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     };
     live.stream.getTracks().forEach(t=>pc.addTrack(t,live.stream));const dc=pc.createDataChannel("oai-events");live.dc=dc;dc.onmessage=e=>handleOpenAIEvent(e).catch(err=>setStatus("GPT工具錯誤："+err.message,"#f0a8a8"));
     const offer=await pc.createOffer();await pc.setLocalDescription(offer);
-    const session={type:"realtime",model:openAIModel(mode),instructions:liveInstructions(),output_modalities:["audio"],audio:{input:{transcription:{model:"gpt-realtime-whisper",language:"zh"},turn_detection:{type:"semantic_vad",interrupt_response:true}},output:{voice:"shimmer"}},tools:liveOpenAITools(),tool_choice:"auto"};
+    const session={type:"realtime",model:openAIModel(mode),instructions:liveInstructions(),output_modalities:["audio"],audio:{input:{transcription:{model:"gpt-realtime-whisper",language:"zh"},turn_detection:{type:"semantic_vad",interrupt_response:true}},output:{voice:"marin"}},tools:liveOpenAITools(),tool_choice:"auto"};
     const form=new FormData();form.set("sdp",offer.sdp);form.set("session",JSON.stringify(session));
     const res=await fetch("https://api.openai.com/v1/realtime/calls",{method:"POST",headers:{Authorization:`Bearer ${key}`},body:form});
     if(!res.ok)throw new Error((await res.text()).slice(0,220)||`GPT HTTP ${res.status}`);await pc.setRemoteDescription({type:"answer",sdp:await res.text()});
@@ -6385,7 +6401,110 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<!-- TEDDY 5.4: dual Live engine manual selector (Flash/Leda + GPT/Shimmer); other functions locked. -->
+<!-- TEDDY 5.4: dual Live engine manual selector (Flash/Leda + GPT/Marin); other functions locked. -->
 <!-- TEDDY 5.2.7: animated avatar intentionally disabled; static original photo only. -->
+
+<script id="teddy55Awareness">
+/* TEDDY 5.5 — awareness/routing policy only. Existing Firebase, memory and greenhouse routes remain locked. */
+window.TEDDY_55_POLICY = Object.freeze({
+  version: "5.5",
+  identity: "同一個 Teddy：兩個 Live 引擎只改即時語音引擎，不改人格、記憶、權限或功能。",
+  live: {
+    flash: {label:"Flash Live 3.1", voice:"Leda"},
+    gpt: {label:"GPT-Live-1", voice:"Marin"},
+    selection:"manual"
+  },
+  astra: {
+    default:false,
+    rule:"一般簡單對話由目前選定的 Live 引擎直接回答，不呼叫 Astra。只有問題明顯需要複雜推理、分析、比較、計算、查資料、工具，或需要讀取/分析溫室完全體資料時，才升級 Astra。",
+    important:"不能因為只出現『溫室』兩字就自動升級；一般溫室閒聊仍由 Live 直接回答。"
+  },
+  greenhouseRoutes: Object.freeze({
+    "產能":"功能表3",
+    "工作":"平面圖1–5",
+    "計畫":"功能表5",
+    "施肥":"功能表7 表一",
+    "打卡":"功能表10"
+  }),
+  locked:"Firebase、既有記憶、權限、一般/溫室模式、完全體資料與既有路由不得因 Live 引擎切換而改變。"
+});
+
+// Append the 5.5 policy to Teddy's existing system/persona text at runtime where such text variables/fields exist.
+// This is deliberately non-destructive: it does not replace existing personality or memory prompts.
+(function(){
+  const policyText = `
+【TEDDY 5.5 路由規則】
+你是同一個 Teddy。Flash Live 3.1/Leda 與 GPT-Live-1/Marin 只是手動選擇的兩張嘴，不得改變人格、記憶、權限與功能。
+一般簡單聊天與簡單問答：Live 直接回答，不使用 Astra。
+只有明顯複雜推理、分析、比較、計算、需要查資料/工具，或使用者要求讀取、分析溫室完全體資料時，才使用 Astra/高階模型。
+僅提到「溫室」不等於需要 Astra；例如日常溫室閒聊仍由 Live 直接回答。
+溫室完全體既有路由鎖定：產能=功能表3；工作=平面圖1–5；計畫=功能表5；施肥=功能表7表一；打卡=功能表10。
+不要自行改動 Firebase、記憶、權限或其他功能。GPT Live 使用 Marin 時，聲音表現要年輕、甜美、明亮、活潑、自然，語速稍快但清楚，避免成熟低沉或播音腔。`;
+  window.TEDDY_55_POLICY_TEXT = policyText;
+
+  function enrich(){
+    // Known prompt-like textareas/hidden fields: append only if they exist.
+    document.querySelectorAll('textarea[data-system-prompt],input[data-system-prompt]').forEach(el=>{
+      if(!String(el.value||"").includes("TEDDY 5.5 路由規則")) el.value=(el.value||"")+policyText;
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",enrich,{once:true}); else enrich();
+})();
+</script>
+
+<script id="teddy55PolicyInjector">
+(function(){
+  const originalFetch = window.fetch;
+  window.fetch = async function(input, init){
+    try{
+      if(init && typeof init.body === "string" && window.TEDDY_55_POLICY_TEXT){
+        const ct = (init.headers && (init.headers["Content-Type"] || init.headers["content-type"])) || "";
+        if(String(ct).includes("application/json") || init.body.trim().startsWith("{")){
+          const obj=JSON.parse(init.body);
+          const p=window.TEDDY_55_POLICY_TEXT;
+          if(typeof obj.instructions==="string" && !obj.instructions.includes("TEDDY 5.5 路由規則")) obj.instructions+=p;
+          if(typeof obj.system==="string" && !obj.system.includes("TEDDY 5.5 路由規則")) obj.system+=p;
+          if(obj.session && typeof obj.session.instructions==="string" && !obj.session.instructions.includes("TEDDY 5.5 路由規則")) obj.session.instructions+=p;
+          init=Object.assign({},init,{body:JSON.stringify(obj)});
+        }
+      }
+    }catch(_){}
+    return originalFetch.call(this,input,init);
+  };
+})();
+</script>
+
+
+<script id="teddy55OneBrainCleanupJS">
+(function(){
+  const OLD = ["自動判斷","甜美可愛","年輕調皮","溫柔哄睡","說書人","驚喜興奮"];
+  function clean(){
+    document.querySelectorAll("select").forEach(sel=>{
+      const txt=Array.from(sel.options||[]).map(o=>(o.textContent||"").trim());
+      const hits=OLD.filter(x=>txt.some(t=>t.includes(x))).length;
+      if(hits>=4){
+        sel.style.display="none";
+        // 若外層只是此語音風格控制列，僅隱藏該控制列。
+        let p=sel.parentElement;
+        if(p && p.children.length<=3 && !p.querySelector("#teddyLiveModel,#teddyDualLiveButtons,#teddyEngineFlash,#teddyEngineGPT")){
+          p.style.display="none";
+        }
+      }
+    });
+    // radio/menu 型舊風格 UI：只有同一區塊同時出現至少四個舊標籤才隱藏。
+    document.querySelectorAll("div,section,fieldset").forEach(el=>{
+      if(el.id==="teddyDualLiveButtons" || el.querySelector("#teddyDualLiveButtons")) return;
+      const t=(el.innerText||"");
+      const hits=OLD.filter(x=>t.includes(x)).length;
+      if(hits>=4 && el.querySelector('input[type="radio"]')){
+        el.style.display="none";
+      }
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",clean,{once:true});
+  else clean();
+})();
+</script>
+
 </body>
 </html>
