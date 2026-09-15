@@ -426,7 +426,7 @@
 </style>
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.4 · Dual Live Engine · Leda + Willow · Astra · Other Functions Locked · 2026-09-15</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.4 · Dual Live Engine · Leda + Shimmer · Astra · Other Functions Locked · 2026-09-15</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -501,12 +501,12 @@
             </button>
             <button type="button" id="teddyEngineGPT" data-engine="gpt-full-live"
               style="min-height:48px;border:1px solid #3b4944;border-radius:10px;background:#151c19;color:#9ba9a2;font-size:12px;font-weight:900;cursor:pointer;">
-              ✨ GPT‑Live‑1＋Astra<br><span style="font-size:10px;font-weight:600;opacity:.82;">Willow</span>
+              ✨ GPT‑Live‑1＋Astra<br><span style="font-size:10px;font-weight:600;opacity:.82;">Shimmer</span>
             </button>
           </div>
           <select id="teddyLiveModel" aria-label="Teddy Live engine" style="display:none;">
             <option value="gemini-live">Flash Live 3.1 · Leda</option>
-            <option value="gpt-full-live">GPT‑Live‑1＋Astra · Willow</option>
+            <option value="gpt-full-live">GPT‑Live‑1＋Astra · Shimmer</option>
           </select>
           <div id="teddyDualLiveUsage" style="margin:0 0 8px;padding:7px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.55;color:#8fa69d;">
             ⚡ Flash：0 分鐘　0.00 MB<br>✨ GPT：0 分鐘　0.00 MB
@@ -520,7 +520,7 @@
             <button type="button" id="teddyLiveStart" style="flex:1;border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:8px;cursor:pointer;">開始即時對話</button>
             <button type="button" id="teddyLiveStop" disabled style="border:1px solid #4b5e57;border-radius:8px;background:#18231f;color:#9fb4ab;padding:8px 11px;cursor:pointer;">停止</button>
           </div>
-          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Flash：Leda　｜　GPT：Willow　｜　兩引擎手動切換，不自動改人格或路由。</div>
+          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Flash：Leda　｜　GPT：Shimmer　｜　兩引擎手動切換，不自動改人格或路由。</div>
           <div id="teddyLiveTrace" style="display:none;">狀態：尚未開始。</div>
         </div>
 
@@ -6066,7 +6066,7 @@ ${parts}
     ui.model.value=engine;
     localStorage.setItem("teddy_live_model_v39",engine);
     teddyDualPaintButtons();
-    setStatus(engine==="gemini-live"?"Flash Live 3.1 · Leda":"GPT‑Live‑1＋Astra · Willow","#9fd8c8");
+    setStatus(engine==="gemini-live"?"Flash Live 3.1 · Leda":"GPT‑Live‑1＋Astra · Shimmer","#9fd8c8");
   }
 
 
@@ -6347,7 +6347,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     };
     live.stream.getTracks().forEach(t=>pc.addTrack(t,live.stream));const dc=pc.createDataChannel("oai-events");live.dc=dc;dc.onmessage=e=>handleOpenAIEvent(e).catch(err=>setStatus("GPT工具錯誤："+err.message,"#f0a8a8"));
     const offer=await pc.createOffer();await pc.setLocalDescription(offer);
-    const session={type:"realtime",model:openAIModel(mode),instructions:liveInstructions(),output_modalities:["audio"],audio:{input:{transcription:{model:"gpt-realtime-whisper",language:"zh"},turn_detection:{type:"semantic_vad",interrupt_response:true}},output:{voice:"willow"}},tools:liveOpenAITools(),tool_choice:"auto"};
+    const session={type:"realtime",model:openAIModel(mode),instructions:liveInstructions(),output_modalities:["audio"],audio:{input:{transcription:{model:"gpt-realtime-whisper",language:"zh"},turn_detection:{type:"semantic_vad",interrupt_response:true}},output:{voice:"shimmer"}},tools:liveOpenAITools(),tool_choice:"auto"};
     const form=new FormData();form.set("sdp",offer.sdp);form.set("session",JSON.stringify(session));
     const res=await fetch("https://api.openai.com/v1/realtime/calls",{method:"POST",headers:{Authorization:`Bearer ${key}`},body:form});
     if(!res.ok)throw new Error((await res.text()).slice(0,220)||`GPT HTTP ${res.status}`);await pc.setRemoteDescription({type:"answer",sdp:await res.text()});
@@ -6385,7 +6385,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-<!-- TEDDY 5.4: dual Live engine manual selector (Flash/Leda + GPT/Willow); other functions locked. -->
+<!-- TEDDY 5.4: dual Live engine manual selector (Flash/Leda + GPT/Shimmer); other functions locked. -->
 <!-- TEDDY 5.2.7: animated avatar intentionally disabled; static original photo only. -->
 </body>
 </html>
