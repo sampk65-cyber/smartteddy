@@ -426,7 +426,7 @@
 </style>
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.3.0 · Mode Return Fix + GPT-6 Astra Routing + UnifiedTranscript + V5.1C8.9 PageReader · 2026-09-12</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.4 · Dual Live Engine · Leda + Willow · Astra · Other Functions Locked · 2026-09-15</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -493,13 +493,24 @@
             <span style="font-size:12px;font-weight:800;color:#bff9e7;">🎙️ Teddy 即時語音</span>
             <span id="teddyLiveStatus" style="font-size:10px;color:#738b82;">尚未連線</span>
           </div>
-          <div style="font-size:10px;color:#7f948b;margin:-2px 0 7px;">語音控制 · 對話內容統一顯示於下方</div>
-          <select id="teddyLiveModel" style="width:100%;margin-bottom:7px;background:#141a18;border:1px solid #355248;color:#d7e0dc;border-radius:7px;padding:6px;font-size:11px;">
-            <option value="smart">智慧分工：Gemini → GPT Mini</option>
-            <option value="gemini-live">Gemini 3.1 Flash Live（省費用）</option>
-            <option value="gpt-mini-live">GPT‑Realtime‑2.1 Mini（自然備援）</option>
-            <option value="gpt-full-live">GPT‑Realtime‑2.1（複雜推理）</option>
+          <div style="font-size:10px;color:#7f948b;margin:-2px 0 7px;">手動選擇即時語音引擎 · 同一 Teddy 人格／記憶／功能</div>
+          <div id="teddyDualLiveButtons" style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;">
+            <button type="button" id="teddyEngineFlash" data-engine="gemini-live"
+              style="min-height:48px;border:1px solid #5eead4;border-radius:10px;background:#19342c;color:#d9fff2;font-size:12px;font-weight:900;cursor:pointer;">
+              ⚡ Flash Live 3.1<br><span style="font-size:10px;font-weight:600;opacity:.82;">Leda</span>
+            </button>
+            <button type="button" id="teddyEngineGPT" data-engine="gpt-full-live"
+              style="min-height:48px;border:1px solid #3b4944;border-radius:10px;background:#151c19;color:#9ba9a2;font-size:12px;font-weight:900;cursor:pointer;">
+              ✨ GPT‑Live‑1＋Astra<br><span style="font-size:10px;font-weight:600;opacity:.82;">Willow</span>
+            </button>
+          </div>
+          <select id="teddyLiveModel" aria-label="Teddy Live engine" style="display:none;">
+            <option value="gemini-live">Flash Live 3.1 · Leda</option>
+            <option value="gpt-full-live">GPT‑Live‑1＋Astra · Willow</option>
           </select>
+          <div id="teddyDualLiveUsage" style="margin:0 0 8px;padding:7px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.55;color:#8fa69d;">
+            ⚡ Flash：0 分鐘　0.00 MB<br>✨ GPT：0 分鐘　0.00 MB
+          </div>
           <div style="display:flex;align-items:center;gap:8px;margin:0 2px 8px;font-size:11px;color:#8ea49b;">
             <span>🔊 音量</span>
             <input id="teddyLiveVolume" type="range" min="60" max="160" step="5" value="125" style="flex:1;accent-color:#5eead4;" />
@@ -509,7 +520,7 @@
             <button type="button" id="teddyLiveStart" style="flex:1;border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:8px;cursor:pointer;">開始即時對話</button>
             <button type="button" id="teddyLiveStop" disabled style="border:1px solid #4b5e57;border-radius:8px;background:#18231f;color:#9fb4ab;padding:8px 11px;cursor:pointer;">停止</button>
           </div>
-          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Aoede 年輕細緻聲線；GPT 備援使用 Coral。預設音量 125%。</div>
+          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Flash：Leda　｜　GPT：Willow　｜　兩引擎手動切換，不自動改人格或路由。</div>
           <div id="teddyLiveTrace" style="display:none;">狀態：尚未開始。</div>
         </div>
 
@@ -2501,49 +2512,6 @@
       return {handled:false};
     }
 
-
-    // ===== TEDDY 5.3.1：單一大腦協調器 =====
-    // 只協調「誰有發言權」，不改動記憶、聲音、溫室路由或既有 AI 功能。
-    const teddyBrain = window.TEDDY_BRAIN = window.TEDDY_BRAIN || {
-      seq: 0,
-      active: null,
-      pendingLiveStart: false,
-      resumeLiveAfterText: false
-    };
-    function teddyBrainSetActive(kind, meta={}) {
-      const token = `${Date.now()}-${++teddyBrain.seq}`;
-      teddyBrain.active = { token, kind, startedAt: Date.now(), ...meta };
-      return token;
-    }
-    function teddyBrainClear(token, kind) {
-      if (!teddyBrain.active) return;
-      if (token && teddyBrain.active.token !== token) return;
-      if (kind && teddyBrain.active.kind !== kind) return;
-      teddyBrain.active = null;
-    }
-    async function teddyBrainEnterText() {
-      const liveCtl = window.TEDDY_LIVE_CONTROL;
-      // 文字成為新輸入時，先暫停即時語音的回答權；完成後自動恢復。
-      if (liveCtl?.isActive?.() || liveCtl?.isStarting?.()) {
-        teddyBrain.resumeLiveAfterText = true;
-        try { await liveCtl.stop(); } catch (_) {}
-      }
-      // 若仍有舊文字回合，拒絕重複啟動第二個文字大腦。
-      if (teddyBrain.active?.kind === 'text') return null;
-      return teddyBrainSetActive('text', { source: 'manual' });
-    }
-    async function teddyBrainFinishText(token) {
-      teddyBrainClear(token, 'text');
-      const shouldResume = teddyBrain.resumeLiveAfterText || teddyBrain.pendingLiveStart;
-      teddyBrain.resumeLiveAfterText = false;
-      teddyBrain.pendingLiveStart = false;
-      if (shouldResume) {
-        setTimeout(() => {
-          try { window.TEDDY_LIVE_CONTROL?.start?.(); } catch (_) {}
-        }, 250);
-      }
-    }
-
     async function teddySend() {
       const input = document.getElementById("teddyChatInput");
       let text = input.value.trim();
@@ -2555,10 +2523,7 @@
         text += `\n\n【網頁連結讀取要求】本輪包含網頁連結：${teddyUrls.join(" 、 ")}。請使用 web_search 實際開啟/搜尋這些網址與其可讀內容，再根據頁面內容回答；不要只根據網址字面猜測。若網站阻擋存取或需要登入，請明確說明哪些內容無法取得。`;
       }
       if (!text) return;
-      const teddyBrainToken = await teddyBrainEnterText();
-      if (!teddyBrainToken) return;
       input.value = "";
-      try {
       teddyActiveSkill = teddyDetectSkill(text);
       teddyAppendLog("user", text);
       teddyHistory.push({ role: "user", text });
@@ -2612,13 +2577,8 @@
       const keys = loadKeys();
       const modelSelect = document.getElementById("teddyModelSelect");
       let pref = modelSelect ? modelSelect.value : "auto";
-      // 5.3.4 單一 Teddy：取消「每句自動判斷複雜度→切模型」。
-      // 一般文字固定走快速 Gemini；只有明確要求深度思考、需要 Web/原生二進位檔案時，才把高階模型當內部工具。
-      const explicitDeep = /(?:深度分析|仔細分析|深入分析|高階模型|GPT\s*6|GPT6|Astra|完整推理|詳細推理)/i.test(text);
-      const hasUrl = /https?:\/\//i.test(text);
-      const nativeBinary = teddyAttachment?.kind === "file";
-      if ((explicitDeep || hasUrl || nativeBinary) && keys.openai) pref = "openai";
-      else if (keys.google) pref = "gemini";
+      // 使用者要求：複雜問題不論目前一般／溫室模式或手動模型選擇，都優先 Astra。
+      if ((teddyIsComplexQuestion(text) || teddyAttachment) && keys.openai) pref = "openai";
       const btn = document.getElementById("teddyChatSend");
       btn.disabled = true;
       try {
@@ -2662,10 +2622,6 @@
       const ac=document.getElementById("teddyAttachmentChip"),af=document.getElementById("teddyAttachmentInput");
       if(ac)ac.style.display="none";if(af)af.value="";
       btn.disabled = false;
-      } finally {
-        // 不論成功、失敗或途中 return，都釋放本回合唯一發言權。
-        await teddyBrainFinishText(teddyBrainToken);
-      }
     }
 
     const teddySkillSelect = document.getElementById("teddySkillSelect");
@@ -5969,7 +5925,7 @@ ${parts}
         <div>
           <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
           <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
-          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 5.3.4-one-teddy-core</div>
+          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">build 2026-08-23-docid-fix-v3</div>
         </div>
         <button type="button" id="btnGreenhouseClose" style="display:inline-flex;align-items:center;justify-content:center;border:1px solid #5eead4;background:#10251f;color:#d9fff0;border-radius:9px;padding:8px 12px;cursor:pointer;font-weight:800;">🐿 回一般模式</button>
       </div>
@@ -6022,8 +5978,97 @@ ${parts}
     volume:document.getElementById("teddyLiveVolume"),volumeValue:document.getElementById("teddyLiveVolumeValue")
   };
   const live={active:false,starting:false,manualStop:false,provider:null,ws:null,pc:null,dc:null,stream:null,
-    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set(),transcriptTimer:null,contextPrimed:false};
+    captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,sources:new Set(),inputText:"",outputText:"",handledCalls:new Set(),transcriptTimer:null};
   const ENTRY_LABEL={function7:"功能表7／十表路由",yield:"產能／功能表3",work:"工作1-5／功能表4",calendar:"計畫／功能表5",materials:"耗材6-8／功能表7內層表3",attendance:"打卡／功能表10"};
+  // ===== 5.4 Dual Live Engine telemetry (isolated; no greenhouse/data route changes) =====
+  const TEDDY_DUAL_LIVE_USAGE_KEY="teddy_dual_live_usage_v54";
+  let teddyDualSession={engine:null,startedAt:0,startBytes:0,timer:null};
+
+  function teddyDualLoadUsage(){
+    try{
+      return Object.assign({
+        "gemini-live":{ms:0,bytes:0,sessions:0},
+        "gpt-full-live":{ms:0,bytes:0,sessions:0}
+      },JSON.parse(localStorage.getItem(TEDDY_DUAL_LIVE_USAGE_KEY)||"{}"));
+    }catch(_){
+      return {"gemini-live":{ms:0,bytes:0,sessions:0},"gpt-full-live":{ms:0,bytes:0,sessions:0}};
+    }
+  }
+  function teddyDualSaveUsage(u){try{localStorage.setItem(TEDDY_DUAL_LIVE_USAGE_KEY,JSON.stringify(u));}catch(_){}}
+  function teddyDualFormatMs(ms){return (Math.max(0,Number(ms)||0)/60000).toFixed(1);}
+  function teddyDualFormatMB(bytes){return (Math.max(0,Number(bytes)||0)/1048576).toFixed(2);}
+  async function teddyDualCurrentBytes(){
+    let n=0;
+    try{
+      if(live.pc){
+        const stats=await live.pc.getStats();
+        stats.forEach(r=>{
+          if((r.type==="outbound-rtp"||r.type==="inbound-rtp")&&r.kind==="audio") n+=Number(r.bytesSent||r.bytesReceived||0);
+          if(r.type==="data-channel") n+=Number(r.bytesSent||0)+Number(r.bytesReceived||0);
+        });
+      }
+    }catch(_){}
+    return n;
+  }
+  async function teddyDualRenderUsage(){
+    const el=document.getElementById("teddyDualLiveUsage"); if(!el)return;
+    const u=teddyDualLoadUsage();
+    const now=Date.now();
+    let gMs=u["gemini-live"]?.ms||0, gBytes=u["gemini-live"]?.bytes||0;
+    let oMs=u["gpt-full-live"]?.ms||0, oBytes=u["gpt-full-live"]?.bytes||0;
+    if(teddyDualSession.engine&&teddyDualSession.startedAt){
+      const extra=now-teddyDualSession.startedAt;
+      if(teddyDualSession.engine==="gemini-live")gMs+=extra; else oMs+=extra;
+      const cur=await teddyDualCurrentBytes();
+      const db=Math.max(0,cur-(teddyDualSession.startBytes||0));
+      if(teddyDualSession.engine==="gemini-live")gBytes+=db; else oBytes+=db;
+    }
+    el.innerHTML=`⚡ Flash：${teddyDualFormatMs(gMs)} 分鐘　${teddyDualFormatMB(gBytes)} MB<br>✨ GPT：${teddyDualFormatMs(oMs)} 分鐘　${teddyDualFormatMB(oBytes)} MB<br><span style="color:#60766e;">流量為瀏覽器可量測值；API 費用仍以供應商帳單為準。</span>`;
+  }
+  async function teddyDualBegin(engine){
+    await teddyDualEnd();
+    teddyDualSession.engine=engine;
+    teddyDualSession.startedAt=Date.now();
+    teddyDualSession.startBytes=await teddyDualCurrentBytes();
+    const u=teddyDualLoadUsage(); if(!u[engine])u[engine]={ms:0,bytes:0,sessions:0};
+    u[engine].sessions=(u[engine].sessions||0)+1;teddyDualSaveUsage(u);
+    clearInterval(teddyDualSession.timer);
+    teddyDualSession.timer=setInterval(teddyDualRenderUsage,5000);
+    teddyDualRenderUsage();
+  }
+  async function teddyDualEnd(){
+    if(!teddyDualSession.engine||!teddyDualSession.startedAt)return;
+    const u=teddyDualLoadUsage(),e=teddyDualSession.engine;
+    if(!u[e])u[e]={ms:0,bytes:0,sessions:0};
+    u[e].ms=(u[e].ms||0)+(Date.now()-teddyDualSession.startedAt);
+    const cur=await teddyDualCurrentBytes();
+    u[e].bytes=(u[e].bytes||0)+Math.max(0,cur-(teddyDualSession.startBytes||0));
+    teddyDualSaveUsage(u);
+    clearInterval(teddyDualSession.timer);
+    teddyDualSession={engine:null,startedAt:0,startBytes:0,timer:null};
+    teddyDualRenderUsage();
+  }
+  function teddyDualPaintButtons(){
+    const v=ui.model?.value||"gemini-live";
+    const a=document.getElementById("teddyEngineFlash"),b=document.getElementById("teddyEngineGPT");
+    if(a){
+      const on=v==="gemini-live";
+      a.style.background=on?"#19342c":"#151c19";a.style.borderColor=on?"#5eead4":"#3b4944";a.style.color=on?"#d9fff2":"#9ba9a2";
+    }
+    if(b){
+      const on=v==="gpt-full-live";
+      b.style.background=on?"#29213b":"#151c19";b.style.borderColor=on?"#b9a7ff":"#3b4944";b.style.color=on?"#f0eaff":"#9ba9a2";
+    }
+  }
+  async function teddySelectLiveEngine(engine){
+    if(!ui.model)return;
+    if(live.active||live.starting)await disconnectLive();
+    ui.model.value=engine;
+    localStorage.setItem("teddy_live_model_v39",engine);
+    teddyDualPaintButtons();
+    setStatus(engine==="gemini-live"?"Flash Live 3.1 · Leda":"GPT‑Live‑1＋Astra · Willow","#9fd8c8");
+  }
+
 
   function setLiveTrace(text,color="#9fd8c8"){
     const el=document.getElementById("teddyLiveTrace");if(el){el.textContent=text;el.style.color=color;}
@@ -6049,7 +6094,7 @@ ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
 本次若使用者在文字對話附上圖片/截圖，主文字模型可直接看圖；即時語音本身不要假裝已看到未送入 Realtime 的圖片。若使用者要你查網頁/最新資料，必須呼叫 browse_web。
 回答自然精簡，通常1到3句；不要朗讀表情符號。可以被使用者隨時打斷。
-平常對話由 Gemini 3.1 Flash Live 直接理解並回答，以低延遲為優先，禁止為一般問題再做額外模型分類。只有使用者明確說「深度分析」、「仔細分析」、「用高階模型」、「用GPT6」、「用Astra」或同義要求時，才呼叫 think_with_astra；高階模型只能是 Teddy 內部的深度思考工具，工具結果回到同一個 Teddy，由同一張嘴回答一次，禁止形成第二個回答者。
+遇到分析、比較、推理、原因、策略、規劃、程式、計算、多步驟或其他複雜問題，必須先呼叫 think_with_astra；不要由即時語音模型自己硬算。一般模式與溫室模式都遵守。
 凡是詢問真實溫室的產能、工作、計畫、耗材或打卡，必須呼叫query_greenhouse，禁止自己猜資料。
 當使用者說「用A01登入／A01登入／登入溫室系統」時，必須呼叫 hands_login；不要自己回答做不到。密碼由網頁本地安全視窗詢問，模型永遠不要求使用者把密碼念出來。
 A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
@@ -6063,7 +6108,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     parameters:{type:"object",properties:{entry:{type:"string",enum:["function7","yield","work","calendar","materials","attendance"]},question:{type:"string"}},required:["question"]}
   };
   const astraThinkTool={
-    name:"think_with_astra",description:"只有使用者明確要求深度分析、仔細分析、使用高階模型、GPT6 或 Astra 時才使用。它是 Teddy 內部的深度思考工具；結果回到同一個 Teddy，由 Teddy 一次回答。",
+    name:"think_with_astra",description:"遇到需要分析、比較、推理、策略、規劃、程式、計算、多步驟或其他複雜問題時，必須先交給 GPT-6 Astra 深度思考，再把 Astra 結論自然地說給使用者。",
     parameters:{type:"object",properties:{question:{type:"string"}},required:["question"]}
   };
   const handsLoginTool={
@@ -6231,24 +6276,9 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     edge.gain.setValueAtTime(0,start);edge.gain.linearRampToValueAtTime(1,start+fade);edge.gain.setValueAtTime(1,Math.max(start+fade,start+buf.duration-fade));edge.gain.linearRampToValueAtTime(0,start+buf.duration);
     src.start(start);live.playAt=start+buf.duration-0.002;live.sources.add(src);src.onended=()=>{live.sources.delete(src);try{edge.disconnect();}catch(_){}};
   }
-  function primeGeminiContext(){
-    if(live.contextPrimed || live.provider!=="gemini-live" || live.ws?.readyState!==1)return;
-    const turns=(Array.isArray(teddyHistory)?teddyHistory:[]).slice(-16).map(h=>({
-      role:h.role==="assistant"?"model":"user",
-      parts:[{text:String(h.text||"").slice(0,5000)}]
-    })).filter(t=>t.parts[0].text.trim());
-    if(!turns.length){ live.contextPrimed=true; return; }
-    try{
-      // 只灌入上下文，不要求模型立即回答；之後語音/文字直接延續同一話題。
-      live.ws.send(JSON.stringify({clientContent:{turns,turnComplete:false}}));
-      live.contextPrimed=true;
-      setLiveTrace("狀態：已接續目前 Teddy 對話，正在聽你說話。","#5eead4");
-    }catch(_){ }
-  }
-
   async function parseGeminiMessage(raw){
     const text=raw instanceof Blob?await raw.text():String(raw),m=JSON.parse(text);
-    if(m.setupComplete){setStatus("Teddy・正在聽", "#5eead4");primeGeminiContext();if(!live.contextPrimed)setLiveTrace("狀態：已連線，正在聽你說話。","#5eead4");return;}
+    if(m.setupComplete){setStatus("Gemini Live・正在聽", "#5eead4");setLiveTrace("狀態：已連線，正在聽你說話。","#5eead4");return;}
     if(m.serverContent){
       const sc=m.serverContent;if(sc.interrupted)stopGeminiAudio();
       if(sc.inputTranscription?.text){live.inputText+=sc.inputTranscription.text;setLiveTrace(`你正在說：${live.inputText}`,"#d8fff1");scheduleGeminiTranscriptFlush(1200);}
@@ -6281,7 +6311,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error("Gemini Live連線逾時")),12000);ws.onopen=()=>{clearTimeout(timer);resolve();};ws.onerror=()=>{clearTimeout(timer);reject(new Error("Gemini Live連線失敗"));};});
     ws.onmessage=e=>parseGeminiMessage(e.data).catch(err=>setStatus("Gemini訊息錯誤："+err.message,"#f0a8a8"));
     ws.onclose=()=>{if(live.active&&!live.manualStop)setStatus("Gemini Live已斷線，請重新連線","#e8a659");};
-    ws.send(JSON.stringify({setup:{model:"models/gemini-3.1-flash-live-preview",generationConfig:{responseModalities:["AUDIO"],thinkingConfig:{thinkingLevel:"minimal"},speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}},systemInstruction:{parts:[{text:liveInstructions()}]},tools:[{functionDeclarations:liveToolDeclarations()}],inputAudioTranscription:{},outputAudioTranscription:{}}}));
+    ws.send(JSON.stringify({setup:{model:"models/gemini-3.1-flash-live-preview",generationConfig:{responseModalities:["AUDIO"],thinkingConfig:{thinkingLevel:"minimal"},speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Leda"}}}},systemInstruction:{parts:[{text:liveInstructions()}]},tools:[{functionDeclarations:liveToolDeclarations()}],inputAudioTranscription:{},outputAudioTranscription:{}}}));
     await startGeminiCapture(live.stream,ws);
   }
 
@@ -6317,7 +6347,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     };
     live.stream.getTracks().forEach(t=>pc.addTrack(t,live.stream));const dc=pc.createDataChannel("oai-events");live.dc=dc;dc.onmessage=e=>handleOpenAIEvent(e).catch(err=>setStatus("GPT工具錯誤："+err.message,"#f0a8a8"));
     const offer=await pc.createOffer();await pc.setLocalDescription(offer);
-    const session={type:"realtime",model:openAIModel(mode),instructions:liveInstructions(),output_modalities:["audio"],audio:{input:{transcription:{model:"gpt-realtime-whisper",language:"zh"},turn_detection:{type:"semantic_vad",interrupt_response:true}},output:{voice:"coral"}},tools:liveOpenAITools(),tool_choice:"auto"};
+    const session={type:"realtime",model:openAIModel(mode),instructions:liveInstructions(),output_modalities:["audio"],audio:{input:{transcription:{model:"gpt-realtime-whisper",language:"zh"},turn_detection:{type:"semantic_vad",interrupt_response:true}},output:{voice:"willow"}},tools:liveOpenAITools(),tool_choice:"auto"};
     const form=new FormData();form.set("sdp",offer.sdp);form.set("session",JSON.stringify(session));
     const res=await fetch("https://api.openai.com/v1/realtime/calls",{method:"POST",headers:{Authorization:`Bearer ${key}`},body:form});
     if(!res.ok)throw new Error((await res.text()).slice(0,220)||`GPT HTTP ${res.status}`);await pc.setRemoteDescription({type:"answer",sdp:await res.text()});
@@ -6325,129 +6355,37 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     setStatus(`${openAIModel(mode)}・正在聽`,"#5eead4");
   }
   async function disconnectLive(){
-    live.manualStop=true;live.active=false;live.starting=false;
-    if(window.TEDDY_BRAIN?.active?.kind==="live") window.TEDDY_BRAIN.active=null;
-    flushGeminiTurn();stopGeminiAudio();
+    await teddyDualEnd();
+    live.manualStop=true;live.active=false;live.starting=false;flushGeminiTurn();stopGeminiAudio();
     try{live.captureNode?.disconnect();}catch(_){}try{live.captureSink?.disconnect();}catch(_){}try{await live.captureCtx?.close();}catch(_){}try{await live.playCtx?.close();}catch(_){}try{await live.outputCtx?.close();}catch(_){}
     try{live.ws?.close();}catch(_){}try{live.dc?.close();}catch(_){}try{live.pc?.close();}catch(_){}try{if(live.remoteAudio){live.remoteAudio.pause();live.remoteAudio.srcObject=null;live.remoteAudio.remove();}}catch(_){}live.stream?.getTracks().forEach(t=>t.stop());
-    Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:"",contextPrimed:false});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
+    Object.assign(live,{ws:null,pc:null,dc:null,stream:null,captureCtx:null,captureNode:null,captureSink:null,playCtx:null,outputCtx:null,gainNode:null,compressor:null,remoteAudio:null,playAt:0,provider:null,inputText:"",outputText:""});setButtons(false);setStatus("● 已停止","#ff6b6b");setLiveTrace("狀態：即時語音已停止。","#ff7b7b");
   }
   async function startLive(){
-    if(live.starting||live.active)return;
-    // 單一大腦規則：文字仍在思考/回答時，按即時語音只排隊，不建立第二個回答 Session。
-    if(window.TEDDY_BRAIN?.active?.kind==="text"){
-      window.TEDDY_BRAIN.pendingLiveStart=true;
-      setStatus("等待目前回答完成…","#e8a659");
-      setLiveTrace("狀態：已排隊開啟麥克風；目前 Teddy 仍在完成同一輪文字回答。","#e8c879");
-      return;
-    }
-    live.starting=true;live.manualStop=false;
-    if(window.TEDDY_BRAIN) window.TEDDY_BRAIN.active={token:`live-${Date.now()}`,kind:"live",source:"microphone",startedAt:Date.now()};
-    setButtons(true);setStatus("連線中…","#e8a659");setLiveTrace("狀態：正在連線即時語音…","#e8c879");
+    if(live.starting||live.active)return;live.starting=true;live.manualStop=false;setButtons(true);setStatus("連線中…","#e8a659");setLiveTrace("狀態：正在連線即時語音…","#e8c879");
     const mode=ui.model.value;localStorage.setItem("teddy_live_model_v39",mode);
     try{
-      if(mode==="smart"){
-        // 5.1.6 Clean Live：智慧模式優先使用原生 WebRTC 的 GPT Realtime Mini。
-        // Astra 仍只負責複雜推理；若 OpenAI Realtime 無法連線才退回 Gemini Live。
-        try{await connectOpenAI("gpt-mini-live");}catch(oErr){await disconnectLive();live.manualStop=false;live.starting=true;setButtons(true);setStatus("GPT Realtime失敗，切換Gemini Live…","#e8a659");await connectGemini();}
-      }else if(mode==="gemini-live")await connectGemini();else await connectOpenAI(mode);
-      live.active=true;live.starting=false;setButtons(true);
+      if(mode==="gemini-live")await connectGemini();
+      else await connectOpenAI("gpt-full-live");
+      live.active=true;live.starting=false;setButtons(true);await teddyDualBegin(mode);
     }catch(e){await disconnectLive();setStatus("無法連線："+e.message,"#f0a8a8");}
   }
-  // 對外只暴露啟停狀態，供單一大腦協調器使用；音訊管線與聲線完全不改。
-  window.TEDDY_LIVE_CONTROL={
-    start:startLive,
-    stop:disconnectLive,
-    isActive:()=>!!live.active,
-    isStarting:()=>!!live.starting,
-    provider:()=>live.provider||"",
-    sendText:(text)=>{
-      const clean=String(text||"").trim(); if(!clean)return false;
-      if(live.provider==="gemini-live" && live.ws?.readyState===1){
-        rememberTurn("user",clean);
-        live.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:clean}]}],turnComplete:true}}));
-        setLiveTrace(`你：${clean}\nTeddy 正在接續同一個 Live 對話…`,"#d8fff1");
-        return true;
-      }
-      return false;
-    }
-  };
-
-  ui.model.value=localStorage.getItem("teddy_live_model_v39")||"smart";
+  const savedEngine=localStorage.getItem("teddy_live_model_v39");
+  ui.model.value=(savedEngine==="gpt-full-live")?"gpt-full-live":"gemini-live";
   if(ui.volume){ui.volume.value=localStorage.getItem("teddy_live_volume_v41")||"85";ui.volume.oninput=applyLiveVolume;applyLiveVolume();}
-  ui.start.onclick=startLive;ui.stop.onclick=disconnectLive;
+  document.getElementById("teddyEngineFlash")?.addEventListener("click",()=>teddySelectLiveEngine("gemini-live"));
+  document.getElementById("teddyEngineGPT")?.addEventListener("click",()=>teddySelectLiveEngine("gpt-full-live"));
+  teddyDualPaintButtons();teddyDualRenderUsage();
+  const originalDisconnectLive=disconnectLive;
+  ui.start.onclick=startLive;
+  ui.stop.onclick=async()=>{await teddyDualEnd();await originalDisconnectLive();};
   window.addEventListener("beforeunload",()=>{try{live.ws?.close();live.pc?.close();}catch(_){}});
 })();
 </script>
 
 <script>try{teddyRenderAstraUsageSummary();}catch(_){}</script>
 
-
-
-
-<script>
-// ===== TEDDY 5.3.4：One Teddy Core / One Brain / One Voice / Ears + Eyes =====
-// 一個大腦：Gemini 3.1 Flash Live 是即時主對話；一般文字固定走快速 Gemini，Live 開啟時直接注入同一 session；不再每句自動切模型。
-// 一張嘴：同一時間只由 Teddy 回答一次。耳朵=Live 麥克風；眼睛=既有圖片/檔案/網頁能力。
-(() => {
-  "use strict";
-  const modelSel=document.getElementById('teddyModelSelect');
-  const voiceSel=document.getElementById('teddyVoiceStyleSelect');
-  if(modelSel) modelSel.style.display='none';
-  if(voiceSel) voiceSel.style.display='none';
-  const settingsPanel=document.getElementById('teddySettingsPanel');
-  if(settingsPanel){
-    const row=settingsPanel.querySelector('div');
-    if(row && !document.getElementById('teddySingleBrainLabel')){
-      const label=document.createElement('div');
-      label.id='teddySingleBrainLabel';
-      label.textContent='🧠 Teddy 單一大腦・👂耳朵・👁️眼睛・👄單一回答';
-      label.style.cssText='font-size:11px;color:#86a399;padding:3px 2px;';
-      row.prepend(label);
-    }
-  }
-  const liveModel=document.getElementById('teddyLiveModel');
-  if(liveModel){
-    liveModel.innerHTML='<option value="gemini-live">Gemini 3.1 Flash Live（Teddy 主大腦）</option>';
-    liveModel.value='gemini-live';
-    liveModel.disabled=true;
-  }
-  const liveBox=document.getElementById('teddyLiveBox');
-  const smalls=liveBox?.querySelectorAll('div');
-  if(smalls){
-    for(const el of smalls){
-      if((el.textContent||'').includes('語音控制')){ el.textContent='👂 耳朵：即時聆聽・🧠 同一大腦・👄 同一個 Teddy 回答'; break; }
-    }
-  }
-  // 包裝唯一文字入口：Live 已啟動時，文字直接送進同一 Gemini Live session，不另開文字模型。
-  const originalSend=window.teddySend;
-  if(typeof originalSend==='function'){
-    window.teddySend=async function(){
-      const input=document.getElementById('teddyChatInput');
-      const raw=String(input?.value||'').trim();
-      const ctl=window.TEDDY_LIVE_CONTROL;
-      // 有附件時保留既有「眼睛」路徑，因為附件需要既有 vision/file/web 工具處理。
-      const hasAttachment=!!window.teddyAttachment || (typeof teddyAttachment!=='undefined' && !!teddyAttachment);
-      if(raw && !hasAttachment && ctl?.isActive?.() && ctl?.provider?.()==='gemini-live'){
-        if(ctl.sendText(raw)){
-          if(input)input.value='';
-          return;
-        }
-      }
-      return originalSend.apply(this,arguments);
-    };
-  }
-  // 送出按鈕/Enter 原先可能持有舊函式引用，重新綁到目前唯一入口。
-  const send=document.getElementById('teddyChatSend');
-  if(send) send.onclick=()=>window.teddySend?.();
-  const input=document.getElementById('teddyChatInput');
-  if(input){
-    input.onkeydown=(e)=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();window.teddySend?.();} };
-  }
-})();
-</script>
-
-<!-- TEDDY 5.3.4: one Teddy core; fast Live brain, shared history bridge, explicit deep-tool escalation; greenhouse routes/memory locked. -->
-
+<!-- TEDDY 5.4: dual Live engine manual selector (Flash/Leda + GPT/Willow); other functions locked. -->
+<!-- TEDDY 5.2.7: animated avatar intentionally disabled; static original photo only. -->
 </body>
 </html>
