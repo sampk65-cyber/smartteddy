@@ -442,7 +442,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.5 · Investment Route + Fresh Data + Astra Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.6 · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -829,7 +829,7 @@
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.2.5 Sol Vision + Web Edition";
+    const TEDDY_VERSION = "Smart Teddy 5.6 Investment Core";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -894,9 +894,10 @@
     // 一般聊天不再對農業/溫室關鍵字敏感——那個專業程度留給獨立的「溫室管理」視窗處理。
     function teddyV3RouteSkill(message) {
       const q = String(message || "").toLowerCase();
-      const finance = /(股票|股價|台股|美股|etf|ipo|spacex|財報|營收|eps|本益比|殖利率|fed|聯準會|利率|債券|黃金|美元|匯率|投資|資產配置|基金|期貨|選擇權|加密|bitcoin|nvidia|台積電)/i;
+      const finance = /(股票|股價|台股|美股|etf|ipo|spacex|財報|營收|eps|本益比|殖利率|fed|聯準會|利率|債券|黃金|美元|匯率|投資|資產配置|基金|期貨|選擇權|加密|bitcoin|nvidia|台積電|拆分|分割|反分割|合併|除權|除息|配息)/i;
+      const twTicker = /(?:^|[^0-9])(?:00\d{3}|0\d{4}|[1-9]\d{3})(?:[^0-9]|$)/;
       const coding = /(程式|javascript|html|css|firebase|api|console|bug|錯誤|部署|netlify|程式碼)/i;
-      if (finance.test(q)) return "finance";
+      if (finance.test(q) || twTicker.test(q)) return "finance";
       if (coding.test(q)) return "coding";
       return "general";
     }
@@ -905,11 +906,8 @@
     function teddyV3NeedsFreshData(message, skill) {
       const q = String(message || "");
       const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|政策|公告|法規|疫情|病蟲害警報|現況|行情)/i;
-      // 5.5 投資最佳化：只要是「具體標的 + 投資判斷/事件」，即使沒說「最新」也先抓即時資料。
-      const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息|拆分|分割|合併|減資|增資|庫藏股|除權|填息|股利|重大訊息|法規|政策)/i;
-      const investmentDecision = /(投資建議|投資判斷|建議|判斷|買|賣|加碼|減碼|持有|進場|出場|目標價|合理價|估值|未來|走勢|趨勢|風險|半年|三個月|一年)/i;
-      const concreteAsset = /(?:^|[^0-9])\d{4,6}(?:[^0-9]|$)|\b[A-Z]{1,6}\b|股票|股價|台股|美股|ETF|基金|債券|黃金|美元|比特幣|bitcoin|台積電|nvidia/i;
-      if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q) || (investmentDecision.test(q) && concreteAsset.test(q));
+      const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息|拆分|分割|反分割|合併|除權|公告|重大訊息)/i;
+      if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q);
       if (skill === "presentation") return timeSensitive.test(q) || marketEvent.test(q);
       return false;
     }
@@ -920,7 +918,7 @@
       const today = teddyTodayStr();
       let p = `\n\n【Smart Teddy V3 路由】\n目前 Skill：${skill}。`;
       if (skill === "finance") {
-        p += `\n你現在是「財務與投資分析 Skill」。先區分已驗證事實、推論與情境，不把猜測寫成事實。分析優先順序：最新資料→基本面/估值→總經與產業→樂觀/基準/悲觀情境→主要風險→簡短結論。涉及個別標的時避免保證報酬。`;
+        p += `\n你現在是「財務與投資分析 Skill」。先區分已驗證事實、推論與情境，不把猜測寫成事實。分析優先順序：標的身分確認→最新資料→基本面/估值→總經與產業→樂觀/基準/悲觀情境→主要風險→簡短結論。資料層與推理層必須分開；先列已驗證資料與日期，再做推論。涉及個別標的時避免保證報酬。`;
       } else if (skill === "coding") {
         p += `\n你現在是「工程 Skill」。先定位錯誤，再給最小修改；避免無必要重構，保留現有功能。`;
       } else {
@@ -1190,23 +1188,40 @@
         return { ok: true, seconds: secs, label: label || null };
       }
       if (name === "search_news") {
+        // 5.5.1 投資即時資料：Grok 優先；逾時/失敗立即改用 OpenAI web_search。
+        // 不再讓單一搜尋供應商的 Failed to fetch 阻斷整個投資分析。
         const keys = loadKeys();
-        if (!keys.xai) return { ok: false, error: "搜尋新聞需要先設定 Grok (xAI) 的 API Key" };
-        try {
-          const r = await teddyFetch("https://api.x.ai/v1/responses", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
-            body: JSON.stringify({
-              model: "grok-4.6",
-              input: [{ role: "user", content: String(input.query || "") }],
-              tools: [{ type: "web_search" }],
-            }),
-          }, 25000);
-          const d = await r.json();
-          if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
-          const text = d.output_text || (d.output || []).map((o) => (o.content || []).map((c) => c.text || "").join("")).join("\n");
-          return { ok: true, result: text || "沒有找到相關結果" };
-        } catch (e) { return { ok: false, error: "搜尋失敗：" + e.message }; }
+        const query = String(input.query || "").trim();
+        const errors = [];
+        if (keys.xai) {
+          try {
+            const r = await teddyFetch("https://api.x.ai/v1/responses", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
+              body: JSON.stringify({ model: "grok-4.6", input: [{ role: "user", content: query }], tools: [{ type: "web_search" }] }),
+            }, 12000);
+            const d = await r.json();
+            if (!r.ok) throw new Error(d?.error?.message || `xAI HTTP ${r.status}`);
+            const text = d.output_text || (d.output || []).flatMap(o=>o.content||[]).filter(c=>c.type==="output_text"||c.text).map(c=>c.text||"").join("\n");
+            if (String(text||"").trim()) return { ok:true, result:String(text).trim(), source:"xAI web_search" };
+            throw new Error("xAI 沒有回傳可用資料");
+          } catch (e) { errors.push("xAI：" + e.message); }
+        }
+        if (keys.openai) {
+          try {
+            const r = await teddyFetch("https://api.openai.com/v1/responses", {
+              method:"POST",
+              headers:{"Content-Type":"application/json",Authorization:`Bearer ${keys.openai}`},
+              body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"medium"},tools:[{type:"web_search"}],input:[{role:"developer",content:[{type:"input_text",text:"你是 Smart Teddy 的投資即時資料層。使用繁體中文。先確認標的代號/名稱與事件，再查最新官方公告、交易所/發行商資訊與可信市場資料。只回傳可驗證資料、日期與來源線索；不要自行給買賣結論。"}]},{role:"user",content:[{type:"input_text",text:query}]}]})
+            }, 45000);
+            const d=await r.json();
+            if(!r.ok)throw new Error(d?.error?.message||`OpenAI Web HTTP ${r.status}`);
+            const text=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
+            if(text)return {ok:true,result:text,source:"OpenAI web_search"};
+            throw new Error("OpenAI web_search 沒有回傳可用資料");
+          } catch(e){ errors.push("OpenAI："+e.message); }
+        }
+        return {ok:false,error:"即時搜尋雙路徑皆失敗。"+(errors.length?" "+errors.join("；"):" 尚未設定 xAI 或 OpenAI Key")};
       }
       if (name === "set_reminder") {
         const mins = Number(input.minutes_from_now);
@@ -1527,24 +1542,52 @@
       };
     }
 
+    // ===== Smart Teddy 5.6 Investment Data Layer =====
+    // 資料層與推理層分離：先取得/驗證資料，再交給 Astra；搜尋服務失敗不直接殺死整題。
+    const TEDDY_INVEST_CACHE_KEY = "teddy_invest_verified_cache_v56";
+    function teddyInvestCacheLoad(){
+      try{return JSON.parse(localStorage.getItem(TEDDY_INVEST_CACHE_KEY)||"{}");}catch(_){return {};}
+    }
+    function teddyInvestCacheKey(message){
+      return String(message||"").toLowerCase().replace(/\s+/g," ").trim().slice(0,220);
+    }
+    function teddyInvestCacheSave(message,data,source){
+      try{
+        const all=teddyInvestCacheLoad(), key=teddyInvestCacheKey(message);
+        all[key]={ts:Date.now(),data:String(data||"").slice(0,18000),source:String(source||"verified web")};
+        const entries=Object.entries(all).sort((a,b)=>(b[1]?.ts||0)-(a[1]?.ts||0)).slice(0,20);
+        localStorage.setItem(TEDDY_INVEST_CACHE_KEY,JSON.stringify(Object.fromEntries(entries)));
+      }catch(_){}
+    }
+    function teddyInvestCacheGet(message,maxAgeMs=6*60*60*1000){
+      const item=teddyInvestCacheLoad()[teddyInvestCacheKey(message)];
+      if(!item||!item.ts||Date.now()-item.ts>maxAgeMs)return null;
+      return item;
+    }
+
     async function teddyFreshDataPreflight(message) {
-      const routed = teddyV3RouteSkill(message);
-      if (!teddyV3NeedsFreshData(message, routed)) {
-        teddyFreshContext = "";
-        return { ok: true, required: false };
+      const routed=teddyV3RouteSkill(message);
+      if(!teddyV3NeedsFreshData(message,routed)){teddyFreshContext="";return {ok:true,required:false};}
+      const keys=loadKeys();
+      const query=`投資即時查證：${message}。先確認代號與標的名稱，再核對最新可取得價格/日期、官方公告或發行商資訊、公司行動（拆分/分割/配息等）及會影響判斷的最新事件。資料與分析分開，不要給買賣結論。`;
+      if(keys.xai||keys.openai){
+        const result=await teddyRunTool("search_news",{query});
+        if(result?.ok&&String(result.result||"").trim()){
+          teddyFreshContext=`【資料時間 ${new Date().toLocaleString("zh-TW",{hour12:false})}｜來源 ${result.source||"web"}】\n${String(result.result).trim()}`;
+          teddyInvestCacheSave(message,teddyFreshContext,result.source);
+          return {ok:true,required:true,source:result.source,cached:false};
+        }
+        const cached=teddyInvestCacheGet(message);
+        if(cached){
+          teddyFreshContext=`【即時搜尋本輪失敗；使用 ${new Date(cached.ts).toLocaleString("zh-TW",{hour12:false})} 的最近已驗證快取｜${cached.source}】\n${cached.data}`;
+          return {ok:true,required:true,source:cached.source,cached:true,warning:result?.error||"搜尋失敗"};
+        }
+        // 沒有即時資料也不在 Gate 直接終止：交給 OpenAI 分析層的 web_search 再做最後一次取得。
+        teddyFreshContext=`【5.6 資料層狀態】獨立即時資料層本輪未取得資料：${result?.error||"未知錯誤"}。分析核心必須自行使用 web_search 再查一次；若仍失敗，明確說無法驗證最新資料，不得編造。`;
+        return {ok:true,required:true,degraded:true,warning:result?.error||"搜尋失敗"};
       }
-      const keys = loadKeys();
-      if (!keys.xai) {
-        teddyFreshContext = "";
-        return { ok: false, required: true, error: "這題需要最新資料，但目前尚未設定 Grok (xAI) 搜尋 Key，所以我先不拿舊知識冒充即時資訊。" };
-      }
-      const result = await teddyRunTool("search_news", { query: message });
-      if (!result || !result.ok) {
-        teddyFreshContext = "";
-        return { ok: false, required: true, error: "這題需要最新資料，但即時搜尋失敗：" + (result?.error || "未知錯誤") };
-      }
-      teddyFreshContext = String(result.result || "").trim();
-      return { ok: true, required: true };
+      teddyFreshContext="【5.6 資料層狀態】未設定獨立即時搜尋 Key。分析核心若可用 web_search 必須自行查證；若不可用，明確說無法驗證最新資料。";
+      return {ok:true,required:true,degraded:true,warning:"未設定即時搜尋 Key"};
     }
 
 
@@ -1945,6 +1988,19 @@
       return { text: "工具呼叫太多次了，先停在這裡。", usage: { input: usedInput, cached: usedCached, output: usedOutput, apiCalls, costUsd } };
     }
 
+    // 5.5.1 Astra fallback：Astra 本體失敗時，用 GPT-5.6 Sol + web_search 完成本輪；不冒充 Astra 成功。
+    async function teddyChatWithOpenAIFallback(apiKey, onStatus, originalError) {
+      if(onStatus)onStatus("↪ Astra 暫時失敗，切換 GPT-5.6 Sol 備援分析…",[]);
+      const fresh=teddyFreshContext?`\n\n【已取得的即時資料】\n${teddyFreshContext}`:"";
+      const r=await teddyFetch("https://api.openai.com/v1/responses",{
+        method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${apiKey}`},
+        body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"high"},tools:[{type:"web_search"}],input:[{role:"developer",content:[{type:"input_text",text:teddyBuildSystemPrompt()+fresh+"\n\nAstra 本輪不可用。你是備援分析核心。若是投資題，先核對即時資料，再區分事實/推論/情境與風險；不得編造價格或公告。"}]},...teddyHistory.map(h=>({role:h.role==="assistant"?"assistant":"user",content:[{type:h.role==="assistant"?"output_text":"input_text",text:h.text}]}))]})
+      },90000);
+      const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Fallback HTTP ${r.status}`);
+      const text=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
+      return {text:text||"備援模型沒有回傳文字。",usage:{input:d.usage?.input_tokens||0,cached:d.usage?.input_tokens_details?.cached_tokens||0,output:d.usage?.output_tokens||0,apiCalls:1,costUsd:0},fallback:true,astraError:String(originalError?.message||originalError||"")};
+    }
+
     // Grok 走 OpenAI 相容格式，跟 teddyChatWithOpenAI 幾乎一模一樣，只是換端點/模型/金鑰。
     async function teddyChatWithGrok(apiKey, onStatus) {
       const oaTools = TEDDY_TOOLS.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
@@ -2279,15 +2335,9 @@
 
     // 5.1：複雜問題固定優先交給 GPT-6 Astra；一般／溫室模式共用。
     // 5.2.9：只有實際送出 model=gpt-6-astra 才顯示/計入 Astra；API 無權限時直接回報錯誤，不假裝成功、不偷偷降級。
-    function teddyIsInvestmentDecision(message){
-      const t=String(message||"");
-      const asset=/(?:^|[^0-9])\d{4,6}(?:[^0-9]|$)|\b[A-Z]{1,6}\b|股票|股價|台股|美股|ETF|基金|債券|黃金|美元|比特幣|bitcoin|台積電|nvidia/i;
-      const decision=/(投資建議|投資判斷|建議|判斷|買|賣|加碼|減碼|持有|進場|出場|目標價|合理價|估值|未來|走勢|趨勢|風險|拆分|分割|除息|配息|法說|財報|重大訊息)/i;
-      return asset.test(t) && decision.test(t);
-    }
     function teddyIsComplexQuestion(message){
       const t=String(message||"");
-      return teddyIsInvestmentDecision(t) || /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入|完全體|V5\.?1|C8\.?9|功能表|網頁結構/.test(t) || t.length>90;
+      return /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入|完全體|V5\.?1|C8\.?9|功能表|網頁結構/.test(t) || t.length>90;
     }
     function teddyChooseProvider(message,keys,context="general"){
       const t=String(message||"");
@@ -2592,7 +2642,7 @@
         teddySpeak(freshCheck.error, "gentle");
         return;
       }
-      if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, "📡 最新資料已驗證，正在分析…");
+      if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, freshCheck.degraded ? "📡 即時資料層切換備援，正在查證與分析…" : (freshCheck.cached ? "📡 即時來源暫時失敗，使用最近已驗證資料並再次查證…" : "📡 最新資料已驗證，正在分析…"));
 
       let lastToolNames = [];
       const onStatus = (msg, toolNames) => {
@@ -2603,7 +2653,8 @@
       const modelSelect = document.getElementById("teddyModelSelect");
       let pref = modelSelect ? modelSelect.value : "auto";
       // 使用者要求：複雜問題不論目前一般／溫室模式或手動模型選擇，都優先 Astra。
-      if ((teddyIsComplexQuestion(text) || teddyAttachment) && keys.openai) pref = "openai";
+      const investmentRoute = teddyV3RouteSkill(text) === "finance" && /(建議|分析|判斷|評估|趨勢|未來|風險|拆分|分割|買|賣|持有|配置)/i.test(text);
+      if ((teddyIsComplexQuestion(text) || investmentRoute || teddyAttachment) && keys.openai) pref = "openai";
       const btn = document.getElementById("teddyChatSend");
       btn.disabled = true;
       try {
@@ -2613,7 +2664,7 @@
           else { result = await teddyChatWithClaude(keys.anthropic, onStatus); provider = "anthropic"; }
         } else if (pref === "openai") {
           if (!keys.openai) reply = "尚未設定 GPT-6 Astra 的 OpenAI API Key，請先到「⚙️ 設定 Key」設定。";
-          else { result = await teddyChatWithOpenAI(keys.openai, onStatus); provider = "openai"; }
+          else { try{ result = await teddyChatWithOpenAI(keys.openai,onStatus); }catch(astraErr){ result=await teddyChatWithOpenAIFallback(keys.openai,onStatus,astraErr); } provider="openai"; }
         } else if (pref === "gemini") {
           if (!keys.google) reply = "尚未設定 Gemini 的 API Key，請先到「⚙️ 設定 Key」設定。";
           else { result = await teddyChatWithGemini(keys.google, onStatus); provider = "gemini"; }
@@ -2623,7 +2674,7 @@
         } else {
           provider=teddyChooseProvider(text,keys,"general");
           if(provider==="anthropic")result=await teddyChatWithClaude(keys.anthropic,onStatus);
-          else if(provider==="openai")result=await teddyChatWithOpenAI(keys.openai,onStatus);
+          else if(provider==="openai"){try{result=await teddyChatWithOpenAI(keys.openai,onStatus);}catch(astraErr){result=await teddyChatWithOpenAIFallback(keys.openai,onStatus,astraErr);}}
           else if(provider==="gemini")result=await teddyChatWithGemini(keys.google,onStatus);
           else if(provider==="grok")result=await teddyChatWithGrok(keys.xai,onStatus);
           else reply = "請先按上面「⚙️ 設定 Key」設定至少一個 AI Key，TEDDY 才能跟你對話喔。";
@@ -6118,9 +6169,9 @@ ${memory}
 ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
 本次若使用者在文字對話附上圖片/截圖，主文字模型可直接看圖；即時語音本身不要假裝已看到未送入 Realtime 的圖片。若使用者要你查網頁/最新資料，必須呼叫 browse_web。
-投資路由（5.5）：只要出現具體股票/ETF/代號，加上投資判斷、買賣、持有、目標價、未來走勢、拆分/分割、除息、財報、法說或重大事件，必須先呼叫 browse_web 取得最新可驗證資料，再把「原問題 + 最新資料摘要」交給 think_with_astra；禁止只靠 Live 模型記憶直接判斷。若 Astra 主模型失敗，think_with_astra 會自動使用備援深度模型，仍要把備援結果自然回答，並明確標示為備援分析。
 回答自然精簡，通常1到3句；不要朗讀表情符號。可以被使用者隨時打斷。
 遇到分析、比較、推理、原因、策略、規劃、程式、計算、多步驟或其他複雜問題，必須先呼叫 think_with_astra；不要由即時語音模型自己硬算。一般模式與溫室模式都遵守。
+投資問題若包含股票/ETF代號、價格、拆分/分割、配息、財報、趨勢或投資判斷：必須先呼叫 browse_web 取得最新資料，再把「使用者問題＋browse_web取得的資料」一起交給 think_with_astra。browse_web 失敗時仍可呼叫 think_with_astra，讓其備援核心自行 web_search；不得只回覆搜尋失敗。
 凡是詢問真實溫室的產能、工作、計畫、耗材或打卡，必須呼叫query_greenhouse，禁止自己猜資料。
 當使用者說「用A01登入／A01登入／登入溫室系統」時，必須呼叫 hands_login；不要自己回答做不到。密碼由網頁本地安全視窗詢問，模型永遠不要求使用者把密碼念出來。
 A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
@@ -6198,27 +6249,18 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   }
   async function liveAstraThink(question){
     const key=loadKeys().openai;if(!key)return{ok:false,error:"尚未設定 GPT-6 Astra 的 OpenAI API Key"};
-    const input=[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的深度投資/推理核心。使用繁體中文。若題目包含最新市場資料，必須以題目中已提供的即時資料為事實基礎；區分事實、推論、情境與風險，不保證報酬。先給結論，再給必要理由；內容會交回即時語音模型朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(question||"")}]}];
-    async function callModel(model,effort,timeout){
-      const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model,reasoning:{effort},input})},timeout);
-      let d={};try{d=await r.json();}catch(_){d={};}
-      if(!r.ok)throw new Error(d?.error?.message||`${model} HTTP ${r.status}`);
-      const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
-      return{d,answer};
-    }
+    const q=String(question||"");
     try{
-      const {d,answer}=await callModel("gpt-6-astra","high",90000);
+      const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",reasoning:{effort:"high"},input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的深度推理核心（GPT-6 Astra）。使用繁體中文，先給結論，再給必要理由；內容會交回即時語音模型朗讀。"}]},{role:"user",content:[{type:"input_text",text:q}]}]})},90000);
+      const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Astra HTTP ${r.status}`);
       if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:teddyAstraUsageCost(d.usage)});
-      return{ok:true,answer:answer||"Astra 沒有回傳文字。",engine:"astra",fallback:false};
-    }catch(primaryError){
-      setLiveTrace("🧠 Astra 暫時失敗，正在切換深度備援…","#e8c879");
-      try{
-        const {d,answer}=await callModel("gpt-5.6-sol","high",90000);
-        if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:0});
-        return{ok:true,answer:`【Astra 備援分析】${answer||"備援模型沒有回傳文字。"}`,engine:"gpt-5.6-sol",fallback:true,primaryError:String(primaryError?.message||primaryError)};
-      }catch(fallbackError){
-        throw new Error(`Astra：${primaryError?.message||primaryError}；備援：${fallbackError?.message||fallbackError}`);
-      }
+      const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
+      return{ok:true,answer:answer||"Astra 沒有回傳文字。"};
+    }catch(astraErr){
+      const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-5.6-sol",reasoning:{effort:"high"},tools:[{type:"web_search"}],input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的 Astra 備援核心。使用繁體中文；若問題涉及投資或最新資訊，先用 web_search 查證再分析。回答精簡供語音朗讀。"}]},{role:"user",content:[{type:"input_text",text:q}]}]})},90000);
+      const d=await r.json();if(!r.ok)throw new Error(`Astra 失敗：${astraErr.message}；備援也失敗：${d?.error?.message||r.status}`);
+      const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
+      return{ok:true,answer:answer||"備援模型沒有回傳文字。",fallback:true};
     }
   }
 
@@ -6233,7 +6275,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       try{const r=await teddyHandsHandle(command);if(!r?.handled)return{ok:false,error:"這句話沒有形成可執行的 V5.1 設定，請補充分區、功能表、工項/資材與數值。"};if(r.reply){rememberTurn("assistant",r.reply);setLiveTrace(r.reply.slice(0,180),"#9fd8c8");}return{ok:true,answer:r.reply};}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="browse_web"){setLiveTrace("🌐 Teddy 正在瀏覽網頁…","#e8c879");try{const r=await liveBrowseWeb(args?.query||"");setLiveTrace("🌐 網頁資料已取得，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("網頁瀏覽失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
-    if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace(r.fallback?"🧠 Astra 已切換備援深度分析，Teddy 正在回答。":"🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 與備援皆失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
+    if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace("🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 思考失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
     if(name==="inspect_v51_page"){
       setLiveTrace("🔎 Teddy 正在讀取 V5.1C8.9 畫面與路由…","#e8c879");
       try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1C8.9 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
