@@ -442,7 +442,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.5 · One Brain · One Ear · One Pair of Eyes · Two Voices · Leda + Marin · 2026-09-15</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.5 · Investment Route + Fresh Data + Astra Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -905,8 +905,11 @@
     function teddyV3NeedsFreshData(message, skill) {
       const q = String(message || "");
       const timeSensitive = /(今天|現在|目前|最新|最近|近期|即時|今年|本週|這週|剛剛|新聞|價格|股價|匯率|利率|財報|營收|ipo|上市|成分股|政策|公告|法規|疫情|病蟲害警報|現況|行情)/i;
-      const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息)/i;
-      if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q);
+      // 5.5 投資最佳化：只要是「具體標的 + 投資判斷/事件」，即使沒說「最新」也先抓即時資料。
+      const marketEvent = /(spacex|fed|聯準會|財報|ipo|etf成分|指數成分|除息|配息|法說|升息|降息|拆分|分割|合併|減資|增資|庫藏股|除權|填息|股利|重大訊息|法規|政策)/i;
+      const investmentDecision = /(投資建議|投資判斷|建議|判斷|買|賣|加碼|減碼|持有|進場|出場|目標價|合理價|估值|未來|走勢|趨勢|風險|半年|三個月|一年)/i;
+      const concreteAsset = /(?:^|[^0-9])\d{4,6}(?:[^0-9]|$)|\b[A-Z]{1,6}\b|股票|股價|台股|美股|ETF|基金|債券|黃金|美元|比特幣|bitcoin|台積電|nvidia/i;
+      if (skill === "finance" || skill === "investment") return timeSensitive.test(q) || marketEvent.test(q) || (investmentDecision.test(q) && concreteAsset.test(q));
       if (skill === "presentation") return timeSensitive.test(q) || marketEvent.test(q);
       return false;
     }
@@ -2276,9 +2279,15 @@
 
     // 5.1：複雜問題固定優先交給 GPT-6 Astra；一般／溫室模式共用。
     // 5.2.9：只有實際送出 model=gpt-6-astra 才顯示/計入 Astra；API 無權限時直接回報錯誤，不假裝成功、不偷偷降級。
+    function teddyIsInvestmentDecision(message){
+      const t=String(message||"");
+      const asset=/(?:^|[^0-9])\d{4,6}(?:[^0-9]|$)|\b[A-Z]{1,6}\b|股票|股價|台股|美股|ETF|基金|債券|黃金|美元|比特幣|bitcoin|台積電|nvidia/i;
+      const decision=/(投資建議|投資判斷|建議|判斷|買|賣|加碼|減碼|持有|進場|出場|目標價|合理價|估值|未來|走勢|趨勢|風險|拆分|分割|除息|配息|法說|財報|重大訊息)/i;
+      return asset.test(t) && decision.test(t);
+    }
     function teddyIsComplexQuestion(message){
       const t=String(message||"");
-      return /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入|完全體|V5\.?1|C8\.?9|功能表|網頁結構/.test(t) || t.length>90;
+      return teddyIsInvestmentDecision(t) || /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入|完全體|V5\.?1|C8\.?9|功能表|網頁結構/.test(t) || t.length>90;
     }
     function teddyChooseProvider(message,keys,context="general"){
       const t=String(message||"");
@@ -6109,6 +6118,7 @@ ${memory}
 ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
 本次若使用者在文字對話附上圖片/截圖，主文字模型可直接看圖；即時語音本身不要假裝已看到未送入 Realtime 的圖片。若使用者要你查網頁/最新資料，必須呼叫 browse_web。
+投資路由（5.5）：只要出現具體股票/ETF/代號，加上投資判斷、買賣、持有、目標價、未來走勢、拆分/分割、除息、財報、法說或重大事件，必須先呼叫 browse_web 取得最新可驗證資料，再把「原問題 + 最新資料摘要」交給 think_with_astra；禁止只靠 Live 模型記憶直接判斷。若 Astra 主模型失敗，think_with_astra 會自動使用備援深度模型，仍要把備援結果自然回答，並明確標示為備援分析。
 回答自然精簡，通常1到3句；不要朗讀表情符號。可以被使用者隨時打斷。
 遇到分析、比較、推理、原因、策略、規劃、程式、計算、多步驟或其他複雜問題，必須先呼叫 think_with_astra；不要由即時語音模型自己硬算。一般模式與溫室模式都遵守。
 凡是詢問真實溫室的產能、工作、計畫、耗材或打卡，必須呼叫query_greenhouse，禁止自己猜資料。
@@ -6188,11 +6198,28 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   }
   async function liveAstraThink(question){
     const key=loadKeys().openai;if(!key)return{ok:false,error:"尚未設定 GPT-6 Astra 的 OpenAI API Key"};
-    const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model:"gpt-6-astra",reasoning:{effort:"high"},input:[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的深度推理核心（GPT-6 Astra）。使用繁體中文，先給結論，再給必要理由；內容會交回即時語音模型朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(question||"")}]}]})},90000);
-    const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`Astra HTTP ${r.status}`);
-    if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:teddyAstraUsageCost(d.usage)});
-    const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
-    return{ok:true,answer:answer||"Astra 沒有回傳文字。"};
+    const input=[{role:"developer",content:[{type:"input_text",text:"你是 Teddy 的深度投資/推理核心。使用繁體中文。若題目包含最新市場資料，必須以題目中已提供的即時資料為事實基礎；區分事實、推論、情境與風險，不保證報酬。先給結論，再給必要理由；內容會交回即時語音模型朗讀。"}]},{role:"user",content:[{type:"input_text",text:String(question||"")}]}];
+    async function callModel(model,effort,timeout){
+      const r=await teddyFetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${key}`},body:JSON.stringify({model,reasoning:{effort},input})},timeout);
+      let d={};try{d=await r.json();}catch(_){d={};}
+      if(!r.ok)throw new Error(d?.error?.message||`${model} HTTP ${r.status}`);
+      const answer=(d.output_text||((d.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text||"").join("\n"))).trim();
+      return{d,answer};
+    }
+    try{
+      const {d,answer}=await callModel("gpt-6-astra","high",90000);
+      if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:teddyAstraUsageCost(d.usage)});
+      return{ok:true,answer:answer||"Astra 沒有回傳文字。",engine:"astra",fallback:false};
+    }catch(primaryError){
+      setLiveTrace("🧠 Astra 暫時失敗，正在切換深度備援…","#e8c879");
+      try{
+        const {d,answer}=await callModel("gpt-5.6-sol","high",90000);
+        if(d.usage)teddyRecordChatUsage("openai",{input:d.usage.input_tokens||0,cached:d.usage.input_tokens_details?.cached_tokens||0,output:d.usage.output_tokens||0,apiCalls:1,costUsd:0});
+        return{ok:true,answer:`【Astra 備援分析】${answer||"備援模型沒有回傳文字。"}`,engine:"gpt-5.6-sol",fallback:true,primaryError:String(primaryError?.message||primaryError)};
+      }catch(fallbackError){
+        throw new Error(`Astra：${primaryError?.message||primaryError}；備援：${fallbackError?.message||fallbackError}`);
+      }
+    }
   }
 
   async function runLiveTool(name,args){
@@ -6206,7 +6233,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       try{const r=await teddyHandsHandle(command);if(!r?.handled)return{ok:false,error:"這句話沒有形成可執行的 V5.1 設定，請補充分區、功能表、工項/資材與數值。"};if(r.reply){rememberTurn("assistant",r.reply);setLiveTrace(r.reply.slice(0,180),"#9fd8c8");}return{ok:true,answer:r.reply};}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="browse_web"){setLiveTrace("🌐 Teddy 正在瀏覽網頁…","#e8c879");try{const r=await liveBrowseWeb(args?.query||"");setLiveTrace("🌐 網頁資料已取得，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("網頁瀏覽失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
-    if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace("🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 思考失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
+    if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace(r.fallback?"🧠 Astra 已切換備援深度分析，Teddy 正在回答。":"🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 與備援皆失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
     if(name==="inspect_v51_page"){
       setLiveTrace("🔎 Teddy 正在讀取 V5.1C8.9 畫面與路由…","#e8c879");
       try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1C8.9 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
