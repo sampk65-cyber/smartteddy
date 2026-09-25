@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Smart Teddy 5.7.1 · TEDDY（碰氣）</title>
+  <title>Smart Teddy 5.8.2 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -443,7 +443,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.7.1 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.8.2 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -542,6 +542,21 @@
         </div>
 
         <div id="teddyAstraUsageSummary" style="margin:0 0 8px;padding:5px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.4;color:#8fa69d;">🧠 Astra｜本次/累計用量尚未產生</div>
+
+        <!-- Teddy Evolution Engine V1：獨立 Sandbox，不接觸正式核心 -->
+        <div id="teddyEvolutionPanel" style="margin:0 0 8px;padding:9px 10px;background:#101714;border:1px solid #3c4a43;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <b style="font-size:12px;color:#bff9e7;">🧬 Teddy Evolution Engine V1</b>
+            <span id="teddyEvolutionBadge" style="font-size:10px;color:#7f948b;">Sandbox 待命</span>
+          </div>
+          <div style="font-size:10px;color:#74877e;line-height:1.45;margin:5px 0 7px;">自己思考 → coding → 測試 → 迭代。正式版、Firebase、人格、記憶與語音核心鎖定。</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" id="teddyEvolutionRun" style="border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:6px 9px;font-size:11px;cursor:pointer;">🧬 自主進化</button>
+            <button type="button" id="teddyEvolutionReview" style="border:1px solid #405049;border-radius:8px;background:#18211e;color:#b9c9c2;padding:6px 9px;font-size:11px;cursor:pointer;">查看候選</button>
+            <button type="button" id="teddyEvolutionApprove" style="border:1px solid #8c7048;border-radius:8px;background:#211b12;color:#f0c27a;padding:6px 9px;font-size:11px;cursor:pointer;">批准待發布</button>
+          </div>
+          <div id="teddyEvolutionStatus" style="margin-top:7px;font-size:10px;color:#8fa69d;white-space:pre-wrap;">尚無候選版本。</div>
+        </div>
 
         <div id="teddyToolsPanel" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <button type="button" class="teddy-chip" data-msg="現在天氣如何">🌦 天氣</button>
@@ -775,16 +790,26 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.7.1・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.8.2・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.7.1；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.8.2；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     function teddyPersonaCore(){ return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER; }
     function teddyGreenhouseIdentity(){
       return TEDDY_IDENTITY_LAYER + "\n現在是溫室模式：你仍然是同一個 TEDDY（碰氣），只是換上工作腦，以專業溫室管理與無花果栽培顧問的角度回答真實農場資料。語氣維持 TEDDY 的親切簡潔，內容要精準、有數字、有來源。\n";
+    }
+    // 5.7.2：Flash Live 的語音逐字稿常常是簡體字，溫室的所有關鍵字判斷都是繁體，先轉換再路由。
+    const TEDDY_S2T_PHRASES=[["计划","計畫"],["计画","計畫"],["长周期","長週期"],["每周","每週"],["本周","本週"],["这周","這週"],["关系","關係"],["系统","系統"],["里面","裡面"],["哪里","哪裡"],["这里","這裡"],["汇总","匯總"],["登录","登入"]];
+    const TEDDY_S2T_CHARS="产產气氣资資补補沟溝喷噴统統计計汇匯总總长長趋趨势勢历歷变變迁遷温溫纪紀记記录錄区區这這个個几幾现現么麼时時间間员員号號对對较較与與关關为為过過还還没沒该該说說请請问問题題场場两兩页頁张張钾鉀镁鎂钙鈣黄黃湿濕风風压壓级級采採获獲进進阶階节節叶葉盖蓋迟遲谁誰报報内內览覽块塊业業务務单單数數据據读讀询詢显顯让讓帮幫给給开開门門们們吗嗎听聽讲講话話语語图圖网網边邊设設备備确確认認类類预預执執状狀态態况況际際实實签簽肥肥馀餘剩剩连連续續库庫笔筆样樣還還么麼";
+    const TEDDY_S2T_MAP=(()=>{const m={};for(let i=0;i+1<TEDDY_S2T_CHARS.length;i+=2)m[TEDDY_S2T_CHARS[i]]=TEDDY_S2T_CHARS[i+1];return m;})();
+    function teddyToTrad(text){
+      let t=String(text||"");
+      for(const [a,b] of TEDDY_S2T_PHRASES)t=t.split(a).join(b);
+      let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
+      return out;
     }
     // 文字對話結束後，同步給正在進行的即時語音，讓兩邊知道彼此說過什麼。
     function teddySyncToLive(userText, replyText){
@@ -849,7 +874,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.7.1";
+    const TEDDY_VERSION = "Smart Teddy 5.8.2";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -1067,6 +1092,64 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
           }
         }
       },
+      {
+        name: "evolution_plan",
+        description: "Smart Teddy Evolution Engine V1 的第一步。當使用者要求 Teddy 自己思考、coding、測試、迭代、修 bug 或自我進化時使用。先讀取目前 Evolution 狀態與最近候選版本，再提出最小改動方案。不得直接修改正式版。",
+        input_schema: {
+          type: "object",
+          properties: {
+            goal: { type: "string", description: "希望改善的功能、問題或自我進化目標" },
+            scope: { type: "string", description: "允許修改的範圍；若空白，預設只允許 Evolution Sandbox" }
+          },
+          required: ["goal"]
+        }
+      },
+      {
+        name: "evolution_write_candidate",
+        description: "把 Teddy 自己產生的 coding 候選版本寫入 Evolution Sandbox。只保存候選程式，不會執行、不會覆蓋正式 index、不會修改 Firebase。完成後必須再呼叫 evolution_test_candidate。",
+        input_schema: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "候選版本名稱" },
+            goal: { type: "string", description: "這次修改要解決什麼" },
+            target: { type: "string", description: "修改目標，例如 evolution-ui、router、tool、html-script" },
+            code: { type: "string", description: "Teddy 自己寫出的候選程式碼；可為 JS/CSS/HTML 片段，不可假裝已部署" },
+            rationale: { type: "string", description: "為什麼這樣修改，以及如何避免碰到核心功能" }
+          },
+          required: ["title", "goal", "target", "code"]
+        }
+      },
+      {
+        name: "evolution_test_candidate",
+        description: "測試目前 Evolution Sandbox 候選版本。V1 只做靜態/語法/安全邊界測試，不執行候選程式。若失敗，Teddy 必須自行分析錯誤並迭代修正。",
+        input_schema: {
+          type: "object",
+          properties: { candidateId: { type: "string", description: "要測試的候選 ID；省略則測試最新候選" } }
+        }
+      },
+      {
+        name: "evolution_iterate_candidate",
+        description: "根據測試失敗結果建立下一版候選。不得修改正式版。修正後要再次呼叫 evolution_test_candidate，直到通過或明確說明阻塞原因。",
+        input_schema: {
+          type: "object",
+          properties: {
+            candidateId: { type: "string", description: "要迭代的候選 ID" },
+            code: { type: "string", description: "修正後完整候選程式碼" },
+            rationale: { type: "string", description: "針對測試錯誤做了什麼修正" }
+          },
+          required: ["candidateId", "code"]
+        }
+      },
+      {
+        name: "evolution_review",
+        description: "查看 Evolution Engine V1 最近候選、測試結果與待批准版本。使用者問 Teddy 最近進化了什麼、目前候選是什麼、測試是否通過時使用。",
+        input_schema: { type: "object", properties: { limit: { type: "number", description: "最多查看幾筆，預設 5" } } }
+      },
+      {
+        name: "evolution_request_approval",
+        description: "當候選已完成測試且通過時，向使用者提出正式發布批准請求。V1 預設人工批准，不得自行宣稱已發布。",
+        input_schema: { type: "object", properties: { candidateId: { type: "string" }, summary: { type: "string" } }, required: ["candidateId", "summary"] }
+      },
     ];
 
     function teddyTodayStr() {
@@ -1077,6 +1160,10 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
     async function teddyRunTool(name, input) {
       input = input || {};
+      if (typeof window.teddyEvolutionTool === "function" && /^evolution_/.test(name)) {
+        try { return await window.teddyEvolutionTool(name, input); }
+        catch (e) { return { ok:false, error:"Evolution Engine 錯誤："+String(e?.message||e) }; }
+      }
       if (name === "get_current_datetime") {
         try {
           const now = new Date();
@@ -1648,6 +1735,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       if (teddySummary) {
         prompt += "\n\n以下是你和這位使用者更早以前聊過的長期記憶摘要，可以自然地參考裡面提到的個人資訊、偏好或事件，不用逐字複誦：\n" + teddySummary;
       }
+      prompt += `\n\n【Teddy Evolution Engine V1】\n你可以自己思考、coding、測試、迭代，但 Evolution 只在獨立 Sandbox 中工作。正式版、Firebase 資料、人格、記憶、Live 語音、投資核心與溫室核心都視為鎖定區。當使用者要求「自行進化／自己 coding／自己修 bug」時，先 evolution_plan，再 evolution_write_candidate，再 evolution_test_candidate；若測試失敗，使用 evolution_iterate_candidate 後再次測試。測試通過後只能提出 evolution_request_approval，不得說已部署、已覆蓋正式版或已上線。除非使用者明確批准，正式版狀態永遠保持不變。`;
       return prompt;
     }
 
@@ -2655,6 +2743,20 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
         teddyV3MarkSuccessfulChat();
         teddySpeak(finalLocalReply, teddyAutoDetectVoiceStyle(finalLocalReply, []));
         return;
+      }
+      // 5.8.2：溫室模式的文字問題一律走溫室唯一資料閘門，不交給 Astra、網頁搜尋或畫面掃描。
+      if(greenhouseActive && !teddyAttachment && typeof window.teddyGreenhouseAsk==="function"){
+        try{
+          const res=await window.teddyGreenhouseAsk(text);
+          if(res.entry){
+          teddyUpdateLogDiv(thinkingDiv, res.answer);
+          teddyHistory.push({ role: "assistant", text: res.answer });
+          teddySaveHistory();
+          if(!(typeof window.teddyLiveSpeak==="function"&&window.teddyLiveSpeak(res.answer)))teddySpeak(res.answer,"gentle");
+          return;
+          }
+          // 對不到任何溫室入口＝一般聊天，交回原本的對話流程。
+        }catch(e){teddyUpdateLogDiv(thinkingDiv,"溫室查詢失敗："+e.message);return;}
       }
       // 5.7.1：Flash Live 正在說話時，打字內容直接交給 Flash（TEDDY 的嘴）回答，回覆逐字稿會自動寫回同一份記憶。
       if(!teddyAttachment && !teddyUrls.length && typeof window.teddyLiveSendText==="function" && window.teddyLiveSendText(text)){
@@ -5453,10 +5555,15 @@ ${parts}
     function f7ZoneList(ctx){return ctx.zones.length?ctx.zones:GH_ZONES;}
 
     // ---- 路由：這句話屬於功能表7哪一張表 ----
+    function f7IsMenuQuestion(q){
+      const t=teddyToTrad(String(q||"")).replace(/\s+/g,"");
+      return /(?:幾|多少)(?:個|張)?表|哪些表|什麼表|表格有哪些|有哪幾張|十張表是|表格清單|有什麼報表/.test(t);
+    }
     function ghFunction7Table(q){
-      const raw=String(q||"").replace(/\s+/g,"");
-      // 先移除「功能表3、功能5」這類功能表編號，避免把「功能表3」誤認成「表三」。
-      const t=raw.replace(/功能表?\d+/g,"").replace(/功能[一二三四五六七八九十]+/g,"");
+      const raw=teddyToTrad(String(q||"")).replace(/\s+/g,"");
+      if(f7IsMenuQuestion(raw))return null;
+      // 先移除「功能表3、功能表七、功能5」這類功能表編號，避免把「功能表七」誤認成「表七」。
+      const t=raw.replace(/功能表?\d+/g,"").replace(/功能表?[一二三四五六七八九十]+/g,"");
       const cn={一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10};
       const m=t.match(/(?<![代發列課圖])表(?:格)?(?:第)?(十|[一二三四五六七八九]|10|[1-9])(?![0-9])/);
       if(m){const n=cn[m[1]]||Number(m[1]);if(n>=1&&n<=10)return n;}
@@ -5476,8 +5583,8 @@ ${parts}
       return null;
     }
     function ghIsFunction7Question(q){
-      const t=String(q||"");
-      return ghFunction7Table(t)!=null||/功能表?\s*7|功能七|耗材與報表|十張表|10張表|報表/.test(t);
+      const t=teddyToTrad(String(q||""));
+      return ghFunction7Table(t)!=null||/功能表?\s*(?:7|七)|耗材與報表|十張表|10張表|報表/.test(t);
     }
     // 舊版輔助函式保留（其他地方可能仍引用）
     function ghFunction7DateMatch(r,req){
@@ -5742,7 +5849,8 @@ ${parts}
       return perZone;
     }
     function f7Years(ctx){
-      if(ctx.yearsMode||!ctx.req.year){const ys=[];for(let y=2020;y<=ctx.cy;y++)ys.push(y);return ys;}
+      if(ctx.yearsMode){const ys=[];for(let y=2020;y<=ctx.cy;y++)ys.push(y);return ys;}
+      if(!ctx.req.year)return [ctx.cy-1,ctx.cy];
       return [ctx.req.year];
     }
     function f7YieldZones(ctx){return ctx.zones.length?ctx.zones.map(z=>z.yield):[...F7_YIELD_ZONES];}
@@ -5848,26 +5956,69 @@ ${parts}
 - 回答格式：先一句結論（數字＋單位＋分區＋期間），再給最多 3 點專業觀察（例如與無花果生育期、季節、水肥管理、產能的關聯，相關不等於因果）；最後一行寫「來源：功能表7・表X・表名（期間）」。總長度最多 6 行。
 - 資料是空的就直接說這段期間沒有資料，並建議可以換哪個期間或分區。`;
 
+    function f7WithTimeout(promise,ms){
+      let timer;
+      return Promise.race([promise,new Promise((_,rej)=>{timer=setTimeout(()=>rej(new Error(`讀取超過 ${Math.round(ms/1000)} 秒，資料量太大`)),ms);})]).finally(()=>clearTimeout(timer));
+    }
     async function ghFunction7Answer(q){
+      q=teddyToTrad(q);
+      if(f7IsMenuQuestion(q))return f7MenuText();
       const table=ghFunction7Table(q);
       if(!table)return f7MenuText();
       const meta=F7_TABLES[table];
       f7ForceFresh=/最新|重新|刷新|更新一下|即時/.test(String(q||""));
       const ctx=f7Ctx(q);
       let result;
-      try{result=await F7_READERS[table](ctx);}
-      catch(e){f7ForceFresh=false;return `功能表7・表${meta.no}・${meta.name}讀取失敗：${e.message}`;}
+      try{result=await f7WithTimeout(F7_READERS[table](ctx),40000);}
+      catch(e){f7ForceFresh=false;return `功能表7・表${meta.no}・${meta.name}這次沒讀成功（${e.message}）。可以縮小範圍再問，例如指定年份、月份或分區。`;}
       f7ForceFresh=false;
       const header=`功能表7・表${meta.no}・${meta.name}（${result.range}${result.zones&&result.zones.length&&result.zones.length<6?"｜"+result.zones.join("、"):""}）`;
       if(result.empty)return `${header}：${result.summary}`;
       const prompt=`【固定資料路由：${header}】\n使用者問題：${q}\n資料說明：${meta.desc}\n資料來源：${meta.source}\n只能根據 payload.f7 回答，不得改看其他表或其他功能表。`;
       const payload={selectedEntry:{id:"function7",label:"功能表7・耗材與報表",table:`表${meta.no}・${meta.name}`},f7:{table:`表${meta.no}・${meta.name}`,range:result.range,zones:result.zones||null,records:result.records,readAt:new Date().toLocaleString("zh-TW",{hour12:false}),summary:result.summary,data:result.data}};
       try{
-        const ai=await ghAskAI(prompt,payload);
+        const ai=await f7WithTimeout(ghAskAI(prompt,payload),30000);
         if(ai&&!/^沒有回覆/.test(ai))return ai;
       }catch(e){console.warn("F7 AI 解讀失敗，改用程式摘要",e);}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
+
+    // ===== Smart Teddy 5.8.2：溫室唯一資料閘門 =====
+    // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
+    // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
+    // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
+    const GH_ROUTE_MAP_TEXT=`完全體 V5.1.C64 固定路由：
+產能＝功能表3（產能庫：逐日產能與年度封存，品級 A／B／D／NG）
+工作1–5（打芽側、打芽地、除草、剪葉、覆蓋）＝功能表4
+計畫／產季／節氣＝功能表5
+耗材6–8（補水、施肥、其他資材的已確認用量）＝功能表7 表一（全場合計）／表三（分區逐日）
+報表＝功能表7「耗材與報表」：年份 → 月份 → 表一～表十
+打卡／出勤／請假＝功能表10`;
+    function ghIsRouteMapQuestion(q){
+      const t=String(q||"").replace(/\s+/g,"");
+      return /在哪(?:裡|個)?|怎麼走|路徑|從哪裡|哪個功能表|功能表有哪些|有哪些功能|入口有哪些|要去哪裡看/.test(t)&&!/多少|幾公斤|幾包|幾噸|最高|最低|比較|趨勢/.test(t);
+    }
+    async function teddyGreenhouseAsk(question,preferredEntry=null){
+      const q=teddyToTrad(String(question||"")).trim();
+      if(!q)return{ok:false,entry:null,answer:"請再說一次想查什麼。"};
+      if(ghIsRouteMapQuestion(q))return{ok:true,entry:"route-map",answer:GH_ROUTE_MAP_TEXT};
+      let entry=null;
+      const routed=ghRouteV51Question(q,null);
+      if(routed&&routed.id!=="general")entry=routed.id;
+      if(!entry&&preferredEntry&&GH_ENTRY_META[preferredEntry]&&!/天氣好|你好|謝謝|哈囉|早安|午安|晚安|你是誰|心情|累不累|在嗎/.test(q)&&(ghLooksLikeFollowup(q)||/多少|幾|哪|最高|最低|比較|統計|紀錄|合計|平均|總共|有沒有|進度|狀況/.test(q)))entry=preferredEntry;
+      if(!entry){
+        const st=ghLoadConversationState();
+        const hinted=ghRouteV51Question(q,st.topic||null);
+        if(hinted&&hinted.id!=="general")entry=hinted.id;
+      }
+      const chitchat=/天氣好|你好|謝謝|哈囉|早安|午安|晚安|你是誰|心情|累不累|在嗎/.test(q);
+      const asksData=!chitchat&&(ghLooksLikeFollowup(q)||/多少|幾|哪|最高|最低|比較|統計|紀錄|合計|平均|總共|有沒有|進度|狀況/.test(q));
+      if(!entry&&asksData&&ghSelectedEntry&&GH_ENTRY_META[ghSelectedEntry])entry=ghSelectedEntry;
+      if(!entry)return{ok:false,entry:null,answer:"這句我還對不到固定入口。請告訴我要查產能、工作、計畫、耗材、報表，還是打卡。"};
+      const answer=await ghAnswerSelectedEntry(entry,q);
+      return{ok:true,entry,answer};
+    }
+    window.teddyGreenhouseAsk=teddyGreenhouseAsk;
 
     function ghRouteV51Question(q,topicHint=null){
       const t=String(q||"");
@@ -6262,7 +6413,7 @@ ${parts}
   };
 
   function v6UpdateContext(entry,q){
-    const c=V6_CTX[entry],t=String(q||"").trim(),tm=v6Time(t),zs=v6ZoneIds(t);if(zs.length)c.zones=zs;if(tm.year)c.year=tm.year;if(tm.month)c.month=tm.month;
+    const c=V6_CTX[entry]||(V6_CTX[entry]={}),t=String(q||"").trim(),tm=v6Time(t),zs=v6ZoneIds(t);if(zs.length)c.zones=zs;if(tm.year)c.year=tm.year;if(tm.month)c.month=tm.month;
     if(entry==="calendar"){const a=v6CalendarAction(t);if(a)c.action=a;if(/節氣/.test(t))c.intent="solar";else if(/何時|什麼時候|幾月|哪個月/.test(t))c.intent="when";else if(/計畫|做什麼|內容|安排|時程|動作|有哪些|有什麼/.test(t))c.intent="list";}
     else if(entry==="materials"){const mat=v6Material(t);if(mat){c.material=mat;c.itemId=V6_MAT_META[mat].itemId;}if(/補水|澆水|灌溉/.test(t))c.itemId=6;if(/施肥|肥料/.test(t))c.itemId=7;if(/其他資材|資材/.test(t)&&!mat)c.itemId=8;if(/哪裡|哪一區|哪些區|哪幾區/.test(t))c.intent="where";else if(/何時|哪天|幾號|什麼時候/.test(t))c.intent="when";else if(/什麼|哪些|品項|材料/.test(t))c.intent="what";else if(/多少|用量|總量|幾包|幾噸|分鐘/.test(t))c.intent="qty";}
     else if(entry==="work"){const wi=v6WorkItem(t);if(wi)c.item=wi;}
@@ -6335,7 +6486,11 @@ ${parts}
   }
 
   async function ghAnswerSelectedEntry(entry,q){
+    q=teddyToTrad(q);
     const resolved=ghResolveConversation(q);
+    // 功能表7 先處理，不經過其他入口的上下文整理（避免 V6_CTX 沒有 function7 而當機）。
+    if(entry==="function7"||ghFunction7Table(q)!=null||(ghFunction7Table(resolved.effective)!=null&&ghLooksLikeFollowup(q)))
+      return ghFunction7Answer(ghFunction7Table(q)!=null||entry==="function7"&&!ghLooksLikeFollowup(q)?q:resolved.effective);
     const effective=v6EffectiveQuestion(entry,resolved.effective);
     if(entry==="function7"||ghFunction7Table(q)!=null||ghFunction7Table(effective)!=null)return ghFunction7Answer(ghFunction7Table(q)!=null?q:effective);
     const cache=await ghReadEntry(entry,false);
@@ -6386,18 +6541,11 @@ ${parts}
           const reply="嗨！先選上面的功能，再直接問我。";
           ghLog("assistant",reply); await ghSpeak(reply); return;
         }
-        const f7Hit=ghFunction7Table(q)!=null;
-        if(!ghSelectedEntry&&!f7Hit){
-          const reply="先選產能、工作、計畫、施肥、報表或打卡。";
-          status.textContent="請先選擇功能";
-          ghLog("assistant",reply); await ghSpeak(reply); return;
-        }
-
-        const useEntry=f7Hit?"function7":ghSelectedEntry;
-        const meta=GH_ENTRY_META[useEntry];
-        status.textContent=`${meta.label}｜理解問題、整理資料中…`;
-        const answer=await ghAnswerSelectedEntry(useEntry,q);
-        status.textContent=`${meta.label}｜${meta.table}`;
+        status.textContent="理解問題、讀取固定資料中…";
+        const res=await teddyGreenhouseAsk(q,ghSelectedEntry);
+        const answer=res.answer;
+        const meta=GH_ENTRY_META[res.entry];
+        status.textContent=meta?`${meta.label}｜${meta.table}`:(res.entry==="route-map"?"固定路由":"請指定入口");
         ghLog("assistant",answer);
         try{teddyHistory.push({role:"user",text:q,source:"greenhouse"});teddyHistory.push({role:"assistant",text:answer,source:"greenhouse"});teddySaveHistory();}catch(_){}
         if(!(typeof window.teddyLiveSpeak==="function"&&window.teddyLiveSpeak(answer)))await ghSpeak(answer);
@@ -6677,12 +6825,12 @@ ${modeLine}
 A01登入成功後，先問使用者要「工作指派」還是「工作回報」。工作指派固定路徑：工作入口→溫室→平面圖→區域→工作1–8→復述確認→寫入。工作回報固定路徑：工作入口→功能表4→溫室→年月→回報項目。所有這些口述與「確認／取消」都必須把原句交給 hands_command；不得自己猜路徑。
 主要入口：產能=yield；工作1-5=work；計畫=calendar；耗材6-8=materials；打卡=attendance（功能表10）。
 功能表7「耗材與報表」（功能7→年份→月份→表格）共有十張表：表一耗材匯總表（各區補水／施肥／資材已確認合計）、表二年度計畫表（產季）、表三分區耗材統計（單一分區逐日）、表四留言版內容、表五氣候資料（神岡站逐時）、表六施肥用量統計（施肥月曆的肥料品項）、表七長週期產能趨勢（2020起每15天）、表八分區資材投入與產能對比、表九氣候變遷與產能、表十登入IP與時間。問到任何一張表一律呼叫 query_greenhouse 並指定 entry=function7，把使用者原句完整放進 question，不得改走別的功能表。
-溫室模式中，凡是真實數字、紀錄、統計、趨勢問題都必須先呼叫工具取得資料，不可自己回答、不可說看不到畫面、不可反問使用者要哪張表而不先查。
-當使用者問目前這個 V5.1.C64 網頁本身、功能在哪裡、按鈕/表格/路徑、目前畫面能做什麼時，必須先呼叫 inspect_v51_page 讀取目前頁面與固定路由，再回答，不准只靠記憶猜。
+溫室模式中，凡是真實數字、紀錄、統計、趨勢問題，以及「功能表7有幾張表／有哪些表」這類問題，都必須先呼叫 query_greenhouse，不可自己回答、不可說看不到畫面、不可反問使用者要哪張表而不先查。使用者的語音逐字稿可能是簡體字，照樣理解，回答一律用繁體中文。工具回傳 ok:false 時，直接用一句話說出失敗原因，並建議縮小範圍（指定年份、月份或分區）再查；不要說去找別人幫忙。
+溫室模式只有一個資料入口：query_greenhouse。功能在哪裡、路徑怎麼走也用它問。溫室模式中不瀏覽網頁、不讀畫面、不交給 Astra、不自己推測；工具回什麼就照著說。你看不到螢幕，不要說你看到按鈕或畫面。
 工具回傳的結構化資料與計算結果優先於對話記憶。查不到就直接說不知道。`;
   }
   const greenhouseTool={
-    name:"query_greenhouse",description:"查詢真實溫室資料（完全體 V5.1.C64）。功能表7十表：耗材匯總、年度計畫、分區耗材、留言版、氣候資料、施肥用量統計、長週期產能趨勢、資材投入與產能、氣候與產能、登入IP，一律 entry=function7；其他：產能=yield、工作1-5=work、計畫=calendar、耗材6-8=materials、打卡=attendance。question 必須放使用者原句。",
+    name:"query_greenhouse",description:"溫室模式唯一的資料工具：所有完全體 V5.1.C64 的資料、統計、趨勢、功能在哪裡的問題都用它，程式會自己走固定路由。功能表7十表：耗材匯總、年度計畫、分區耗材、留言版、氣候資料、施肥用量統計、長週期產能趨勢、資材投入與產能、氣候與產能、登入IP，一律 entry=function7；其他：產能=yield、工作1-5=work、計畫=calendar、耗材6-8=materials、打卡=attendance。question 必須放使用者原句。",
     parameters:{type:"object",properties:{entry:{type:"string",enum:["function7","yield","work","calendar","materials","attendance"]},question:{type:"string"}},required:["question"]}
   };
   const astraThinkTool={
@@ -6785,28 +6933,29 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     }
     if(name==="query_greenhouse"){
       const question=String(args?.question||"");
-      let entry=ENTRY_LABEL[args?.entry]?args.entry:null;
-      if(typeof ghFunction7Table==="function"&&ghFunction7Table(question)!=null)entry="function7";
-      if(!entry&&typeof ghSelectedEntry!=="undefined"&&ENTRY_LABEL[ghSelectedEntry])entry=ghSelectedEntry;
-      if(!entry&&typeof ghRouteV51Question==="function"){
-        const routed=ghRouteV51Question(question,null);if(ENTRY_LABEL[routed?.id])entry=routed.id;
-      }
-      if(!entry)return{ok:false,error:"無法判斷溫室入口，請向使用者確認。"};
       try{
-        if(typeof ghEntrySelectToken!=="undefined")ghEntrySelectToken++;
-        if(typeof ghSelectedEntry!=="undefined")ghSelectedEntry=entry;
-        if(typeof ghSetEntryButtonState==="function")ghSetEntryButtonState(entry);
-        const status=document.getElementById("greenhouseStatus"),meta=typeof GH_ENTRY_META!=="undefined"?GH_ENTRY_META[entry]:null;
-        const hint=document.getElementById("ghEntryHint");if(hint)hint.textContent=`目前：${meta?.label||ENTRY_LABEL[entry]}。即時語音正在讀取與計算。`;
-        if(status)status.textContent=`${meta?.label||ENTRY_LABEL[entry]}｜即時語音查詢中…`;
-        setLiveTrace(`已聽懂：${question}\n步驟：正在讀取 ${meta?.table||ENTRY_LABEL[entry]} 的真實資料…`,"#e8c879");
-        const answer=await ghAnswerSelectedEntry(entry,question);
-        if(status)status.textContent=`${meta?.label||ENTRY_LABEL[entry]}｜${meta?.table||"查詢完成"}`;
-        if(typeof ghLog==="function")ghLog("assistant",answer);
-        setLiveTrace(`讀取與計算完成。\nTeddy 正在回答：${answer.slice(0,180)}`,"#9fd8c8");
-        return{ok:true,entry:ENTRY_LABEL[entry],answer};
+        const status=document.getElementById("greenhouseStatus"),hint=document.getElementById("ghEntryHint");
+        if(status)status.textContent="即時語音查詢中…";
+        setLiveTrace(`已聽懂：${question}\n步驟：走固定路由讀取完全體資料…`,"#e8c879");
+        const res=await window.teddyGreenhouseAsk(question,ENTRY_LABEL[args?.entry]?args.entry:null);
+        const meta=(typeof GH_ENTRY_META!=="undefined"&&res.entry)?GH_ENTRY_META[res.entry]:null;
+        if(meta){
+          if(typeof ghEntrySelectToken!=="undefined")ghEntrySelectToken++;
+          if(typeof ghSelectedEntry!=="undefined")ghSelectedEntry=res.entry;
+          if(typeof ghSetEntryButtonState==="function")ghSetEntryButtonState(res.entry);
+          if(hint)hint.textContent=`目前：${meta.label}。`;
+        }
+        if(status)status.textContent=meta?`${meta.label}｜${meta.table}`:(res.entry==="route-map"?"固定路由":"請指定入口");
+        if(typeof ghLog==="function")ghLog("assistant",res.answer);
+        setLiveTrace(`讀取完成。\nTeddy 正在回答：${String(res.answer).slice(0,180)}`,"#9fd8c8");
+        return{ok:res.ok,entry:meta?.label||res.entry,answer:res.answer};
       }
-      catch(e){setLiveTrace(`查詢失敗：${e.message}`,"#f0a8a8");return{ok:false,error:e.message};}
+      catch(e){
+        console.error("query_greenhouse 失敗",e);
+        setLiveTrace(`查詢失敗：${e.message}`,"#f0a8a8");
+        const st=document.getElementById("greenhouseStatus");if(st)st.textContent=`查詢失敗：${e.message}`;
+        return{ok:false,error:e.message,say:`這次查詢失敗，原因是：${e.message}`};
+      }
     }
     return{ok:false,error:"未知工具："+name};
   }
@@ -6887,7 +7036,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   function liveToolDeclarations(){
     const greenhouse=(window.TEDDY_APP_MODE==="greenhouse");
     return greenhouse
-      ? [greenhouseTool,inspectV51PageTool,astraThinkTool,handsLoginTool,handsCommandTool,browseWebTool,recallChatTool]
+      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool]
       : [astraThinkTool,browseWebTool,recallChatTool];
   }
   function liveOpenAITools(){return liveToolDeclarations().map(t=>({type:"function",...t}));}
@@ -7103,6 +7252,155 @@ window.TEDDY_55_POLICY = Object.freeze({
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",clean,{once:true});
   else clean();
+})();
+
+</script>
+
+<script id="teddyEvolutionEngineV1">
+// ===== Smart Teddy 5.8.0 · Evolution Engine V1 =====
+// 原則：只在 Sandbox 儲存候選；不執行候選程式、不覆蓋 index、不寫 Firebase 核心資料。
+// 正式發布需要人工批准；本 V1 不直接連 GitHub/Netlify，避免自動覆蓋正式版。
+(() => {
+  "use strict";
+  const KEY = "teddy_evolution_v1";
+  const MAX = 24;
+  const PROTECTED = [
+    "teddyHistory","teddySummary","teddyMemoryLayers","firebase","teddyChatWithOpenAI",
+    "teddyChatWithClaude","teddyChatWithGemini","teddyChatWithGrok","teddySend",
+    "teddyHandsCommitPending","TEDDY_TOOL_STATUS_LABELS","teddyFreshDataPreflight"
+  ];
+
+  function load(){
+    try {
+      const x=JSON.parse(localStorage.getItem(KEY)||"{}");
+      return {candidates:Array.isArray(x.candidates)?x.candidates:[],activeId:x.activeId||null,releaseRequests:Array.isArray(x.releaseRequests)?x.releaseRequests:[]};
+    } catch(_){ return {candidates:[],activeId:null,releaseRequests:[]}; }
+  }
+  function save(x){ localStorage.setItem(KEY,JSON.stringify(x)); return x; }
+  function uid(){ return "EV1-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7).toUpperCase(); }
+  function latest(){
+    const x=load();
+    return x.candidates.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0]||null;
+  }
+  function setStatus(text,badge){
+    const el=document.getElementById("teddyEvolutionStatus");
+    if(el)el.textContent=text||"";
+    const b=document.getElementById("teddyEvolutionBadge");
+    if(b)b.textContent=badge||"Sandbox";
+  }
+  function protectedHits(code){
+    const t=String(code||"");
+    return PROTECTED.filter(k=>new RegExp("\\b"+k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(t));
+  }
+  function staticTest(candidate){
+    const code=String(candidate?.code||"");
+    const errors=[],warnings=[];
+    if(!code.trim()) errors.push("候選程式碼為空");
+    // 不執行候選碼，只做 parser/syntax check。
+    try {
+      const scripts=[...code.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
+      if(scripts.length){
+        scripts.forEach((src,i)=>{ try { new Function(src); } catch(e){ errors.push(`script #${i+1} 語法錯誤：${e.message}`); } });
+      } else if(/\b(const|let|function|=>)\b/.test(code)){
+        try { new Function(code); } catch(e){ errors.push("JavaScript 語法錯誤："+e.message); }
+      }
+    } catch(e){ errors.push("語法檢查器錯誤："+e.message); }
+    const hits=protectedHits(code);
+    if(hits.length) warnings.push("候選內容引用鎖定核心："+hits.join("、"));
+    if(/\beval\s*\(|new\s+Function\s*\(|document\.write\s*\(/.test(code)) warnings.push("候選含高風險動態執行 API；V1 不會執行它。");
+    if(/firebase\.firestore\(\)\.(set|add|update|delete)\s*\(/.test(code)) warnings.push("候選含 Firebase 寫入；V1 禁止在 Sandbox 自動執行。");
+    return {ok:errors.length===0,errors,warnings,checkedAt:Date.now(),syntaxOnly:true};
+  }
+  function persistCandidate(c){
+    const x=load();
+    x.candidates=[c,...x.candidates.filter(z=>z.id!==c.id)].slice(0,MAX);
+    x.activeId=c.id;
+    return save(x);
+  }
+  function getCandidate(id){ return load().candidates.find(c=>c.id===id)||latest(); }
+
+  async function tool(name,input){
+    if(name==="evolution_plan"){
+      const x=load(), recent=x.candidates.slice(0,5).map(c=>({id:c.id,title:c.title,status:c.status,tests:c.tests?.ok,createdAt:new Date(c.createdAt).toISOString()}));
+      return {ok:true,engine:"Teddy Evolution Engine V1",mode:"sandbox",goal:String(input.goal||""),scope:String(input.scope||"Evolution Sandbox only"),protected:PROTECTED,recent,policy:"先計畫→寫候選→靜態測試→失敗則迭代→通過後請求人工批准；不自動覆蓋正式版。"};
+    }
+    if(name==="evolution_write_candidate"){
+      const c={id:uid(),title:String(input.title||"未命名候選"),goal:String(input.goal||""),target:String(input.target||"evolution-sandbox"),code:String(input.code||""),rationale:String(input.rationale||""),status:"candidate",tests:null,createdAt:Date.now(),parentId:load().activeId||null};
+      const x=persistCandidate(c);
+      setStatus(`已建立 ${c.id}\n${c.title}\n等待測試。`,"候選已建立");
+      return {ok:true,candidateId:c.id,status:c.status,protectedRelease:false,message:"候選已保存，尚未執行、尚未部署。",count:x.candidates.length};
+    }
+    if(name==="evolution_test_candidate"){
+      const c=getCandidate(input.candidateId);
+      if(!c)return {ok:false,error:"沒有候選版本可測試"};
+      c.tests=staticTest(c);
+      c.status=c.tests.ok?"tested-pass":"tested-fail";
+      persistCandidate(c);
+      setStatus(`${c.id}\n${c.tests.ok?"✓ 靜態測試通過":"✕ 測試失敗"}${c.tests.errors.length?`\n${c.tests.errors.join("\n")}`:""}${c.tests.warnings.length?`\n⚠ ${c.tests.warnings.join("\n⚠ ")}`:""}`,c.tests.ok?"測試通過":"需要迭代");
+      return {ok:c.tests.ok,candidateId:c.id,status:c.status,tests:c.tests,next:c.tests.ok?"可請求人工批准":"請使用 evolution_iterate_candidate 修正後再測試"};
+    }
+    if(name==="evolution_iterate_candidate"){
+      const old=getCandidate(input.candidateId);
+      if(!old)return {ok:false,error:"找不到要迭代的候選"};
+      const c={...old,id:uid(),parentId:old.id,code:String(input.code||""),rationale:String(input.rationale||""),status:"iteration",tests:null,createdAt:Date.now(),title:`${old.title} · Iteration`};
+      persistCandidate(c);
+      setStatus(`已建立 ${c.id}\n源版本：${old.id}\n等待重新測試。`,"迭代候選");
+      return {ok:true,candidateId:c.id,parentId:old.id,status:c.status,message:"迭代候選已建立，請再次測試。"};
+    }
+    if(name==="evolution_review"){
+      const limit=Math.max(1,Math.min(10,Number(input.limit)||5)), x=load();
+      return {ok:true,activeId:x.activeId,candidates:x.candidates.slice(0,limit).map(c=>({id:c.id,title:c.title,target:c.target,status:c.status,tests:c.tests,createdAt:new Date(c.createdAt).toISOString(),parentId:c.parentId}))};
+    }
+    if(name==="evolution_request_approval"){
+      const c=getCandidate(input.candidateId);
+      if(!c)return {ok:false,error:"找不到候選"};
+      if(!c.tests?.ok)return {ok:false,error:"尚未通過測試，不可請求發布批准"};
+      const x=load(), req={id:"REL-"+uid(),candidateId:c.id,summary:String(input.summary||""),createdAt:Date.now(),status:"pending-human-approval"};
+      x.releaseRequests=[req,...x.releaseRequests].slice(0,20); save(x);
+      c.status="pending-human-approval"; persistCandidate(c);
+      setStatus(`${c.id}\n✓ 測試通過\n⏳ 等待人工批准正式發布。`,"等待批准");
+      return {ok:true,requestId:req.id,candidateId:c.id,status:req.status,message:"已提出正式發布批准請求；V1 尚未部署。"};
+    }
+    return {ok:false,error:"未知 Evolution 工具："+name};
+  }
+
+  window.teddyEvolutionTool=tool;
+  window.teddyEvolutionV1={
+    load,latest,test:(id)=>{const c=getCandidate(id);return c?staticTest(c):null;},
+    approve(id){
+      const c=getCandidate(id); if(!c||!c.tests?.ok)return {ok:false,error:"候選不存在或未通過測試"};
+      const x=load(), req=x.releaseRequests.find(r=>r.candidateId===c.id&&r.status==="pending-human-approval");
+      if(req)req.status="approved-by-user";
+      c.status="approved-staged"; c.approvedAt=Date.now(); save(x);
+      setStatus(`${c.id}\n✓ 已批准候選進入 Staged Release\n⚠ 尚未覆蓋正式 index。`,"已批准・待部署");
+      return {ok:true,candidateId:c.id,status:c.status};
+    },
+    exportCandidate(id){
+      const c=getCandidate(id); if(!c)return;
+      const blob=new Blob([c.code],{type:"text/plain;charset=utf-8"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${c.id}.candidate.txt`;a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    }
+  };
+
+  document.getElementById("teddyEvolutionRun")?.addEventListener("click",()=>{
+    const input=document.getElementById("teddyChatInput");
+    if(input){input.value="Teddy，啟動 Evolution Engine V1。請自己思考目前可以安全改善的地方，完成 coding、測試、必要迭代，最後向我提出批准，不要碰正式核心。";document.getElementById("teddyChatSend")?.click();}
+  });
+  document.getElementById("teddyEvolutionReview")?.addEventListener("click",()=>{
+    const x=load(), rows=x.candidates.slice(0,6);
+    setStatus(rows.length?rows.map(c=>`${c.id}｜${c.status}｜${c.title}`).join("\n"):"尚無候選版本。","候選紀錄");
+  });
+  document.getElementById("teddyEvolutionApprove")?.addEventListener("click",()=>{
+    const c=latest();
+    if(!c){setStatus("沒有候選版本可批准。","無候選");return;}
+    if(!window.confirm(`批准候選 ${c.id}\n「${c.title}」\n目標：${c.goal||"—"}\n測試：${c.tests?.ok?"靜態測試通過":"尚未通過"}\n程式長度：${String(c.code||"").length} 字\n\n批准只會標記為待發布，不會覆蓋正式版。要先看程式碼請按取消後用「查看候選」。`))return;
+    const r=window.teddyEvolutionV1.approve(c.id);
+    if(r.ok && window.teddyAppendLog) window.teddyAppendLog("teddy",`✓ 我已依照你的按鈕批准候選 ${c.id} 進入 Staged Release。正式 index 尚未被覆蓋。`);
+    else setStatus(r.error||"目前不能批准。","需要測試");
+  });
+  const init=()=>{const c=latest();if(c)setStatus(`${c.id}｜${c.status}｜${c.title}`,c.status==="tested-pass"?"測試通過":"Sandbox 待命");};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
 </script>
 
