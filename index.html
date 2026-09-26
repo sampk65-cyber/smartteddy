@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <script id="teddyEntryBoot">
-/* Smart Teddy 5.9.2：同一份程式，三個入口
+/* Smart Teddy 5.9.3：同一份程式，三個入口
    /               主人版（完整 Teddy）
    /?app=family    家人版（同一隻松鼠的個性；興趣與稱呼由家人自己設定；沒有溫室／工作／Evolution）
    /?app=farm      溫室助理（只有溫室；要用自己的人員編號登入；沒有主人的人格記憶）
@@ -23,7 +23,7 @@ html[data-teddy-entry="family"] #btnGreenhouseMode,
 html[data-teddy-entry="family"] #greenhousePanel,
 html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 </style>
-<title>Smart Teddy 5.9.2 · TEDDY（碰氣）</title>
+<title>Smart Teddy 5.9.3 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -463,7 +463,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.2 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.3 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -795,12 +795,12 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.2・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.3・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.2；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.3；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -833,7 +833,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 5.9.2：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 5.9.3：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -1153,7 +1153,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.9.2";
+    const TEDDY_VERSION = "Smart Teddy 5.9.3";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -1173,7 +1173,31 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== 帶逾時保護的 fetch，避免網路卡住時畫面永遠停在「處理中」=====
+    // 5.9.3：Grok 模型自動升級與退回。先用 grok-4.7，帳號不能用時自動退回 grok-4.6；
+    // Responses API 的搜尋改用 low reasoning，避免 4.6／4.7 預設 high 推理太慢而逾時。
+    const TEDDY_GROK_MODELS = ["grok-4.7", "grok-4.6"];
+    window.TEDDY_GROK_ACTIVE_MODEL = null;
     async function teddyFetch(url, options, timeoutMs) {
+      if (/^https:\/\/api\.x\.ai\//.test(String(url)) && options && typeof options.body === "string") {
+        let body = null; try { body = JSON.parse(options.body); } catch (_) {}
+        if (body && /^grok-4\.\d+$/.test(String(body.model || ""))) {
+          if (/\/responses$/.test(String(url)) && !body.reasoning) body.reasoning = { effort: "low" };
+          const order = window.TEDDY_GROK_ACTIVE_MODEL ? [window.TEDDY_GROK_ACTIVE_MODEL, ...TEDDY_GROK_MODELS.filter(m => m !== window.TEDDY_GROK_ACTIVE_MODEL)] : TEDDY_GROK_MODELS;
+          let last = null;
+          for (const m of order) {
+            body.model = m;
+            const res = await teddyFetchRaw(url, { ...options, body: JSON.stringify(body) }, Math.max(timeoutMs || 25000, 25000));
+            if (res.ok) { window.TEDDY_GROK_ACTIVE_MODEL = m; return res; }
+            let txt = ""; try { txt = await res.clone().text(); } catch (_) {}
+            if ((res.status === 400 || res.status === 403 || res.status === 404) && /model/i.test(txt)) { last = res; continue; }
+            return res;
+          }
+          return last;
+        }
+      }
+      return teddyFetchRaw(url, options, timeoutMs);
+    }
+    async function teddyFetchRaw(url, options, timeoutMs) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs || 25000);
       try {
@@ -6222,7 +6246,7 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 5.9.2：溫室唯一資料閘門 =====
+    // ===== Smart Teddy 5.9.3：溫室唯一資料閘門 =====
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
