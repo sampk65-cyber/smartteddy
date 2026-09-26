@@ -3,7 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Smart Teddy 5.9.0 · TEDDY（碰氣）</title>
+  <script id="teddyEntryBoot">
+/* Smart Teddy 5.9.2：同一份程式，三個入口
+   /               主人版（完整 Teddy）
+   /?app=family    家人版（同一隻松鼠的個性；興趣與稱呼由家人自己設定；沒有溫室／工作／Evolution）
+   /?app=farm      溫室助理（只有溫室；要用自己的人員編號登入；沒有主人的人格記憶）
+   每個入口的記憶、提醒、溫室上下文各自分開存放，同一支手機開不同入口也不會混在一起。 */
+(function(){
+  var id="owner";
+  try{var p=new URLSearchParams(location.search).get("app");if(p==="family"||p==="farm")id=p;}catch(_){}
+  window.TEDDY_ENTRY_ID=id;
+  window.TEDDY_KEY_SUFFIX=id==="owner"?"":"__"+id;
+  window.TEDDY_ENTRY_LABEL={owner:"主人版",family:"家人版",farm:"溫室助理"}[id];
+  document.documentElement.setAttribute("data-teddy-entry",id);
+})();
+</script>
+<style id="teddyEntryStyle">
+html[data-teddy-entry="family"] #btnGreenhouseMode,
+html[data-teddy-entry="family"] #greenhousePanel,
+html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
+</style>
+<title>Smart Teddy 5.9.2 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -443,7 +463,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.0 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.2 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -542,21 +562,6 @@
         </div>
 
         <div id="teddyAstraUsageSummary" style="margin:0 0 8px;padding:5px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.4;color:#8fa69d;">🧠 Astra｜本次/累計用量尚未產生</div>
-
-        <!-- Teddy Evolution Engine V1：獨立 Sandbox，不接觸正式核心 -->
-        <div id="teddyEvolutionPanel" style="margin:0 0 8px;padding:9px 10px;background:#101714;border:1px solid #3c4a43;border-radius:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-            <b style="font-size:12px;color:#bff9e7;">🧬 Teddy Evolution Engine V1</b>
-            <span id="teddyEvolutionBadge" style="font-size:10px;color:#7f948b;">Sandbox 待命</span>
-          </div>
-          <div style="font-size:10px;color:#74877e;line-height:1.45;margin:5px 0 7px;">自己思考 → coding → 測試 → 迭代。正式版、Firebase、人格、記憶與語音核心鎖定。</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button type="button" id="teddyEvolutionRun" style="border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:6px 9px;font-size:11px;cursor:pointer;">🧬 自主進化</button>
-            <button type="button" id="teddyEvolutionReview" style="border:1px solid #405049;border-radius:8px;background:#18211e;color:#b9c9c2;padding:6px 9px;font-size:11px;cursor:pointer;">查看候選</button>
-            <button type="button" id="teddyEvolutionApprove" style="border:1px solid #8c7048;border-radius:8px;background:#211b12;color:#f0c27a;padding:6px 9px;font-size:11px;cursor:pointer;">批准待發布</button>
-          </div>
-          <div id="teddyEvolutionStatus" style="margin-top:7px;font-size:10px;color:#8fa69d;white-space:pre-wrap;">尚無候選版本。</div>
-        </div>
 
         <div id="teddyToolsPanel" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <button type="button" class="teddy-chip" data-msg="現在天氣如何">🌦 天氣</button>
@@ -790,31 +795,48 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.0・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.2・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.0；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.2；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
-    function teddyPersonaCore(){ return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER; }
+    // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
+    const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
+    function teddyFamilyProfile(){try{return JSON.parse(localStorage.getItem(TEDDY_FAMILY_PROFILE_KEY)||"null");}catch(_){return null;}}
+    function teddySaveFamilyProfile(p){try{localStorage.setItem(TEDDY_FAMILY_PROFILE_KEY,JSON.stringify(p));}catch(_){}}
+    const TEDDY_FARM_PERSONA=`你是 TEDDY，也叫碰氣（Pongchi），一隻穿藍色衣服、活潑聰明的小松鼠，現在是溫室的工作助理。你服務的是登入的溫室成員，用繁體中文、簡短親切地回答，數字要精準、有來源。你沒有、也不會提到主人的私人記憶或私人事情。`;
+    function teddyPersonaCore(){
+      const entry=window.TEDDY_ENTRY_ID||"owner";
+      if(entry==="farm")return TEDDY_FARM_PERSONA+"\n\n"+TEDDY_IDENTITY_LAYER;
+      if(entry==="family"){
+        const p=teddyFamilyProfile()||{};
+        const interests=(p.interests||"").trim()||"生活、健康、美食、旅遊";
+        const base=TEDDY_SYSTEM_PROMPT.replace(/使用者對「[^」]*」這幾個領域特別有興趣/,`使用者對「${interests}」這幾個領域特別有興趣`);
+        const who=(p.name||"").trim();
+        return base+"\n\n"+TEDDY_IDENTITY_LAYER+`\n【家人版】這是家人自己的 TEDDY。${who?`請稱呼使用者「${who}」。`:""}這裡沒有溫室、工作指派與投資持股的資料，不要提到主人的事情。`;
+      }
+      return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER;
+    }
     function teddyGreenhouseIdentity(){
       return TEDDY_IDENTITY_LAYER + "\n現在是溫室模式：你仍然是同一個 TEDDY（碰氣），只是換上工作腦，以專業溫室管理與無花果栽培顧問的角度回答真實農場資料。語氣維持 TEDDY 的親切簡潔，內容要精準、有數字、有來源。\n";
     }
     // 5.7.2：Flash Live 的語音逐字稿常常是簡體字，溫室的所有關鍵字判斷都是繁體，先轉換再路由。
-    const TEDDY_S2T_PHRASES=[["计划","計畫"],["计画","計畫"],["长周期","長週期"],["每周","每週"],["本周","本週"],["这周","這週"],["关系","關係"],["系统","系統"],["里面","裡面"],["哪里","哪裡"],["这里","這裡"],["汇总","匯總"],["登录","登入"]];
-    const TEDDY_S2T_CHARS="产產气氣资資补補沟溝喷噴统統计計汇匯总總长長趋趨势勢历歷变變迁遷温溫纪紀记記录錄区區这這个個几幾现現么麼时時间間员員号號对對较較与與关關为為过過还還没沒该該说說请請问問题題场場两兩页頁张張钾鉀镁鎂钙鈣黄黃湿濕风風压壓级級采採获獲进進阶階节節叶葉盖蓋迟遲谁誰报報内內览覽块塊业業务務单單数數据據读讀询詢显顯让讓帮幫给給开開门門们們吗嗎听聽讲講话話语語图圖网網边邊设設备備确確认認类類预預执執状狀态態况況际際实實签簽后後钟鐘买買卖賣肥肥馀餘剩剩连連续續库庫笔筆样樣還還么麼";
+    const TEDDY_S2T_PHRASES=[["计划","計畫"],["计画","計畫"],["长周期","長週期"],["每周","每週"],["本周","本週"],["这周","這週"],["上周","上週"],["下周","下週"],["周末","週末"],["关系","關係"],["系统","系統"],["里面","裡面"],["哪里","哪裡"],["这里","這裡"],["那里","那裡"],["心里","心裡"],["家里","家裡"],["汇总","匯總"],["登录","登入"],["日历","日曆"],["农历","農曆"],["复杂","複雜"],["重复","重複"],["复制","複製"],["恢复","恢復"],["回复","回覆"],["干什么","幹什麼"],["干嘛","幹嘛"],["干活","幹活"],["头发","頭髮"],["理发","理髮"],["冲水","沖水"],["冲洗","沖洗"],["面条","麵條"],["软件","軟體"],["视频","影片"],["信息","訊息"],["网络","網路"],["打印","列印"],["质量","品質"],["土豆","馬鈴薯"],["出租车","計程車"],["怎么","怎麼"],["什么","什麼"],["为什么","為什麼"],["这么","這麼"],["那么","那麼"],["多么","多麼"]];
+    const TEDDY_S2T_CHARS="爱愛碍礙袄襖罢罷摆擺败敗办辦帮幫绑綁宝寶报報饱飽备備贝貝笔筆毕畢币幣边邊编編变變标標宾賓饼餅并並补補财財参參惨慘蚕蠶仓倉层層产產长長场場尝嘗厂廠车車彻徹尘塵陈陳衬襯称稱惩懲诚誠骋騁迟遲齿齒虫蟲筹籌处處础礎触觸传傳疮瘡创創纯純词詞辞辭从從聪聰丛叢错錯达達带帶单單担擔胆膽当當挡擋党黨导導岛島灯燈邓鄧敌敵递遞点點电電垫墊淀澱钓釣调調顶頂订訂东東动動冻凍独獨读讀队隊对對吨噸夺奪堕墮恶惡儿兒尔爾发發罚罰阀閥范範饭飯访訪纺紡飞飛废廢费費纷紛坟墳奋奮愤憤粪糞丰豐风風疯瘋冯馮缝縫讽諷凤鳳肤膚辐輻抚撫辅輔负負妇婦该該盖蓋赶趕刚剛钢鋼纲綱岗崗个個给給巩鞏贡貢沟溝构構购購够夠顾顧关關观觀馆館惯慣贯貫广廣归歸规規轨軌贵貴柜櫃过過国國锅鍋汉漢号號贺賀轰轟红紅后後护護华華划劃画畫话話怀懷坏壞欢歡环環还還换換唤喚黄黃挥揮辉輝会會汇匯获獲货貨祸禍机機积積击擊鸡雞饥饑级級极極挤擠几幾计計记記纪紀际際继繼济濟价價驾駕坚堅间間监監简簡检檢减減见見键鍵渐漸践踐鉴鑑将將讲講奖獎桨槳胶膠浇澆骄驕娇嬌脚腳觉覺较較阶階节節杰傑结結洁潔紧緊仅僅进進尽盡劲勁惊驚经經镜鏡旧舊举舉剧劇惧懼据據军軍开開凯凱课課垦墾恳懇块塊夸誇宽寬旷曠矿礦亏虧馈饋扩擴阔闊腊臘蜡蠟来來兰蘭拦攔栏欄烂爛劳勞乐樂类類泪淚离離礼禮厉厲丽麗励勵两兩辆輛疗療辽遼猎獵临臨邻鄰灵靈岭嶺领領刘劉龙龍楼樓录錄陆陸虑慮乱亂轮輪论論罗羅逻邏萝蘿骆駱络絡妈媽马馬码碼骂罵吗嗎买買卖賣麦麥满滿猫貓么麼没沒门門们們梦夢弥彌灭滅庙廟鸣鳴谋謀亩畝内內难難脑腦闹鬧鸟鳥宁寧农農浓濃诺諾欧歐盘盤赔賠喷噴鹏鵬骗騙飘飄频頻贫貧苹蘋评評凭憑扑撲铺鋪齐齊骑騎岂豈启啟气氣弃棄迁遷签簽钱錢浅淺谴譴枪槍墙牆抢搶桥橋乔喬侨僑窍竅亲親轻輕庆慶穷窮区區驱驅趋趨权權劝勸确確让讓扰擾热熱认認荣榮软軟锐銳润潤洒灑伞傘丧喪扫掃杀殺纱紗晒曬伤傷赏賞烧燒绍紹设設摄攝审審婶嬸肾腎渗滲声聲绳繩胜勝圣聖师師诗詩时時识識实實势勢视視试試饰飾适適释釋寿壽兽獸书書输輸属屬树樹数數帅帥双雙谁誰税稅顺順说說丝絲饲飼耸聳讼訟颂頌苏蘇诉訴肃肅虽雖随隨岁歲孙孫损損缩縮锁鎖态態摊攤滩灘谈談坛壇叹嘆汤湯烫燙涛濤讨討腾騰题題体體条條铁鐵听聽厅廳头頭图圖涂塗团團驼駝袜襪弯彎湾灣万萬网網为為违違围圍纬緯伟偉卫衛稳穩问問窝窩无無务務雾霧误誤牺犧习習戏戲细細虾蝦吓嚇鲜鮮闲閒显顯险險县縣线線宪憲献獻乡鄉详詳响響项項协協胁脅写寫谢謝兴興选選学學寻尋训訓讯訊压壓鸭鴨亚亞严嚴盐鹽颜顏验驗养養样樣阳陽痒癢摇搖遥遙药藥爷爺页頁业業叶葉医醫仪儀艺藝亿億忆憶义義议議异異阴陰银銀饮飲隐隱应應营營蝇蠅赢贏拥擁优優忧憂邮郵犹猶鱼魚与與语語狱獄预預渔漁员員园園圆圓远遠愿願约約跃躍钥鑰岳嶽阅閱云雲运運韵韻杂雜灾災载載暂暫赞讚脏髒则則泽澤责責贼賊赠贈闸閘诈詐斋齋债債战戰张張涨漲帐帳账賬胀脹这這针針侦偵诊診阵陣镇鎮争爭睁睜郑鄭证證织織职職执執纸紙质質钟鐘种種众眾肿腫轴軸猪豬烛燭嘱囑筑築驻駐专專转轉赚賺庄莊装裝壮壯状狀准準资資总總纵縱邹鄒组組钻鑽饺餃饿餓馒饅酱醬肠腸缘緣统統绝絕终終续續维維综綜练練纳納纽紐贴貼贷貸贸貿赛賽赵趙辑輯厌厭呜嗚咏詠哑啞坝壩坠墜垄壟垒壘扬揚抛拋拟擬拢攏拣揀择擇挂掛挣掙捞撈捡撿掷擲揽攬搀攙搁擱搂摟携攜撑撐敛斂断斷昼晝晋晉晓曉晕暈术術杨楊枫楓栈棧栋棟档檔桩樁椭橢榄欖歼殲残殘毁毀毙斃氢氫沥瀝沦淪沧滄沪滬泻瀉泼潑浆漿测測浏瀏浑渾涌湧渊淵温溫湿濕滚滾滞滯滤濾滥濫滨濱灿燦炉爐炼煉烁爍烟煙烦煩焕煥牵牽狈狽狮獅狭狹现現玛瑪琐瑣畅暢痴癡瘫癱盏盞矫矯硕碩砖磚祷禱窃竊竞競笋筍笼籠粮糧纠糾纤纖纹紋绕繞绘繪绿綠缓緩缠纏联聯脉脈脸臉舰艦舱艙艰艱艳艷芦蘆苍蒼茧繭荐薦荡蕩莱萊莲蓮萧蕭蓝藍蚀蝕蚂螞蚁蟻蛮蠻袭襲誉譽许許译譯诞誕诸諸谊誼谓謂谜謎谣謠谦謙谨謹谱譜贞貞贩販贪貪赌賭赖賴踪蹤辈輩辩辯迈邁连連遗遺酝醞钉釘钙鈣钞鈔钦欽铃鈴铅鉛铜銅铝鋁链鏈销銷锋鋒锤錘锦錦锻鍛闪閃闭閉闯闖闷悶闻聞韩韓须須顽頑顿頓颇頗颗顆额額驰馳驳駁驴驢驶駛鲁魯鸽鴿鹅鵝鹰鷹龄齡龟龜乌烏伦倫伪偽佣傭侠俠侣侶侧側俭儉倾傾偿償储儲兑兌冈岡册冊决決况況净淨凉涼凑湊凿鑿删刪剂劑剑劍剥剝勋勳匀勻卢盧卧臥却卻厕廁厢廂厨廚叙敘叠疊吕呂吴吳呕嘔咙嚨哗嘩啰囉啸嘯坞塢抠摳拧擰拨撥挚摯挞撻挟挾挠撓捣搗掳擄掸撣掺摻搅攪撷擷攒攢静靜请請览覽历歷钾鉀镁鎂采採询詢馀餘库庫";
     const TEDDY_S2T_MAP=(()=>{const m={};for(let i=0;i+1<TEDDY_S2T_CHARS.length;i+=2)m[TEDDY_S2T_CHARS[i]]=TEDDY_S2T_CHARS[i+1];return m;})();
+    function teddyToTradSafe(text){try{return teddyToTrad(text);}catch(_){return String(text==null?"":text);}}
     function teddyToTrad(text){
       let t=String(text||"");
       for(const [a,b] of TEDDY_S2T_PHRASES)t=t.split(a).join(b);
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 5.9.0：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 5.9.2：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
-    const TEDDY_REMINDER_KEY="teddy_reminders_v1";
+    const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
     function teddyRemLoad(){try{const a=JSON.parse(localStorage.getItem(TEDDY_REMINDER_KEY)||"[]");return Array.isArray(a)?a:[];}catch(_){return[];}}
     function teddyRemSave(a){try{localStorage.setItem(TEDDY_REMINDER_KEY,JSON.stringify(a.slice(-300)));}catch(_){}}
     function teddyRemPad(n){return String(n).padStart(2,"0");}
@@ -913,7 +935,8 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     function teddyRemCalUrl(r){
       const s=new Date(r.due),e=new Date(s.getTime()+15*60000);
       const f=d=>`${d.getUTCFullYear()}${teddyRemPad(d.getUTCMonth()+1)}${teddyRemPad(d.getUTCDate())}T${teddyRemPad(d.getUTCHours())}${teddyRemPad(d.getUTCMinutes())}00Z`;
-      const back=`${location.origin}${location.pathname}?reminder=${encodeURIComponent(r.id)}`;
+      const entryQ=(window.TEDDY_ENTRY_ID&&window.TEDDY_ENTRY_ID!=="owner")?`app=${window.TEDDY_ENTRY_ID}&`:"";
+      const back=`${location.origin}${location.pathname}?${entryQ}reminder=${encodeURIComponent(r.id)}`;
       return "https://calendar.google.com/calendar/render?action=TEMPLATE"+
         `&text=${encodeURIComponent("TEDDY 提醒："+r.text)}`+
         `&dates=${f(s)}/${f(e)}`+
@@ -1006,13 +1029,66 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     function teddyRemHandleDeepLink(){
       let id=null;try{id=new URLSearchParams(location.search).get("reminder");}catch(_){}
       if(!id)return;
-      try{history.replaceState(null,"",location.pathname+location.hash);}catch(_){}
+      try{const keep=(window.TEDDY_ENTRY_ID&&window.TEDDY_ENTRY_ID!=="owner")?`?app=${window.TEDDY_ENTRY_ID}`:"";history.replaceState(null,"",location.pathname+keep+location.hash);}catch(_){}
       const r=teddyRemLoad().find(x=>x.id===id);
       if(!r){teddyAppendLog("teddy","這則提醒在這支手機上找不到了，可能已經清掉。");return;}
       const div=teddyAppendLog("teddy",r.done?`這件已經完成了：${r.text}`:`🔔 提醒你：${r.text}（${teddyRemFmt(r.due)}）`);
       if(!r.done)teddyRemActionButtons(div,r);
     }
     window.addEventListener("load",()=>{setTimeout(()=>{try{teddyRemHandleDeepLink();teddyRemSchedule();}catch(e){console.warn("提醒初始化失敗",e);}},600);});
+
+    try{localStorage.removeItem("teddy_evolution_v1");}catch(_){}
+    // ===== 5.9.1 入口畫面設定 =====
+    function teddyEntryFamilySetupCard(force){
+      const log=document.getElementById("teddyChatLog");if(!log)return;
+      if(!force&&teddyFamilyProfile())return;
+      const p=teddyFamilyProfile()||{};
+      const div=document.createElement("div");
+      div.style.cssText="margin:6px 0 10px;padding:10px;border:1px solid #355248;border-radius:10px;background:#101b17;color:#d8fff1;font-size:13px;";
+      div.innerHTML=`<b>🐿 先認識一下你</b><div style="margin:6px 0 4px;">要我怎麼稱呼你？</div><input id="tfName" style="width:100%;box-sizing:border-box;padding:7px;border-radius:7px;border:1px solid #355248;background:#0b1411;color:#e8fff6;" placeholder="例如：媽媽、小安"><div style="margin:8px 0 4px;">你比較關心哪些主題？（用頓號分開）</div><input id="tfInt" style="width:100%;box-sizing:border-box;padding:7px;border-radius:7px;border:1px solid #355248;background:#0b1411;color:#e8fff6;" placeholder="例如：烹飪、園藝、韓劇、健康"><button type="button" id="tfSave" style="margin-top:9px;border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:7px 12px;cursor:pointer;">好了</button>`;
+      log.appendChild(div);log.scrollTop=log.scrollHeight;
+      div.querySelector("#tfName").value=p.name||"";div.querySelector("#tfInt").value=p.interests||"";
+      div.querySelector("#tfSave").onclick=()=>{
+        const name=div.querySelector("#tfName").value.trim(),interests=div.querySelector("#tfInt").value.trim();
+        teddySaveFamilyProfile({name,interests,savedAt:new Date().toISOString()});
+        if(name&&typeof teddySavePreferredName==="function")try{teddySavePreferredName(name);}catch(_){}
+        div.innerHTML=`<span style="color:#9fd8c8;">記住了${name?"，"+name:""}！想改的時候跟我說「修改我的設定」。</span>`;
+      };
+    }
+    window.teddyEntryFamilySetupCard=teddyEntryFamilySetupCard;
+    function teddyEntryFarmLoginButton(){
+      const panel=document.getElementById("greenhousePanel");if(!panel||document.getElementById("teddyFarmLogin"))return;
+      const bar=document.createElement("div");
+      bar.style.cssText="display:flex;align-items:center;gap:8px;margin:0 0 8px;";
+      bar.innerHTML=`<button type="button" id="teddyFarmLogin" style="border:1px solid #5eead4;border-radius:8px;background:#10201b;color:#bff7ea;font-weight:800;padding:7px 11px;cursor:pointer;">🔐 登入</button><span id="teddyFarmWho" style="font-size:12px;color:#9fb4ab;">尚未登入</span>`;
+      panel.insertBefore(bar,panel.firstChild);
+      bar.querySelector("#teddyFarmLogin").onclick=async()=>{
+        const id=(window.prompt("請輸入你的人員編號（例如 B02）")||"").trim().toUpperCase();
+        if(!id)return;
+        const r=await teddyHandsLogin(id);
+        const who=bar.querySelector("#teddyFarmWho");
+        if(r.ok&&teddyHandsSession){who.textContent=`已登入：${teddyHandsSession.name||""}（${teddyHandsSession.id}）`;who.style.color="#9fd8c8";}
+        else{who.textContent=r.message||"登入失敗";who.style.color="#f0a8a8";}
+      };
+    }
+    function teddyApplyEntry(){
+      const entry=window.TEDDY_ENTRY_ID||"owner";
+      if(entry==="owner")return;
+      try{document.title=`TEDDY · ${window.TEDDY_ENTRY_LABEL}`;}catch(_){}
+      const st=document.getElementById("dualModeStatus");
+      if(entry==="family"){
+        if(typeof setUiMode==="function")setUiMode("general");
+        if(st)st.textContent="🐿 家人版 · 你自己的 TEDDY";
+        teddyEntryFamilySetupCard(false);
+      }
+      if(entry==="farm"){
+        if(typeof setUiMode==="function")setUiMode("greenhouse");
+        const close=document.getElementById("btnGreenhouseClose");if(close)close.style.display="none";
+        if(st)st.textContent="🌱 溫室助理 · 用自己的編號登入後查詢";
+        teddyEntryFarmLoginButton();
+      }
+    }
+    window.addEventListener("load",()=>{setTimeout(()=>{try{teddyApplyEntry();}catch(e){console.warn("入口設定失敗",e);}},900);});
 
     // 文字對話結束後，同步給正在進行的即時語音，讓兩邊知道彼此說過什麼。
     function teddySyncToLive(userText, replyText){
@@ -1077,7 +1153,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.9.0";
+    const TEDDY_VERSION = "Smart Teddy 5.9.2";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -1294,65 +1370,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
             date: { type: "string", description: "要讀哪一天的文章，格式 YYYY-MM-DD，沒有指定就讀最新一篇" }
           }
         }
-      },
-      {
-        name: "evolution_plan",
-        description: "Smart Teddy Evolution Engine V1 的第一步。當使用者要求 Teddy 自己思考、coding、測試、迭代、修 bug 或自我進化時使用。先讀取目前 Evolution 狀態與最近候選版本，再提出最小改動方案。不得直接修改正式版。",
-        input_schema: {
-          type: "object",
-          properties: {
-            goal: { type: "string", description: "希望改善的功能、問題或自我進化目標" },
-            scope: { type: "string", description: "允許修改的範圍；若空白，預設只允許 Evolution Sandbox" }
-          },
-          required: ["goal"]
-        }
-      },
-      {
-        name: "evolution_write_candidate",
-        description: "把 Teddy 自己產生的 coding 候選版本寫入 Evolution Sandbox。只保存候選程式，不會執行、不會覆蓋正式 index、不會修改 Firebase。完成後必須再呼叫 evolution_test_candidate。",
-        input_schema: {
-          type: "object",
-          properties: {
-            title: { type: "string", description: "候選版本名稱" },
-            goal: { type: "string", description: "這次修改要解決什麼" },
-            target: { type: "string", description: "修改目標，例如 evolution-ui、router、tool、html-script" },
-            code: { type: "string", description: "Teddy 自己寫出的候選程式碼；可為 JS/CSS/HTML 片段，不可假裝已部署" },
-            rationale: { type: "string", description: "為什麼這樣修改，以及如何避免碰到核心功能" }
-          },
-          required: ["title", "goal", "target", "code"]
-        }
-      },
-      {
-        name: "evolution_test_candidate",
-        description: "測試目前 Evolution Sandbox 候選版本。V1 只做靜態/語法/安全邊界測試，不執行候選程式。若失敗，Teddy 必須自行分析錯誤並迭代修正。",
-        input_schema: {
-          type: "object",
-          properties: { candidateId: { type: "string", description: "要測試的候選 ID；省略則測試最新候選" } }
-        }
-      },
-      {
-        name: "evolution_iterate_candidate",
-        description: "根據測試失敗結果建立下一版候選。不得修改正式版。修正後要再次呼叫 evolution_test_candidate，直到通過或明確說明阻塞原因。",
-        input_schema: {
-          type: "object",
-          properties: {
-            candidateId: { type: "string", description: "要迭代的候選 ID" },
-            code: { type: "string", description: "修正後完整候選程式碼" },
-            rationale: { type: "string", description: "針對測試錯誤做了什麼修正" }
-          },
-          required: ["candidateId", "code"]
-        }
-      },
-      {
-        name: "evolution_review",
-        description: "查看 Evolution Engine V1 最近候選、測試結果與待批准版本。使用者問 Teddy 最近進化了什麼、目前候選是什麼、測試是否通過時使用。",
-        input_schema: { type: "object", properties: { limit: { type: "number", description: "最多查看幾筆，預設 5" } } }
-      },
-      {
-        name: "evolution_request_approval",
-        description: "當候選已完成測試且通過時，向使用者提出正式發布批准請求。V1 預設人工批准，不得自行宣稱已發布。",
-        input_schema: { type: "object", properties: { candidateId: { type: "string" }, summary: { type: "string" } }, required: ["candidateId", "summary"] }
-      },
+      }
     ];
 
     function teddyTodayStr() {
@@ -1363,10 +1381,6 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
     async function teddyRunTool(name, input) {
       input = input || {};
-      if (typeof window.teddyEvolutionTool === "function" && /^evolution_/.test(name)) {
-        try { return await window.teddyEvolutionTool(name, input); }
-        catch (e) { return { ok:false, error:"Evolution Engine 錯誤："+String(e?.message||e) }; }
-      }
       if (name === "get_current_datetime") {
         try {
           const now = new Date();
@@ -1624,20 +1638,20 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       return teddyLocationPromise;
     }
 
-    const TEDDY_EDITION = "work";
-    const TEDDY_HISTORY_KEY = "teddy_chat_history_work_v44";
-    const TEDDY_SUMMARY_KEY = "teddy_chat_summary_work_v44";
+    const TEDDY_EDITION = "work"+(window.TEDDY_KEY_SUFFIX||"");
+    const TEDDY_HISTORY_KEY = "teddy_chat_history_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
+    const TEDDY_SUMMARY_KEY = "teddy_chat_summary_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
     // 稱呼單獨開一個欄位，不跟一大段自由文字的長期摘要混在一起——
     // 這樣溫室模式只讀這一個小欄位就好，不用整份摘要（家人、心情、興趣）都帶進去，
     // 維持「工作歸工作、聊天歸聊天」的分隔，同時兩邊都認得同一個稱呼。
-    const TEDDY_NAME_KEY = "teddy_preferred_name_work_v44";
+    const TEDDY_NAME_KEY = "teddy_preferred_name_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
     let teddyPreferredName = "";
     // 溫室模式專用筆記：只有明確說「記住：」才會寫進來，跟一般模式那一大段自由摘要分開存，
     // 不會因為聊天內容被自動摘要進來，也不會被一般模式讀到——維持「工作歸工作」的界線。
-    const TEDDY_GREENHOUSE_NOTES_KEY = "teddy_greenhouse_notes_work_v44";
-    const TEDDY_MEMORY_V38_KEY = "teddy_memory_layers_work_v44";
-    const TEDDY_MEMORY_BACKUP_KEY = "teddy_memory_legacy_backup_work_v44";
-    const TEDDY_UNIFIED_MEMORY_V40_KEY = "teddy_unified_memory_work_v44";
+    const TEDDY_GREENHOUSE_NOTES_KEY = "teddy_greenhouse_notes_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
+    const TEDDY_MEMORY_V38_KEY = "teddy_memory_layers_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
+    const TEDDY_MEMORY_BACKUP_KEY = "teddy_memory_legacy_backup_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
+    const TEDDY_UNIFIED_MEMORY_V40_KEY = "teddy_unified_memory_work_v44"+(window.TEDDY_KEY_SUFFIX||"");
     let teddyGreenhouseNotes = [];
     let teddyMemoryLayers = {
       version: 1,
@@ -1932,7 +1946,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       if (teddySummary) {
         prompt += "\n\n以下是你和這位使用者更早以前聊過的長期記憶摘要，可以自然地參考裡面提到的個人資訊、偏好或事件，不用逐字複誦：\n" + teddySummary;
       }
-      prompt += `\n\n【Teddy Evolution Engine V1】\n你可以自己思考、coding、測試、迭代，但 Evolution 只在獨立 Sandbox 中工作。正式版、Firebase 資料、人格、記憶、Live 語音、投資核心與溫室核心都視為鎖定區。當使用者要求「自行進化／自己 coding／自己修 bug」時，先 evolution_plan，再 evolution_write_candidate，再 evolution_test_candidate；若測試失敗，使用 evolution_iterate_candidate 後再次測試。測試通過後只能提出 evolution_request_approval，不得說已部署、已覆蓋正式版或已上線。除非使用者明確批准，正式版狀態永遠保持不變。`;
+
       return prompt;
     }
 
@@ -1965,7 +1979,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       try {
         const db = firebase.firestore();
         let doc = await db.collection("teddy_memory").doc(teddyGetMemoryDocId()).get();
-        if(!doc.exists)doc=await db.collection("teddy_memory").doc(teddyGetDeviceId()).get();
+        if(!doc.exists&&window.TEDDY_ENTRY_ID==="owner")doc=await db.collection("teddy_memory").doc(teddyGetDeviceId()).get();
         if (doc.exists) {
           const data = doc.data();
           if(data.memoryLayers && data.memoryLayers.version){
@@ -2108,7 +2122,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       if (!log) return null;
       const div = document.createElement("div");
       div.style.marginBottom = "6px";
-      div.innerHTML = `<b style="color:${role === "user" ? "#5eead4" : "#e8a659"}">${role === "user" ? "你" : "TEDDY"}：</b><span>${escapeHtml(text)}</span>`;
+      div.innerHTML = `<b style="color:${role === "user" ? "#5eead4" : "#e8a659"}">${role === "user" ? "你" : "TEDDY"}：</b><span>${escapeHtml(teddyToTradSafe(text))}</span>`;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
       return div;
@@ -2117,7 +2131,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     function teddyUpdateLogDiv(div, text) {
       if (!div) return;
       const span = div.querySelector("span");
-      if (span) span.textContent = text;
+      if (span) span.textContent = teddyToTradSafe(text);
       const log = document.getElementById("teddyChatLog");
       if (log) log.scrollTop = log.scrollHeight;
     }
@@ -2913,6 +2927,12 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       if(nameHit)teddySavePreferredName(nameHit);
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
 
+      if ((window.TEDDY_ENTRY_ID||"owner")==="family" && /修改我的設定|改我的設定|重新設定我|改稱呼|改興趣/.test(text)) {
+        teddyUpdateLogDiv(thinkingDiv, "好，在下面改就可以。");
+        teddyEntryFamilySetupCard(true);
+        return;
+      }
+      if ((window.TEDDY_ENTRY_ID||"owner")==="family" && !teddyFamilyProfile() && !document.getElementById("tfSave")) teddyEntryFamilySetupCard(false);
       // 5.9.0：提醒只由關鍵字「提醒」觸發。
       const remRes = teddyReminderHandle(text);
       if (remRes && remRes.handled) {
@@ -2931,7 +2951,8 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       const greenhouseActive = (window.TEDDY_APP_MODE === "greenhouse");
       const explicitHandsCommand = /(?:^|\s)(?:工作|進入工作|工作模式|溫室模式|工作指派|工作回報|用\s*A01\s*登入|A01\s*登入|登入溫室系統|確認寫入|取消寫入)(?:$|[，。！？!?\s])/i.test(text)
         || (!!teddyHandsPending && /^(?:確認|確認寫入|寫入|確定|執行|取消|不要寫入|取消寫入)$/i.test(text.trim()));
-      const handsResult = (greenhouseActive || explicitHandsCommand) ? await teddyHandsHandle(text) : {handled:false};
+      const handsAllowed = (window.TEDDY_ENTRY_ID||"owner") !== "family";
+      const handsResult = handsAllowed && (greenhouseActive || explicitHandsCommand) ? await teddyHandsHandle(text) : {handled:false};
       if (handsResult && handsResult.handled) {
         teddyUpdateLogDiv(thinkingDiv, handsResult.reply);
         teddyHistory.push({ role: "assistant", text: handsResult.reply });
@@ -3783,7 +3804,7 @@ ${parts}
 
     function ghLog(role,text){
       const box=document.getElementById("greenhouseLog"); if(!box)return;
-      const clean=String(text||"").trim(); if(!clean)return;
+      const clean=teddyToTradSafe(String(text||"")).trim(); if(!clean)return;
       // 防止工具回覆與語音逐字稿同一內容被重複寫入。
       const last=box.lastElementChild;
       const rendered=(role==="user"?"你：":"TEDDY：")+clean;
@@ -5553,9 +5574,9 @@ ${parts}
 
 
     // 不把「切換模式」說給使用者聽；只在背景保存目前主題與最近查詢。
-    const GH_TOPIC_KEY="teddy_greenhouse_topic_v7";
-    const GH_CONTEXT_KEY="teddy_greenhouse_context_v7";
-    const GH_STATE_V38_KEY="teddy_greenhouse_state_v38";
+    const GH_TOPIC_KEY="teddy_greenhouse_topic_v7"+(window.TEDDY_KEY_SUFFIX||"");
+    const GH_CONTEXT_KEY="teddy_greenhouse_context_v7"+(window.TEDDY_KEY_SUFFIX||"");
+    const GH_STATE_V38_KEY="teddy_greenhouse_state_v38"+(window.TEDDY_KEY_SUFFIX||"");
 
     function ghLoadConversationState(){
       let topic=null,ctx={};
@@ -5922,6 +5943,10 @@ ${parts}
         if(ctx.day&&f7StampDay(n.postedAt)!==ctx.day)continue;
         if(zoneIds.length&&!zoneIds.some(id=>String(d.key).includes(id)||n.zoneId===id||(n.zoneIds||[]).includes(id)))continue;
         const ids=n.recipientIds||[];
+        if(window.TEDDY_ENTRY_ID==="farm"){
+          const me=String((teddyHandsSession&&teddyHandsSession.id)||"").toUpperCase();
+          if(!me||(String(n.senderId||"").toUpperCase()!==me&&!ids.map(x=>String(x).toUpperCase()).includes(me)))continue;
+        }
         const recipients=ids.map(id=>{const name=(n.recipientNames&&n.recipientNames[id])||id;const read=(n.readBy||[]).includes(id);return `${name}${read?"（已讀"+((n.readAt&&n.readAt[id])?" "+n.readAt[id]:"")+"）":"（未讀）"}`;});
         rows.push({postedAt:n.postedAt||"",sender:n.senderName||n.senderId||"—",text:String(n.text||"").slice(0,240),recipients});
       }
@@ -6138,6 +6163,10 @@ ${parts}
 
     // 表十・登入 IP 與時間
     async function f7T10(ctx){
+      if(window.TEDDY_ENTRY_ID==="farm"){
+        const me=String((teddyHandsSession&&teddyHandsSession.id)||"").toUpperCase();
+        if(!/^[AB]/.test(me))return{empty:true,range:f7RangeLabel(ctx),records:0,summary:"表十登入紀錄只有 A／B 管理帳號可以查看。",data:{}};
+      }
       let months=f7Months(ctx.startYm,ctx.endYm);if(months.length>12)months=months.slice(-12);
       const person=(ctx.q.match(/\b([A-Za-z]\d{2,3})\b/)||[])[1];
       const rows=[];
@@ -6193,7 +6222,7 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 5.9.0：溫室唯一資料閘門 =====
+    // ===== Smart Teddy 5.9.2：溫室唯一資料閘門 =====
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
@@ -6211,6 +6240,8 @@ ${parts}
     async function teddyGreenhouseAsk(question,preferredEntry=null){
       const q=teddyToTrad(String(question||"")).trim();
       if(!q)return{ok:false,entry:null,answer:"請再說一次想查什麼。"};
+      if((window.TEDDY_ENTRY_ID||"owner")==="family")return{ok:false,entry:null,answer:"家人版沒有溫室資料。"};
+      if(window.TEDDY_ENTRY_ID==="farm"&&!teddyHandsSession)return{ok:false,entry:"login",answer:"請先按上方「🔐 登入」，用你自己的人員編號登入，我才能幫你查溫室資料。"};
       if(ghIsRouteMapQuestion(q))return{ok:true,entry:"route-map",answer:GH_ROUTE_MAP_TEXT};
       let entry=null;
       const routed=ghRouteV51Question(q,null);
@@ -7482,153 +7513,7 @@ window.TEDDY_55_POLICY = Object.freeze({
 
 </script>
 
-<script id="teddyEvolutionEngineV1">
-// ===== Smart Teddy 5.8.0 · Evolution Engine V1 =====
-// 原則：只在 Sandbox 儲存候選；不執行候選程式、不覆蓋 index、不寫 Firebase 核心資料。
-// 正式發布需要人工批准；本 V1 不直接連 GitHub/Netlify，避免自動覆蓋正式版。
-(() => {
-  "use strict";
-  const KEY = "teddy_evolution_v1";
-  const MAX = 24;
-  const PROTECTED = [
-    "teddyHistory","teddySummary","teddyMemoryLayers","firebase","teddyChatWithOpenAI",
-    "teddyChatWithClaude","teddyChatWithGemini","teddyChatWithGrok","teddySend",
-    "teddyHandsCommitPending","TEDDY_TOOL_STATUS_LABELS","teddyFreshDataPreflight"
-  ];
 
-  function load(){
-    try {
-      const x=JSON.parse(localStorage.getItem(KEY)||"{}");
-      return {candidates:Array.isArray(x.candidates)?x.candidates:[],activeId:x.activeId||null,releaseRequests:Array.isArray(x.releaseRequests)?x.releaseRequests:[]};
-    } catch(_){ return {candidates:[],activeId:null,releaseRequests:[]}; }
-  }
-  function save(x){ localStorage.setItem(KEY,JSON.stringify(x)); return x; }
-  function uid(){ return "EV1-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7).toUpperCase(); }
-  function latest(){
-    const x=load();
-    return x.candidates.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0]||null;
-  }
-  function setStatus(text,badge){
-    const el=document.getElementById("teddyEvolutionStatus");
-    if(el)el.textContent=text||"";
-    const b=document.getElementById("teddyEvolutionBadge");
-    if(b)b.textContent=badge||"Sandbox";
-  }
-  function protectedHits(code){
-    const t=String(code||"");
-    return PROTECTED.filter(k=>new RegExp("\\b"+k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(t));
-  }
-  function staticTest(candidate){
-    const code=String(candidate?.code||"");
-    const errors=[],warnings=[];
-    if(!code.trim()) errors.push("候選程式碼為空");
-    // 不執行候選碼，只做 parser/syntax check。
-    try {
-      const scripts=[...code.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
-      if(scripts.length){
-        scripts.forEach((src,i)=>{ try { new Function(src); } catch(e){ errors.push(`script #${i+1} 語法錯誤：${e.message}`); } });
-      } else if(/\b(const|let|function|=>)\b/.test(code)){
-        try { new Function(code); } catch(e){ errors.push("JavaScript 語法錯誤："+e.message); }
-      }
-    } catch(e){ errors.push("語法檢查器錯誤："+e.message); }
-    const hits=protectedHits(code);
-    if(hits.length) warnings.push("候選內容引用鎖定核心："+hits.join("、"));
-    if(/\beval\s*\(|new\s+Function\s*\(|document\.write\s*\(/.test(code)) warnings.push("候選含高風險動態執行 API；V1 不會執行它。");
-    if(/firebase\.firestore\(\)\.(set|add|update|delete)\s*\(/.test(code)) warnings.push("候選含 Firebase 寫入；V1 禁止在 Sandbox 自動執行。");
-    return {ok:errors.length===0,errors,warnings,checkedAt:Date.now(),syntaxOnly:true};
-  }
-  function persistCandidate(c){
-    const x=load();
-    x.candidates=[c,...x.candidates.filter(z=>z.id!==c.id)].slice(0,MAX);
-    x.activeId=c.id;
-    return save(x);
-  }
-  function getCandidate(id){ return load().candidates.find(c=>c.id===id)||latest(); }
-
-  async function tool(name,input){
-    if(name==="evolution_plan"){
-      const x=load(), recent=x.candidates.slice(0,5).map(c=>({id:c.id,title:c.title,status:c.status,tests:c.tests?.ok,createdAt:new Date(c.createdAt).toISOString()}));
-      return {ok:true,engine:"Teddy Evolution Engine V1",mode:"sandbox",goal:String(input.goal||""),scope:String(input.scope||"Evolution Sandbox only"),protected:PROTECTED,recent,policy:"先計畫→寫候選→靜態測試→失敗則迭代→通過後請求人工批准；不自動覆蓋正式版。"};
-    }
-    if(name==="evolution_write_candidate"){
-      const c={id:uid(),title:String(input.title||"未命名候選"),goal:String(input.goal||""),target:String(input.target||"evolution-sandbox"),code:String(input.code||""),rationale:String(input.rationale||""),status:"candidate",tests:null,createdAt:Date.now(),parentId:load().activeId||null};
-      const x=persistCandidate(c);
-      setStatus(`已建立 ${c.id}\n${c.title}\n等待測試。`,"候選已建立");
-      return {ok:true,candidateId:c.id,status:c.status,protectedRelease:false,message:"候選已保存，尚未執行、尚未部署。",count:x.candidates.length};
-    }
-    if(name==="evolution_test_candidate"){
-      const c=getCandidate(input.candidateId);
-      if(!c)return {ok:false,error:"沒有候選版本可測試"};
-      c.tests=staticTest(c);
-      c.status=c.tests.ok?"tested-pass":"tested-fail";
-      persistCandidate(c);
-      setStatus(`${c.id}\n${c.tests.ok?"✓ 靜態測試通過":"✕ 測試失敗"}${c.tests.errors.length?`\n${c.tests.errors.join("\n")}`:""}${c.tests.warnings.length?`\n⚠ ${c.tests.warnings.join("\n⚠ ")}`:""}`,c.tests.ok?"測試通過":"需要迭代");
-      return {ok:c.tests.ok,candidateId:c.id,status:c.status,tests:c.tests,next:c.tests.ok?"可請求人工批准":"請使用 evolution_iterate_candidate 修正後再測試"};
-    }
-    if(name==="evolution_iterate_candidate"){
-      const old=getCandidate(input.candidateId);
-      if(!old)return {ok:false,error:"找不到要迭代的候選"};
-      const c={...old,id:uid(),parentId:old.id,code:String(input.code||""),rationale:String(input.rationale||""),status:"iteration",tests:null,createdAt:Date.now(),title:`${old.title} · Iteration`};
-      persistCandidate(c);
-      setStatus(`已建立 ${c.id}\n源版本：${old.id}\n等待重新測試。`,"迭代候選");
-      return {ok:true,candidateId:c.id,parentId:old.id,status:c.status,message:"迭代候選已建立，請再次測試。"};
-    }
-    if(name==="evolution_review"){
-      const limit=Math.max(1,Math.min(10,Number(input.limit)||5)), x=load();
-      return {ok:true,activeId:x.activeId,candidates:x.candidates.slice(0,limit).map(c=>({id:c.id,title:c.title,target:c.target,status:c.status,tests:c.tests,createdAt:new Date(c.createdAt).toISOString(),parentId:c.parentId}))};
-    }
-    if(name==="evolution_request_approval"){
-      const c=getCandidate(input.candidateId);
-      if(!c)return {ok:false,error:"找不到候選"};
-      if(!c.tests?.ok)return {ok:false,error:"尚未通過測試，不可請求發布批准"};
-      const x=load(), req={id:"REL-"+uid(),candidateId:c.id,summary:String(input.summary||""),createdAt:Date.now(),status:"pending-human-approval"};
-      x.releaseRequests=[req,...x.releaseRequests].slice(0,20); save(x);
-      c.status="pending-human-approval"; persistCandidate(c);
-      setStatus(`${c.id}\n✓ 測試通過\n⏳ 等待人工批准正式發布。`,"等待批准");
-      return {ok:true,requestId:req.id,candidateId:c.id,status:req.status,message:"已提出正式發布批准請求；V1 尚未部署。"};
-    }
-    return {ok:false,error:"未知 Evolution 工具："+name};
-  }
-
-  window.teddyEvolutionTool=tool;
-  window.teddyEvolutionV1={
-    load,latest,test:(id)=>{const c=getCandidate(id);return c?staticTest(c):null;},
-    approve(id){
-      const c=getCandidate(id); if(!c||!c.tests?.ok)return {ok:false,error:"候選不存在或未通過測試"};
-      const x=load(), req=x.releaseRequests.find(r=>r.candidateId===c.id&&r.status==="pending-human-approval");
-      if(req)req.status="approved-by-user";
-      c.status="approved-staged"; c.approvedAt=Date.now(); save(x);
-      setStatus(`${c.id}\n✓ 已批准候選進入 Staged Release\n⚠ 尚未覆蓋正式 index。`,"已批准・待部署");
-      return {ok:true,candidateId:c.id,status:c.status};
-    },
-    exportCandidate(id){
-      const c=getCandidate(id); if(!c)return;
-      const blob=new Blob([c.code],{type:"text/plain;charset=utf-8"});
-      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${c.id}.candidate.txt`;a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-    }
-  };
-
-  document.getElementById("teddyEvolutionRun")?.addEventListener("click",()=>{
-    const input=document.getElementById("teddyChatInput");
-    if(input){input.value="Teddy，啟動 Evolution Engine V1。請自己思考目前可以安全改善的地方，完成 coding、測試、必要迭代，最後向我提出批准，不要碰正式核心。";document.getElementById("teddyChatSend")?.click();}
-  });
-  document.getElementById("teddyEvolutionReview")?.addEventListener("click",()=>{
-    const x=load(), rows=x.candidates.slice(0,6);
-    setStatus(rows.length?rows.map(c=>`${c.id}｜${c.status}｜${c.title}`).join("\n"):"尚無候選版本。","候選紀錄");
-  });
-  document.getElementById("teddyEvolutionApprove")?.addEventListener("click",()=>{
-    const c=latest();
-    if(!c){setStatus("沒有候選版本可批准。","無候選");return;}
-    if(!window.confirm(`批准候選 ${c.id}\n「${c.title}」\n目標：${c.goal||"—"}\n測試：${c.tests?.ok?"靜態測試通過":"尚未通過"}\n程式長度：${String(c.code||"").length} 字\n\n批准只會標記為待發布，不會覆蓋正式版。要先看程式碼請按取消後用「查看候選」。`))return;
-    const r=window.teddyEvolutionV1.approve(c.id);
-    if(r.ok && window.teddyAppendLog) window.teddyAppendLog("teddy",`✓ 我已依照你的按鈕批准候選 ${c.id} 進入 Staged Release。正式 index 尚未被覆蓋。`);
-    else setStatus(r.error||"目前不能批准。","需要測試");
-  });
-  const init=()=>{const c=latest();if(c)setStatus(`${c.id}｜${c.status}｜${c.title}`,c.status==="tested-pass"?"測試通過":"Sandbox 待命");};
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
-})();
-</script>
 
 </body>
 </html>
