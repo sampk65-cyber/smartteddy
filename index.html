@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <script id="teddyEntryBoot">
-/* Smart Teddy 5.9.3：同一份程式，三個入口
+/* Smart Teddy 5.9.4：同一份程式，三個入口
    /               主人版（完整 Teddy）
    /?app=family    家人版（同一隻松鼠的個性；興趣與稱呼由家人自己設定；沒有溫室／工作／Evolution）
    /?app=farm      溫室助理（只有溫室；要用自己的人員編號登入；沒有主人的人格記憶）
@@ -23,7 +23,7 @@ html[data-teddy-entry="family"] #btnGreenhouseMode,
 html[data-teddy-entry="family"] #greenhousePanel,
 html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 </style>
-<title>Smart Teddy 5.9.3 · TEDDY（碰氣）</title>
+<title>Smart Teddy 5.9.4 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -463,7 +463,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.3 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.4 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -484,7 +484,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
         <div class="label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>💬 跟 TEDDY 說話</span>
           <div style="display:flex;gap:4px;">
-            <button type="button" id="teddyMoreToggle" title="更多快捷指令" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⋯ 更多</button>
+            <button type="button" id="teddyMoreToggle" title="更多快捷指令" style="display:none;background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⋯ 更多</button>
             <button type="button" id="teddySettingsToggle" title="設定" style="background:none;border:1px solid #2a3532;color:#6b7a74;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">⚙️</button>
           </div>
         </div>
@@ -527,11 +527,10 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
         <div id="teddyLiveHome"></div>
         <div id="teddyLiveBox" style="margin-bottom:8px;padding:9px;background:#0a0e0d;border:1px solid #29463d;border-radius:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
-            <span style="font-size:12px;font-weight:800;color:#bff9e7;">🎙️ Teddy 即時語音</span>
+            <span style="font-size:12px;font-weight:800;color:#bff9e7;">🎙️ 即時語音 <span style="font-size:10px;font-weight:600;color:#6f877e;">· Leda</span></span>
             <span id="teddyLiveStatus" style="font-size:10px;color:#738b82;">尚未連線</span>
           </div>
-          <div style="font-size:10px;color:#7f948b;margin:-2px 0 7px;">Flash Live 是 TEDDY 的嘴 · 人格與記憶已鎖定</div>
-          <div id="teddyDualLiveButtons" style="display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:7px;">
+          <div id="teddyDualLiveButtons" style="display:none;grid-template-columns:1fr;gap:7px;margin-bottom:7px;">
             <button type="button" id="teddyEngineFlash" data-engine="gemini-live"
               style="min-height:48px;border:1px solid #5eead4;border-radius:10px;background:#19342c;color:#d9fff2;font-size:12px;font-weight:900;cursor:pointer;">
               ⚡ Flash Live 3.1<br><span style="font-size:10px;font-weight:600;opacity:.82;">Leda</span>
@@ -545,7 +544,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
             <option value="gemini-live">Flash Live 3.1 · Leda</option>
             <option value="gpt-full-live">GPT‑Live‑1＋Astra · Marin</option>
           </select>
-          <div id="teddyDualLiveUsage" style="margin:0 0 8px;padding:7px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.55;color:#8fa69d;">
+          <div id="teddyDualLiveUsage" style="display:none;margin:0 0 8px;padding:7px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.55;color:#8fa69d;">
             ⚡ Flash：0 分鐘　0.00 MB<br>✨ GPT：0 分鐘　0.00 MB
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin:0 2px 8px;font-size:11px;color:#8ea49b;">
@@ -554,16 +553,15 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
             <span id="teddyLiveVolumeValue" style="min-width:34px;text-align:right;color:#bff9e7;">125%</span>
           </div>
           <div style="display:flex;gap:6px;">
-            <button type="button" id="teddyLiveStart" style="flex:1;border:none;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:8px;cursor:pointer;">開始即時對話</button>
-            <button type="button" id="teddyLiveStop" disabled style="border:1px solid #4b5e57;border-radius:8px;background:#18231f;color:#9fb4ab;padding:8px 11px;cursor:pointer;">停止</button>
+            <button type="button" id="teddyLiveStart" style="flex:1;border:1px solid #5eead4;border-radius:8px;background:#5eead4;color:#07110e;font-weight:800;padding:10px 8px;cursor:pointer;">開始即時對話</button>
+            <button type="button" id="teddyLiveStop" disabled style="flex:1;border:1px solid #3a4a44;border-radius:8px;background:transparent;color:#6f877e;font-weight:800;padding:10px 8px;cursor:pointer;">停止</button>
           </div>
-          <div style="font-size:10px;color:#60766e;margin-top:6px;line-height:1.4;">Flash Live 3.1・Leda 負責聽和說；複雜推理交給 Astra，溫室數字交給溫室資料引擎，人格不變。</div>
           <div id="teddyLiveTrace" style="display:none;">狀態：尚未開始。</div>
         </div>
 
         <div id="teddyAstraUsageSummary" style="margin:0 0 8px;padding:5px 8px;background:#0b120f;border:1px solid #263a33;border-radius:8px;font-size:10px;line-height:1.4;color:#8fa69d;">🧠 Astra｜本次/累計用量尚未產生</div>
 
-        <div id="teddyToolsPanel" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <div id="teddyToolsPanel" data-removed="1" style="display:none!important;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <button type="button" class="teddy-chip" data-msg="現在天氣如何">🌦 天氣</button>
           <button type="button" class="teddy-chip" data-msg="幫我找一個最酷最特別的新知識或新聞">🔍 找新知</button>
           <button type="button" class="teddy-chip" data-msg="幫我寫一篇今天的文章">✍️ 寫文章</button>
@@ -795,12 +793,12 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.3・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.4・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.3；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.4；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -833,7 +831,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 5.9.3：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 5.9.4：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -1153,7 +1151,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.9.3";
+    const TEDDY_VERSION = "Smart Teddy 5.9.4";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -3347,9 +3345,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       panel.style.display = panel.style.display === "none" ? "block" : "none";
     };
     document.getElementById("teddyMoreToggle").onclick = () => {
-      const panel = document.getElementById("teddyToolsPanel");
-      const showing = panel.style.display !== "none" && panel.style.display !== "";
-      panel.style.display = showing ? "none" : "flex";
+      /* 5.9.4：快捷按鈕已移除，直接跟 TEDDY 說就可以 */
     };
 
     function loadKeys() {
@@ -6246,7 +6242,7 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 5.9.3：溫室唯一資料閘門 =====
+    // ===== Smart Teddy 5.9.4：溫室唯一資料閘門 =====
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
@@ -7062,7 +7058,18 @@ ${parts}
     const el=document.getElementById("teddyLiveTrace");if(el){el.textContent=text;el.style.color=color;}
   }
   function setStatus(text,color="#86a399"){if(ui.status){ui.status.textContent=text;ui.status.style.color=color;ui.status.style.fontWeight="800";ui.status.style.padding="2px 7px";ui.status.style.borderRadius="999px";ui.status.style.border=`1px solid ${color}`;ui.status.style.background=color==="#5eead4"?"rgba(94,234,212,.10)":(color==="#f0a8a8"||color==="#ff6b6b"?"rgba(255,70,70,.12)":"rgba(232,166,89,.08)");}}
-  function setButtons(on){ui.start.disabled=on;ui.stop.disabled=!on;ui.model.disabled=on;}
+  function setButtons(on){
+    ui.start.disabled=on;ui.stop.disabled=!on;ui.model.disabled=on;
+    /* 5.9.4：沒對話時左邊亮綠色；對話中左邊變空白、右邊變紅色 */
+    const S=ui.start.style,T=ui.stop.style;
+    if(on){
+      S.background="transparent";S.color="#8fa69d";S.borderColor="#3a4a44";ui.start.textContent="對話中…";
+      T.background="#e5484d";T.color="#ffffff";T.borderColor="#e5484d";
+    }else{
+      S.background="#5eead4";S.color="#07110e";S.borderColor="#5eead4";ui.start.textContent="開始即時對話";
+      T.background="transparent";T.color="#6f877e";T.borderColor="#3a4a44";
+    }
+  }
   function liveVolumeGain(){return Math.max(.6,Math.min(1.6,Number(ui.volume?.value||125)/100));}
   function applyLiveVolume(){
     const pct=Math.round(liveVolumeGain()*100);if(ui.volumeValue)ui.volumeValue.textContent=pct+"%";
