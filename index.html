@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Smart Teddy 5.8.2 · TEDDY（碰氣）</title>
+  <title>Smart Teddy 5.9.0 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -443,7 +443,7 @@
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.8.2 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 5.9.0 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -790,12 +790,12 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.8.2・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 5.9.0・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.8.2；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 5.9.0；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     function teddyPersonaCore(){ return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER; }
     function teddyGreenhouseIdentity(){
@@ -803,7 +803,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     }
     // 5.7.2：Flash Live 的語音逐字稿常常是簡體字，溫室的所有關鍵字判斷都是繁體，先轉換再路由。
     const TEDDY_S2T_PHRASES=[["计划","計畫"],["计画","計畫"],["长周期","長週期"],["每周","每週"],["本周","本週"],["这周","這週"],["关系","關係"],["系统","系統"],["里面","裡面"],["哪里","哪裡"],["这里","這裡"],["汇总","匯總"],["登录","登入"]];
-    const TEDDY_S2T_CHARS="产產气氣资資补補沟溝喷噴统統计計汇匯总總长長趋趨势勢历歷变變迁遷温溫纪紀记記录錄区區这這个個几幾现現么麼时時间間员員号號对對较較与與关關为為过過还還没沒该該说說请請问問题題场場两兩页頁张張钾鉀镁鎂钙鈣黄黃湿濕风風压壓级級采採获獲进進阶階节節叶葉盖蓋迟遲谁誰报報内內览覽块塊业業务務单單数數据據读讀询詢显顯让讓帮幫给給开開门門们們吗嗎听聽讲講话話语語图圖网網边邊设設备備确確认認类類预預执執状狀态態况況际際实實签簽肥肥馀餘剩剩连連续續库庫笔筆样樣還還么麼";
+    const TEDDY_S2T_CHARS="产產气氣资資补補沟溝喷噴统統计計汇匯总總长長趋趨势勢历歷变變迁遷温溫纪紀记記录錄区區这這个個几幾现現么麼时時间間员員号號对對较較与與关關为為过過还還没沒该該说說请請问問题題场場两兩页頁张張钾鉀镁鎂钙鈣黄黃湿濕风風压壓级級采採获獲进進阶階节節叶葉盖蓋迟遲谁誰报報内內览覽块塊业業务務单單数數据據读讀询詢显顯让讓帮幫给給开開门門们們吗嗎听聽讲講话話语語图圖网網边邊设設备備确確认認类類预預执執状狀态態况況际際实實签簽后後钟鐘买買卖賣肥肥馀餘剩剩连連续續库庫笔筆样樣還還么麼";
     const TEDDY_S2T_MAP=(()=>{const m={};for(let i=0;i+1<TEDDY_S2T_CHARS.length;i+=2)m[TEDDY_S2T_CHARS[i]]=TEDDY_S2T_CHARS[i+1];return m;})();
     function teddyToTrad(text){
       let t=String(text||"");
@@ -811,6 +811,209 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
+    // ===== Smart Teddy 5.9.0：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
+    // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
+    const TEDDY_REMINDER_KEY="teddy_reminders_v1";
+    function teddyRemLoad(){try{const a=JSON.parse(localStorage.getItem(TEDDY_REMINDER_KEY)||"[]");return Array.isArray(a)?a:[];}catch(_){return[];}}
+    function teddyRemSave(a){try{localStorage.setItem(TEDDY_REMINDER_KEY,JSON.stringify(a.slice(-300)));}catch(_){}}
+    function teddyRemPad(n){return String(n).padStart(2,"0");}
+    function teddyRemCn(s){
+      s=String(s||"");if(/^\d+$/.test(s))return Number(s);
+      const d={零:0,一:1,二:2,兩:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+      if(s==="十")return 10;
+      if(s.includes("十")){const [a,b]=s.split("十");return (a?d[a]:1)*10+(b?d[b]:0);}
+      return d[s]!=null?d[s]:NaN;
+    }
+    function teddyRemClean(t){
+      return String(t||"").replace(/(?:幫我|記得|請|麻煩你?)?提醒(?:我|一下)?/g," ")
+        .replace(/\s+/g," ").replace(/^[，,。、\s要]+|[，,。、\s]+$/g,"").trim();
+    }
+    function teddyRemParse(raw){
+      const t0=teddyToTrad(String(raw||""));
+      let t=t0.replace(/(?:幫我|記得|請|麻煩你?)?提醒(?:我|一下)?/g," ");
+      const now=new Date();
+      const rel=t.match(/(\d+|[一二兩三四五六七八九十]+|半)\s*個?\s*(分鐘|小時|鐘頭)\s*(?:後|以後|之後)/);
+      if(rel){
+        const n=rel[1]==="半"?0.5:teddyRemCn(rel[1]);
+        if(Number.isFinite(n)&&n>0){
+          const due=new Date(now.getTime()+(rel[2]==="分鐘"?n*60000:n*3600000));due.setSeconds(0,0);
+          return{due,text:teddyRemClean(t.replace(rel[0]," "))};
+        }
+      }
+      const d=new Date(now);d.setSeconds(0,0);
+      let hasDay=false,hasTime=false,hour=null,min=0;
+      const dayRules=[[/大後天/,3],[/後天/,2],[/明天|明早|明晚|明日/,1],[/今天|今晚|今日|等一下|待會/,0]];
+      for(const [re,off] of dayRules){const mm=t.match(re);if(mm){d.setDate(d.getDate()+off);hasDay=true;t=t.replace(mm[0]," ");break;}}
+      if(!hasDay){
+        const md=t.match(/(\d{1,2})\s*[月\/]\s*(\d{1,2})\s*[日號]?/);
+        if(md){
+          d.setMonth(Number(md[1])-1,Number(md[2]));hasDay=true;t=t.replace(md[0]," ");
+          const today0=new Date(now);today0.setHours(0,0,0,0);
+          if(d<today0)d.setFullYear(d.getFullYear()+1);
+        }
+      }
+      if(!hasDay){
+        const wk=t.match(/(下)?(?:週|周|星期|禮拜)([一二三四五六日天])/);
+        if(wk){
+          const target={一:1,二:2,三:3,四:4,五:5,六:6,日:0,天:0}[wk[2]];
+          let diff;
+          if(wk[1]){const toMon=((8-d.getDay())%7)||7;diff=toMon+((target+6)%7);}
+          else diff=(target-d.getDay()+7)%7;
+          d.setDate(d.getDate()+diff);hasDay=true;t=t.replace(wk[0]," ");
+        }
+      }
+      const tm=t.match(/(凌晨|清晨|早上|上午|中午|下午|傍晚|晚上)?\s*(\d{1,2}|[零一二兩三四五六七八九十]{1,3})\s*(?:點|時|:|：)\s*(半|\d{1,2}|[零一二三四五六七八九十]{1,3})?\s*分?/);
+      const isPm=/下午|傍晚|晚上|今晚|明晚/.test(t0);
+      if(tm){
+        hour=teddyRemCn(tm[2]);
+        if(Number.isFinite(hour)&&hour<=24){
+          min=tm[3]==="半"?30:(tm[3]?teddyRemCn(tm[3]):0);if(!Number.isFinite(min))min=0;
+          if(isPm&&hour<12)hour+=12;
+          if(/中午/.test(tm[1]||"")&&hour<11)hour+=12;
+          hasTime=true;t=t.replace(tm[0]," ");
+        }else hour=null;
+      }
+      if(!hasTime){
+        if(/早上|上午|明早|清晨/.test(t0)){hour=9;hasTime=true;}
+        else if(/中午/.test(t0)){hour=12;hasTime=true;}
+        else if(/下午/.test(t0)){hour=15;hasTime=true;}
+        else if(/傍晚/.test(t0)){hour=17;hasTime=true;}
+        else if(/晚上|今晚|明晚/.test(t0)){hour=20;hasTime=true;}
+        t=t.replace(/凌晨|清晨|早上|上午|中午|下午|傍晚|晚上/g," ");
+      }
+      const text=teddyRemClean(t);
+      if(!hasDay&&!hasTime)return{due:null,text};
+      if(hour==null)hour=9;
+      d.setHours(hour,min,0,0);
+      if(!hasDay&&d<now)d.setDate(d.getDate()+1);
+      return{due:d,text};
+    }
+    function teddyRemFmt(iso){
+      if(!iso)return"（沒有時間）";
+      const d=new Date(iso),now=new Date();
+      const day0=x=>{const y=new Date(x);y.setHours(0,0,0,0);return y.getTime();};
+      const diff=Math.round((day0(d)-day0(now))/86400000);
+      const w="日一二三四五六"[d.getDay()];
+      const dayLabel=diff===0?"今天":diff===1?"明天":diff===2?"後天":diff===-1?"昨天":`${d.getMonth()+1}/${d.getDate()}（週${w}）`;
+      return `${dayLabel} ${teddyRemPad(d.getHours())}:${teddyRemPad(d.getMinutes())}`;
+    }
+    function teddyRemPending(){
+      return teddyRemLoad().filter(r=>!r.done).sort((a,b)=>(a.due?new Date(a.due).getTime():Infinity)-(b.due?new Date(b.due).getTime():Infinity));
+    }
+    function teddyRemAdd(text,due,source="chat"){
+      const a=teddyRemLoad();
+      const r={id:"r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),text:String(text||"").slice(0,200),due:due?new Date(due).toISOString():null,createdAt:new Date().toISOString(),done:false,source};
+      a.push(r);teddyRemSave(a);teddyRemSchedule();return r;
+    }
+    function teddyRemMarkDone(id){
+      const a=teddyRemLoad();const r=a.find(x=>x.id===id);if(!r)return null;
+      r.done=true;r.doneAt=new Date().toISOString();teddyRemSave(a);return r;
+    }
+    function teddyRemCalUrl(r){
+      const s=new Date(r.due),e=new Date(s.getTime()+15*60000);
+      const f=d=>`${d.getUTCFullYear()}${teddyRemPad(d.getUTCMonth()+1)}${teddyRemPad(d.getUTCDate())}T${teddyRemPad(d.getUTCHours())}${teddyRemPad(d.getUTCMinutes())}00Z`;
+      const back=`${location.origin}${location.pathname}?reminder=${encodeURIComponent(r.id)}`;
+      return "https://calendar.google.com/calendar/render?action=TEMPLATE"+
+        `&text=${encodeURIComponent("TEDDY 提醒："+r.text)}`+
+        `&dates=${f(s)}/${f(e)}`+
+        `&details=${encodeURIComponent("點這裡回到 TEDDY：\n"+back)}`;
+    }
+    function teddyRemButtonStyle(){return"display:inline-block;margin:6px 6px 0 0;padding:6px 10px;border-radius:8px;border:1px solid #5eead4;background:#10201b;color:#bff7ea;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;";}
+    function teddyRemAttachButton(div,r){
+      if(!div||!r||!r.due)return;
+      const a=document.createElement("a");
+      a.href=teddyRemCalUrl(r);a.target="_blank";a.rel="noopener";
+      a.textContent="📅 加到行事曆";a.style.cssText=teddyRemButtonStyle();
+      const box=document.createElement("div");box.appendChild(a);div.appendChild(box);
+    }
+    // 頁面開著時，到時間也會在 Teddy 裡提醒一次（關掉頁面時交給手機行事曆）。
+    const teddyRemTimers={};
+    function teddyRemFire(r){
+      const a=teddyRemLoad();const cur=a.find(x=>x.id===r.id);
+      if(!cur||cur.done||cur.firedAt)return;
+      cur.firedAt=new Date().toISOString();teddyRemSave(a);
+      const msg=`🔔 提醒你：${cur.text}`;
+      const div=teddyAppendLog("teddy",msg);teddyRemActionButtons(div,cur);
+      const liveOn=typeof window.teddyLiveIsActive==="function"&&window.teddyLiveIsActive();
+      if(!liveOn){try{teddySpeak(`提醒你，${cur.text}`,"gentle");}catch(_){}}
+      if(window.Notification&&Notification.permission==="granted"){try{new Notification("TEDDY 提醒",{body:cur.text});}catch(_){}}
+    }
+    function teddyRemSchedule(){
+      const now=Date.now();
+      teddyRemPending().forEach(r=>{
+        if(!r.due||r.firedAt||teddyRemTimers[r.id])return;
+        const ms=new Date(r.due).getTime()-now;
+        if(ms>0&&ms<24*3600000)teddyRemTimers[r.id]=setTimeout(()=>{delete teddyRemTimers[r.id];teddyRemFire(r);},ms);
+      });
+    }
+    function teddyRemActionButtons(div,r){
+      if(!div||!r)return;
+      const box=document.createElement("div");
+      const mk=(label,fn)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.style.cssText=teddyRemButtonStyle();b.onclick=fn;box.appendChild(b);return b;};
+      mk("✅ 完成",()=>{teddyRemMarkDone(r.id);box.innerHTML="";const s=document.createElement("span");s.textContent="已完成 ✓";s.style.cssText="font-size:12px;color:#9fd8c8;";box.appendChild(s);});
+      mk("⏰ 10 分鐘後再提醒",()=>{
+        teddyRemMarkDone(r.id);
+        const n=teddyRemAdd(r.text,new Date(Date.now()+10*60000),"snooze");
+        box.innerHTML="";const s=document.createElement("span");s.textContent=`好，${teddyRemFmt(n.due)} 再提醒你。`;s.style.cssText="font-size:12px;color:#9fd8c8;";box.appendChild(s);
+      });
+      mk("🔊 聽 TEDDY 說",()=>{try{teddySpeak(`提醒你，${r.text}`,"gentle");}catch(_){}});
+      div.appendChild(box);
+    }
+    function teddyReminderIntent(text){
+      const t=teddyToTrad(String(text||"")).trim();
+      if(!/提醒/.test(t))return null;
+      if(/^(?:我的|看|查看|列出|有什麼)?\s*提醒(?:清單|列表|事項)?\s*[?？！!。]*$|有(?:什麼|哪些|幾個|幾件)提醒|提醒(?:有哪些|有什麼|清單|列表)|還有(?:什麼|哪些)要提醒/.test(t))return"list";
+      if(/(?:完成|做完|刪除|刪掉|取消|不用了?|移除).{0,14}提醒|提醒.{0,14}(?:完成|做完|刪除|刪掉|取消|移除|不用了)/.test(t))return"done";
+      if(/提醒我|提醒一下|幫我提醒|記得提醒|^提醒/.test(t))return"add";
+      return null;
+    }
+    function teddyReminderHandle(text){
+      const intent=teddyReminderIntent(text);
+      if(!intent)return{handled:false};
+      const t=teddyToTrad(String(text||""));
+      if(intent==="list"){
+        const p=teddyRemPending();
+        if(!p.length)return{handled:true,reply:"目前沒有要提醒你的事。"};
+        const now=Date.now();
+        const lines=p.slice(0,6).map((r,i)=>`${i+1}. ${r.due?teddyRemFmt(r.due):"沒有時間"}　${r.text}${r.due&&new Date(r.due).getTime()<now?"（已經過了）":""}`);
+        return{handled:true,reply:`有 ${p.length} 件：\n${lines.join("\n")}${p.length>6?"\n……還有其他的。":""}`};
+      }
+      if(intent==="done"){
+        const p=teddyRemPending();
+        if(!p.length)return{handled:true,reply:"目前沒有待完成的提醒。"};
+        let target=null;
+        const idx=t.match(/第\s*(\d+|[一二兩三四五六七八九十]+)\s*(?:個|件|則|項)?/);
+        if(idx){const n=teddyRemCn(idx[1]);if(n>=1&&n<=p.length)target=p[n-1];}
+        if(!target){
+          const kw=t.replace(/(?:完成|做完|刪除|刪掉|取消|不用了?|移除|提醒|那個|這個|了|的|吧|啦|[，,。！!？?\s])/g,"");
+          if(kw.length>=2)target=p.find(r=>r.text.includes(kw)||kw.includes(r.text))||p.find(r=>[...kw].filter(ch=>r.text.includes(ch)).length>=Math.min(3,kw.length));
+        }
+        if(!target&&p.length===1)target=p[0];
+        if(!target)return{handled:true,reply:`是哪一件呢？說「完成第幾個提醒」就可以。\n${p.slice(0,6).map((r,i)=>`${i+1}. ${r.text}`).join("\n")}`};
+        teddyRemMarkDone(target.id);
+        return{handled:true,reply:`好，「${target.text}」劃掉了。`};
+      }
+      const parsed=teddyRemParse(t);
+      if(!parsed.text)return{handled:true,reply:"要提醒你什麼事呢？"};
+      const r=teddyRemAdd(parsed.text,parsed.due,"chat");
+      if(!r.due)return{handled:true,reply:`好，記下了：${r.text}。要幾點提醒你？`,reminder:r};
+      return{handled:true,reply:`好，${teddyRemFmt(r.due)} 提醒你${r.text}。`,reminder:r};
+    }
+    window.teddyReminderHandle=teddyReminderHandle;
+    window.teddyRemAttachButton=teddyRemAttachButton;
+    // 從行事曆連結回來：?reminder=id → 直接顯示那一則提醒
+    function teddyRemHandleDeepLink(){
+      let id=null;try{id=new URLSearchParams(location.search).get("reminder");}catch(_){}
+      if(!id)return;
+      try{history.replaceState(null,"",location.pathname+location.hash);}catch(_){}
+      const r=teddyRemLoad().find(x=>x.id===id);
+      if(!r){teddyAppendLog("teddy","這則提醒在這支手機上找不到了，可能已經清掉。");return;}
+      const div=teddyAppendLog("teddy",r.done?`這件已經完成了：${r.text}`:`🔔 提醒你：${r.text}（${teddyRemFmt(r.due)}）`);
+      if(!r.done)teddyRemActionButtons(div,r);
+    }
+    window.addEventListener("load",()=>{setTimeout(()=>{try{teddyRemHandleDeepLink();teddyRemSchedule();}catch(e){console.warn("提醒初始化失敗",e);}},600);});
+
     // 文字對話結束後，同步給正在進行的即時語音，讓兩邊知道彼此說過什麼。
     function teddySyncToLive(userText, replyText){
       try{ if(typeof window.teddyLiveSyncTurn==="function") window.teddyLiveSyncTurn(userText, replyText); }catch(_){}
@@ -874,7 +1077,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 5.8.2";
+    const TEDDY_VERSION = "Smart Teddy 5.9.0";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -1334,17 +1537,11 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
         const mins = Number(input.minutes_from_now);
         const msg = String(input.message || "").trim();
         if (!mins || mins <= 0 || !msg) return { ok: false, error: "分鐘數或提醒內容不正確" };
-        setTimeout(() => {
-          teddyAppendLog("teddy", `🔔 提醒你：${msg}`);
-          teddySpeak(`提醒你：${msg}`);
-          if (window.Notification && Notification.permission === "granted") {
-            try { new Notification("TEDDY 提醒", { body: msg }); } catch (_) {}
-          }
-        }, mins * 60 * 1000);
+        const savedRem = teddyRemAdd(msg, new Date(Date.now() + mins * 60 * 1000), "tool");
         if (window.Notification && Notification.permission === "default") {
           try { Notification.requestPermission(); } catch (_) {}
         }
-        return { ok: true, minutes_from_now: mins, message: msg, note: "此提醒僅在此網頁分頁保持開啟時才會生效" };
+        return { ok: true, minutes_from_now: mins, message: msg, due: teddyRemFmt(savedRem.due), calendar_url: teddyRemCalUrl(savedRem), note: "已存下；頁面開著會在 Teddy 裡提醒，關掉時請用行事曆連結讓手機提醒" };
       }
       if (name === "save_article") {
         if (!teddyEnsureFirebase()) return { ok: false, error: "Firebase 尚未載入，無法儲存文章" };
@@ -2715,6 +2912,19 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       const nameHit=teddyDetectPreferredName(text);
       if(nameHit)teddySavePreferredName(nameHit);
       const thinkingDiv = teddyAppendLog("teddy", teddySkillLabel(teddyActiveSkill) + " · 想一下…");
+
+      // 5.9.0：提醒只由關鍵字「提醒」觸發。
+      const remRes = teddyReminderHandle(text);
+      if (remRes && remRes.handled) {
+        teddyUpdateLogDiv(thinkingDiv, remRes.reply);
+        if (remRes.reminder && remRes.reminder.due) teddyRemAttachButton(thinkingDiv, remRes.reminder);
+        teddyHistory.push({ role: "assistant", text: remRes.reply });
+        teddySaveHistory();
+        teddySyncToLive(text, remRes.reply);
+        const liveOn = typeof window.teddyLiveIsActive === "function" && window.teddyLiveIsActive();
+        if (!liveOn) teddySpeak(remRes.reply, "gentle");
+        return;
+      }
 
       // Teddy Hands：只有「明確進入工作/溫室」或使用者直接下工作指令時才啟動。
       // 一般模式下的照片、檔案、網頁、一般聊天不得被工作解析器攔截。
@@ -5983,7 +6193,7 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 5.8.2：溫室唯一資料閘門 =====
+    // ===== Smart Teddy 5.9.0：溫室唯一資料閘門 =====
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
@@ -6812,7 +7022,7 @@ ${parts}
       ?`目前在溫室模式${selected?`，使用者已選「${ENTRY_LABEL[selected]}」`:"，尚未選入口"}。溫室問題與後續追問必須使用query_greenhouse；若使用者沒重複主題，沿用已選入口。`
       :"目前在一般模式；禁止自行進入溫室/工作路由。只有使用者明確切換到溫室模式，或明確說『工作／進入工作／溫室模式』後，才可使用溫室工具。";
     return `${typeof teddyPersonaCore==="function"?teddyPersonaCore():"你是 TEDDY，也叫碰氣。"}
-【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。
+【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。
 ${memory}
 ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
@@ -6848,6 +7058,10 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   const browseWebTool={
     name:"browse_web",description:"需要瀏覽網頁、查最新資料、讀取使用者貼上的網站/網址或核對線上資訊時必須使用。若使用者提供 URL，query 必須保留完整 URL，並要求實際讀取該頁面內容。",
     parameters:{type:"object",properties:{query:{type:"string"}},required:["query"]}
+  };
+  const reminderTool={
+    name:"teddy_reminder",description:"處理所有「提醒」相關的話：新增提醒、查看提醒、完成或取消提醒。把使用者原句完整放進 text。新增有時間的提醒時，畫面上會出現加到行事曆的按鈕。",
+    parameters:{type:"object",properties:{text:{type:"string"}},required:["text"]}
   };
   const recallChatTool={
     name:"recall_recent_chat",description:"讀取文字輸入與即時語音共用的最近對話紀錄（包含使用者打字的內容、附件摘要與 TEDDY 的文字回覆）。使用者提到剛剛打的字、前面說的事、那個檔案，或你不確定上下文時先呼叫。",
@@ -6925,6 +7139,17 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     if(name==="inspect_v51_page"){
       setLiveTrace("🔎 Teddy 正在讀取 V5.1.C64 畫面與路由…","#e8c879");
       try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1.C64 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
+    }
+    if(name==="teddy_reminder"){
+      try{
+        const r=window.teddyReminderHandle(String(args?.text||""));
+        if(!r||!r.handled)return{ok:false,error:"這句話不是提醒指令"};
+        if(r.reminder&&r.reminder.due){
+          const div=teddyAppendLog("teddy",`📅 ${r.reply}`);
+          window.teddyRemAttachButton(div,r.reminder);
+        }
+        return{ok:true,answer:r.reply};
+      }catch(e){return{ok:false,error:e.message};}
     }
     if(name==="recall_recent_chat"){
       const n=Math.max(4,Math.min(30,Number(args?.count)||12));
@@ -7036,8 +7261,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   function liveToolDeclarations(){
     const greenhouse=(window.TEDDY_APP_MODE==="greenhouse");
     return greenhouse
-      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool]
-      : [astraThinkTool,browseWebTool,recallChatTool];
+      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool,reminderTool]
+      : [astraThinkTool,browseWebTool,recallChatTool,reminderTool];
   }
   function liveOpenAITools(){return liveToolDeclarations().map(t=>({type:"function",...t}));}
 
@@ -7125,6 +7350,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       return true;
     }catch(_){live.echoPending=false;return false;}
   };
+  window.teddyLiveIsActive=function(){return !!live.active;};
   window.teddyLiveSyncTurn=function(userText,replyText){
     if(!live.active)return;
     const u=String(userText||"").trim().slice(0,1200),a=String(replyText||"").trim().slice(0,1500);
