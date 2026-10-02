@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <script id="teddyEntryBoot">
-/* Smart Teddy 6.4.0：同一份程式，三個入口
+/* Smart Teddy 6.6.0：同一份程式，三個入口
    /               主人版（完整 Teddy）
    /?app=family    家人版（同一隻松鼠的個性；興趣與稱呼由家人自己設定；沒有溫室／工作／Evolution）
    /?app=farm      溫室助理（只有溫室；要用自己的人員編號登入；沒有主人的人格記憶）
@@ -23,7 +23,7 @@ html[data-teddy-entry="family"] #btnGreenhouseMode,
 html[data-teddy-entry="family"] #greenhousePanel,
 html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 </style>
-<title>Smart Teddy 6.4.0 · TEDDY（碰氣）</title>
+<title>Smart Teddy 6.6.0 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -463,7 +463,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 6.4.0 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 6.6.0 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -500,7 +500,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
             <select id="teddyModelSelect" title="選擇要呼叫的 AI" style="background:#141a18;border:1px solid #2a3532;color:#c8d4ce;border-radius:6px;padding:3px 6px;font-size:11px;">
               <option value="auto">🤖 智慧分工（建議）</option>
               <option value="anthropic">Claude</option>
-              <option value="openai">GPT-5.6 Sol（深度推理）</option>
+              <option value="openai">GPT-6 Astra（每題都深度推理）</option>
               <option value="gemini">Gemini</option>
               <option value="grok">Grok</option>
             </select>
@@ -793,12 +793,12 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 6.4.0・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 6.6.0・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 6.4.0；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 6.6.0；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -831,7 +831,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 6.4.0：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 6.6.0：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -1151,7 +1151,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 6.4.0";
+    const TEDDY_VERSION = "Smart Teddy 6.6.0";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -2218,7 +2218,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       // GPT-6 Astra: tools must use the Responses API.
       const oaTools = [
         { type: "web_search" },
-        { type:"function", name:"inspect_v51_page", description:"讀取目前網頁內嵌完全體 V5.1.C123 的可見介面、功能入口、表格與固定路由。只在溫室模式可用；回答此頁/功能表/路徑問題時先呼叫。", parameters:{type:"object",properties:{question:{type:"string"}},required:[]}, strict:false },
+        { type:"function", name:"inspect_v51_page", description:"讀取目前網頁內嵌完全體 V5.1.C125 的可見介面、功能入口、表格與固定路由。只在溫室模式可用；回答此頁/功能表/路徑問題時先呼叫。", parameters:{type:"object",properties:{question:{type:"string"}},required:[]}, strict:false },
         ...TEDDY_TOOLS.map((t) => ({
           type: "function",
           name: t.name,
@@ -2234,7 +2234,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       const urlGuard=/https?:\/\//i.test(lastUserText)
         ? "\n\n【本輪網址規則】使用者提供了網頁連結。你必須使用 web_search 嘗試實際讀取/搜尋該網址的頁面內容與可索引資訊後再回答。不可只看網址字串臆測。若頁面需要登入、遭 robots/權限/CORS/付費牆阻擋，請明確指出限制。" : "";
       const v51PageGuard=(window.TEDDY_APP_MODE==="greenhouse")
-        ? "\n\n【V5.1.C123 網頁規則】你正在 Teddy 內嵌的完全體 V5.1.C123 溫室模式。當問題涉及目前頁面、功能表、按鈕、表格、操作路徑或版本內容時，必須先呼叫 inspect_v51_page 取得目前 DOM 與固定路由，再回答；不得憑印象猜。" : "";
+        ? "\n\n【V5.1.C125 網頁規則】你正在 Teddy 內嵌的完全體 V5.1.C125 溫室模式。當問題涉及目前頁面、功能表、按鈕、表格、操作路徑或版本內容時，必須先呼叫 inspect_v51_page 取得目前 DOM 與固定路由，再回答；不得憑印象猜。" : "";
       const input = [
         { role: "developer", content: [{ type: "input_text", text: teddyBuildSystemPrompt() + visualGuard + urlGuard + v51PageGuard }] },
         ...teddyHistory.map((h) => {
@@ -2672,14 +2672,21 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       ];
       return "我是 " + s.version + "。\\n" +
         checks.map(([name, ok, note]) => `${ok ? "✅" : "⚠️"} ${name}：${note}`).join("\\n") +
-        `\\n目前介面模型：${s.modelPreference}\\n目前語音：${s.voice}\\n目前 Skill：${s.skillPreference}`;
+        `\\n目前介面模型：${s.modelPreference}\\n模型分工：${teddyModelRoutingText()}\\n目前語音：${s.voice}\\n目前 Skill：${s.skillPreference}`;
     }
 
     // 5.1：複雜問題固定優先交給 GPT-6 Astra；一般／溫室模式共用。
     // 5.2.9：只有實際送出 model=gpt-6-astra 才顯示/計入 Astra；API 無權限時直接回報錯誤，不假裝成功、不偷偷降級。
+    function teddyModelRoutingText(){
+      const sel=document.getElementById("teddyModelSelect"),v=sel?sel.value:"auto";
+      const label=sel&&sel.selectedOptions&&sel.selectedOptions[0]?sel.selectedOptions[0].textContent:"智慧分工";
+      const text=v==="auto"?"文字聊天為智慧分工：一般對話先用 Gemini，需要深度推理（分析、規劃、評估、程式等）才交給 GPT-6 Astra":`文字聊天固定使用「${label}」`;
+      return `${text}；即時語音由 Gemini Live 說話，遇到複雜問題才呼叫 GPT-6 Astra；溫室問題的理解用 Gemini Flash，數字一律由程式從完全體讀取計算。`;
+    }
     function teddyIsComplexQuestion(message){
       const t=String(message||"");
-      return /分析|比較|推理|原因|為什麼|策略|趨勢|預測|規劃|建議|評估|診斷|除錯|debug|程式|架構|跨年|跨月|多區|統計|計算|最佳化|優化|風險|成本|方案|整合|邏輯|複雜|深入|完全體|V5\.?1|C8\.?9|功能表|網頁結構/.test(t) || t.length>90;
+      // 6.6.0：只有真正需要深度推理的才交給 Astra；「為什麼、建議、計算、完全體、功能表」這類日常字眼不再觸發。
+      return /深度思考|仔細想|深入分析|分析一下|幫我分析|比較.{0,8}(?:優缺點|差異|哪個好)|推理|策略|預測|規劃|評估|診斷|除錯|debug|寫程式|程式碼|架構設計|最佳化|風險評估|方案比較|邏輯推演/i.test(t) || t.length>220;
     }
     function teddyChooseProvider(message,keys,context="general"){
       const t=String(message||"");
@@ -2726,6 +2733,38 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     let teddyHandsWorkMode=null; // assign / report
     let teddyHandsFlow={};       // 工作入口導引狀態
 
+    // ===== Smart Teddy 6.6.0：主人版＝A01 孫爸（完全體開發者，全部權限）=====
+    // 主人版（無 ?app 參數）閱讀全部資料本來就不受限；這裡讓 A 開頭帳號驗證一次後記在「這台裝置」，
+    // 重新整理不必再驗證。只存編號、姓名、身分與權限，不存密碼；寫入仍走「草稿 → 復述 → 你確認」。
+    // 說「登出」或「取消授權」即清除。溫室助理入口（員工）不受影響，仍是每次登入。
+    const TEDDY_OWNER_ID="A01",TEDDY_OWNER_NAME="孫爸";
+    const TEDDY_OWNER_SESSION_KEY="teddy_owner_session_v1"+(window.TEDDY_KEY_SUFFIX||"");
+    function teddyIsOwnerEntry(){return (window.TEDDY_ENTRY_ID||"owner")==="owner";}
+    function teddyOwnerSessionSave(){
+      if(!teddyIsOwnerEntry())return;
+      const s=teddyHandsSession;if(!s||!/^A/i.test(String(s.id||"")))return;
+      try{localStorage.setItem(TEDDY_OWNER_SESSION_KEY,JSON.stringify({id:String(s.id).toUpperCase(),role:s.role||"designer",name:s.name||"",menuPerms:s.menuPerms||{},tier:s.tier||null,status:s.status||"active",at:Date.now()}));}catch(_){}
+    }
+    function teddyOwnerSessionRestore(){
+      if(!teddyIsOwnerEntry()||teddyHandsSession)return;
+      try{
+        const v=JSON.parse(localStorage.getItem(TEDDY_OWNER_SESSION_KEY)||"null");
+        if(v&&/^A/i.test(String(v.id||"")))teddyHandsSession=v;
+      }catch(_){}
+    }
+    function teddyOwnerSessionClear(){
+      try{localStorage.removeItem(TEDDY_OWNER_SESSION_KEY);}catch(_){}
+      teddyHandsSession=null;teddyHandsPending=null;
+      try{teddyHandsRender();}catch(_){}
+    }
+    // 問到「我」的時候是誰：已驗證帳號優先；主人版預設 A01 孫爸。
+    function ghMyId(){
+      if(teddyHandsSession&&teddyHandsSession.id)return String(teddyHandsSession.id).toUpperCase();
+      return teddyIsOwnerEntry()?TEDDY_OWNER_ID:null;
+    }
+    teddyOwnerSessionRestore();
+    setTimeout(()=>{try{teddyHandsRender();}catch(_){}},0);
+
     function teddyHandsNowStamp(){
       const d=new Date(),p=n=>String(n).padStart(2,"0");
       return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
@@ -2758,7 +2797,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       try{if(typeof ghSelectedEntry!=="undefined"){ghSelectedEntry="work";if(typeof ghSetEntryButtonState==="function")ghSetEntryButtonState("work");}}catch(_){}
       return mode==="assign"
         ? "已進入工作指派。請告訴我溫室、平面圖區域，以及要設定的工作1–8；我會逐項補問，完整復述後才寫入。"
-        : "已進入工作回報。請告訴我功能表4要回報的溫室、年月與回報項目；我會先復述，確認後才寫入。";
+        : "回報目前請在完全體功能表4操作；Teddy 這一版只開放工作指派。";
     }
     function teddyHandsAreaFromText(t){
       const q=String(t||"");
@@ -2779,8 +2818,9 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     }
     function teddyHandsParseDraft(t){
       const q=String(t||"").trim(), zone=teddyHandsZoneFromText(q), ym=teddyHandsYmFromText(q);
-      const is68=/(?:功能表\s*7|6\s*[-到至~]\s*8|工作\s*[678]|工項\s*[678]|補水|灌溉|溝灌|噴灌|施肥|米糠|金旺|其他資材)/.test(q);
-      if(is68){
+      const is68=/(?:6\s*[-到至~]\s*8|工作\s*[678]|工項\s*[678]|補水|澆水|灌溉|灌水|溝灌|噴灌|施肥|肥料|下肥|上肥|米糠|金旺|其他資材|黃豆|水果|硝酸鉀|磷酸一鉀|硫酸鉀|鈣鎂粉|微量元素)/.test(q);
+      if(is68)return teddyHandsParse68(q);
+      if(false){
         let itemId=null;if(/(?:工作|工項|項目)\s*6|補水|灌溉|溝灌|噴灌/.test(q))itemId=6;else if(/(?:工作|工項|項目)\s*7|施肥|米糠|金旺/.test(q))itemId=7;else if(/(?:工作|工項|項目)\s*8|其他資材/.test(q))itemId=8;
         const n=q.match(/(\d+(?:\.\d+)?)\s*(噸|分鐘|包|kg|公斤)/i);
         let material=""; if(/金旺/.test(q))material="金旺";else if(/米糠/.test(q))material="米糠";
@@ -2797,6 +2837,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       return null;
     }
     function teddyHandsMissing(d){
+      if(d&&d.kind==="assign68")return teddyHandsMissing68(d);
       const miss=[]; if(!d.zone)miss.push("溫室/分區"); if(!d.itemId)miss.push("工項編號/名稱");
       if(d.kind==="work"){if(!d.cellId)miss.push("平面圖區域");if(!d.level)miss.push("級別1–5");}
       if(d.kind==="materials"){if(!d.cellId)miss.push("平面圖區域");if(d.itemId===6&&!d.method)miss.push("補水方式（溝灌/噴灌）");if(d.itemId===7&&!d.material)miss.push("肥料名稱");if(d.itemId===8&&!d.material)miss.push("資材名稱");if(!(Number(d.amount)>0))miss.push("用量");}
@@ -2804,6 +2845,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       return miss;
     }
     function teddyHandsPreviewText(d){
+      if(d&&d.kind==="assign68")return teddyHandsPreview68(d);
       const itemName=(typeof GH_WORK_ITEMS!=="undefined"&&GH_WORK_ITEMS[d.itemId])||`工作${d.itemId||"?"}`;
       const lines=[`帳號：${teddyHandsSession?.id||"未登入"}`,`功能表：${d.menu}`,`月份：${d.ym}`,`溫室：${d.zone?.name||"未指定"}`,`工項：${d.itemId||"?"} ${itemName}`];
       if(d.kind==="work"){lines.push(`平面圖區域：${d.cellId||"未指定"}`,`級別：${d.level||"未指定"}`);if(d.recipientId)lines.push(`指派：${d.recipientId}`);}
@@ -2865,7 +2907,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     }
     async function teddyHandsLogin(id="A01"){
       const pw=await teddyHandsPasswordPrompt(id); if(pw===null)return {ok:false,message:"已取消登入。"};
-      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。已直接查詢 V5.1 的 person:${id} 帳號；請確認輸入的是完整密碼或密碼後3碼。`}; teddyHandsSession=acct; teddyHandsRender(); teddyHandsWorkMode=null;teddyHandsFlow={};
+      try{const acct=await teddyHandsVerifyAccount(id,pw); if(!acct)return {ok:false,message:`${id} 驗證失敗。已直接查詢 V5.1 的 person:${id} 帳號；請確認輸入的是完整密碼或密碼後3碼。`}; teddyHandsSession=acct; teddyOwnerSessionSave(); teddyHandsRender(); teddyHandsWorkMode=null;teddyHandsFlow={};
         try{if(typeof ghSelectedEntry!=="undefined"){ghSelectedEntry="work";if(typeof ghSetEntryButtonState==="function")ghSetEntryButtonState("work");}}catch(_){}
         return {ok:true,message:`✓ ${id} 驗證成功。要進行「工作指派」還是「工作回報」？\n工作指派：工作入口 → 溫室 → 平面圖 → 區域 → 工作1–8 → 復述確認 → 寫入。\n工作回報：工作入口 → 功能表4 → 溫室 → 年月 → 回報項目。`};}
       catch(e){return {ok:false,message:`登入失敗：${e.message}`};}
@@ -2909,10 +2951,313 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       v.pending={...(v.pending||{}),[d.itemId]:false};v.progress={...(v.progress||{}),[d.itemId]:1};
       await teddyHandsWriteKv(key,v);return key;
     }
+
+    // ===== Smart Teddy 6.6.0：工作指派走完全體同一套安全交易 =====
+    // 以下 TEDDY_WDS 為完全體 V5.1.C125「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
+    // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
+const TEDDY_WDS = (() => {
+  const isWorkKey = key => /^(worklog|zonework):/.test(String(key));
+  const copy = value => JSON.parse(JSON.stringify(value));
+  const stable = value => JSON.stringify(value, function (_key, v) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) return Object.keys(v).sort().reduce((o,k) => { o[k] = v[k]; return o; }, {});
+    return v;
+  });
+  const parse = value => {
+    const data = typeof value === 'string' ? JSON.parse(value) : copy(value);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('工作資料格式不完整，已停止寫入。');
+    for (const field of ['confirmHistory','assignmentHistory']) if (data[field] !== undefined && !Array.isArray(data[field])) throw new Error('歷史格式不完整，已停止寫入。');
+    return data;
+  };
+  const positive = value => (typeof value === 'number' || typeof value === 'string') && String(value).trim() !== '' && Number.isFinite(Number(value)) && Number(value) > 0;
+  const options = (data,id) => {
+    const list = data[id === 6 ? 'multi6' : id === 7 ? 'multi7' : 'multi8Main'];
+    if (Array.isArray(list) && list.length) return list;
+    return id !== 8 && data.checks && data.checks[id] ? [data.checks[id]] : [];
+  };
+  const quantity = (data,id,opt) => {
+    if (id === 8) return (data.extra8 || {})[opt];
+    const extra = (data.extra || {})[id] || {};
+    if (id === 6) return extra[opt === '噴灌' ? 'minutes' : 'tons'];
+    return extra[opt] ?? (options(data,id).length === 1 ? extra.bags : undefined);
+  };
+  const validateQuantities = (names,values) => {
+    if (!names.length) throw new Error('尚未選擇工作內容，本次操作不成立。');
+    const result = {};
+    for (const name of names) {
+      if (!positive(values && values[name])) throw new Error(`「${name}」請輸入大於 0 的有效數量；尚未儲存。`);
+      result[name] = Number(values[name]);
+    }
+    return result;
+  };
+  const validateAssignment = (cell,zone) => {
+    const cellIds = [1,2,3,4,5].filter(id => !!(cell.pending || {})[id]);
+    const zoneIds = [6,7,8].filter(id => !!(zone.pending || {})[id]);
+    if (!cellIds.length && !zoneIds.length) throw new Error('尚未輸入工作內容，本次指定不成立，也不會儲存。');
+    for (const id of cellIds) if (!Number.isInteger(Number((cell.levels || {})[id])) || Number(cell.levels[id]) < 1 || Number(cell.levels[id]) > 5) throw new Error(`工作 ${id} 請選擇有效級別。`);
+    for (const id of zoneIds) validateQuantities(options(zone,id),Object.fromEntries(options(zone,id).map(opt => [opt,quantity(zone,id,opt)])));
+    return {cellIds,zoneIds};
+  };
+  const hasContent = data => ['confirmHistory','assignmentHistory'].some(k => Array.isArray(data[k]) && data[k].length) || Object.values(data.levels || {}).some(positive) || [6,7,8].some(id => options(data,id).length) || !!data.linkedZoneEventId;
+  const checkPreserved = (before,next) => {
+    for (const field of ['confirmHistory','assignmentHistory']) {
+      const a = before[field] || [], b = next[field] || [];
+      if (b.length < a.length || a.some((record,i) => stable(record) !== stable(b[i]))) throw new Error('已阻擋會刪除或改寫既有歷史的操作，請重新讀取資料。');
+    }
+    for (const [name,value] of Object.entries(before.confirmedTotals || {})) {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+        if (stable((next.confirmedTotals || {})[name]) !== stable(value)) throw new Error('原累計格式需要確認，已停止寫入。');
+      } else if (!Number.isFinite(Number((next.confirmedTotals || {})[name])) || Number(next.confirmedTotals[name]) < value) throw new Error('已阻擋清空或減少既有累計的操作。');
+    }
+    if (!hasContent(next)) throw new Error('沒有有效工作內容，本次操作不成立。');
+  };
+  const buildAssignment = (base,draft,ids,eventId,stamp,isCell,updateRecipients=false) => {
+    const next = copy(base);
+    for (const field of ['levels','checks','extra','pending','timestamps','progress','confirmedBy']) next[field] = {...(next[field] || {})};
+    for (const id of ids) {
+      if ((base.pending || {})[id]) throw new Error(`工作 ${id} 仍有未完成指定，請先處理原事件；尚未寫入。`);
+      for (const field of ['levels','checks','extra']) if (Object.prototype.hasOwnProperty.call(draft[field] || {},id)) next[field][id] = copy(draft[field][id]);
+      next.pending[id] = true;
+      delete next.progress[id]; delete next.confirmedBy[id];
+      next.timestamps[id] = {...((draft.timestamps || {})[id] || {}),eventId,changedAt:((draft.timestamps || {})[id] || {}).changedAt || stamp};
+      delete next.timestamps[id].ackAt;
+      if ([6,7,8].includes(id)) next[id === 6 ? 'multi6' : id === 7 ? 'multi7' : 'multi8Main'] = copy(options(draft,id));
+      if (id === 8) next.extra8 = copy(draft.extra8 || {});
+    }
+    if (isCell && updateRecipients) {
+      if (Object.entries(base.pending || {}).some(([id,v])=>v && !ids.includes(Number(id))) && stable(base.recipientIds || []) !== stable(draft.recipientIds || [])) throw new Error('其他工作仍待回報，新增指定不能改變原受文對象；請沿用原對象或先完成原工作。');
+      for (const field of ['changeSenderId','changeSenderName','recipientIds','recipientNames']) if (draft[field] !== undefined) next[field] = copy(draft[field]);
+    }
+    next.assignmentHistory = [...(base.assignmentHistory || []),{eventId,itemIds:ids,assignedAt:stamp}];
+    return next;
+  };
+  // C66/V5.012：允許「已指派、尚未開始回報」的事件直接修正內容/數量。
+  // 只在 base.pending[itemId] 為 true，且該項目尚未有任何 progress/confirmedBy（代表尚未開始回報）時才允許；
+  // 完全不動 eventId、assignmentHistory、confirmHistory，只覆寫該工項本身的數值欄位並更新 changedAt。
+  const reviseAssignment = (base, itemId, patch) => {
+    if (!base || !(base.pending || {})[itemId]) throw new Error('這項工作目前不是待回報狀態，無法修正。');
+    if ((base.progress || {})[itemId] || (base.confirmedBy || {})[itemId]) throw new Error('這項工作已經開始回報，無法直接修正數量；請改用新增指派，或請回報人員在回報時調整。');
+    const next = copy(base);
+    if (itemId <= 5) {
+      const lvl = Number(patch.level);
+      if (!Number.isInteger(lvl) || lvl < 1 || lvl > 5) throw new Error('請選擇有效級別(1-5)。');
+      next.levels = { ...(next.levels || {}), [itemId]: lvl };
+    } else {
+      const names = Array.isArray(patch.names) ? patch.names : [];
+      const values = validateQuantities(names, patch.values || {});
+      if (itemId === 8) {
+        next.multi8Main = [...names];
+        next.extra8 = { ...values };
+      } else {
+        next.checks = { ...(next.checks || {}), [itemId]: names.length === 1 ? names[0] : (names.length === 0 ? null : (next.checks || {})[itemId]) };
+        next[itemId === 6 ? 'multi6' : 'multi7'] = [...names];
+        const extraForItem = {};
+        if (itemId === 6) {
+          if (values['溝灌'] !== undefined) extraForItem.tons = values['溝灌'];
+          if (values['噴灌'] !== undefined) extraForItem.minutes = values['噴灌'];
+        } else {
+          names.forEach((n) => { extraForItem[n] = values[n]; });
+          if (names.length === 1) extraForItem.bags = values[names[0]];
+        }
+        next.extra = { ...(next.extra || {}), [itemId]: extraForItem };
+      }
+    }
+    next.timestamps = { ...(next.timestamps || {}), [itemId]: { ...(((next.timestamps || {})[itemId]) || {}), changedAt: patch.stamp || (((next.timestamps || {})[itemId]) || {}).changedAt } };
+    checkPreserved(base, next);
+    return next;
+  };
+  const appendMissing = (current,incoming,field) => {
+    const out = copy(current), counts = new Map(), identities = new Map();
+    const identity = x => {
+      if(!x || typeof x!=='object') return null;
+      if(field==='assignmentHistory') return x.eventId ? 'assignment:'+x.eventId : null;
+      if(x.itemId == null || (!x.eventId && !x.at)) return null;
+      return stable([x.eventId || 'legacy',x.itemId,x.rowKey || '',x.personId || '',x.at]);
+    };
+    current.forEach(x=>{const id=identity(x);if(id){if(!identities.has(id))identities.set(id,new Set());identities.get(id).add(stable(x));}});
+    current.forEach(x => { const k=stable(x); counts.set(k,(counts.get(k)||0)+1); });
+    for (const x of incoming) {
+      const k=stable(x), n=counts.get(k)||0;
+      if(n){counts.set(k,n-1);continue;}
+      const id=identity(x);
+      if(!id) throw new Error('備份有無法辨識單筆身分的歷史，已停止自動補入，請先核對。');
+      if(identities.has(id)) throw new Error('備份與現有資料含同一事件的不同內容或重複筆數，已停止還原，避免重複累加。');
+      out.push(copy(x));identities.set(id,new Set([k]));
+    }
+    return out;
+  };
+  return {isWorkKey,copy,stable,parse,positive,options,quantity,validateQuantities,validateAssignment,hasContent,checkPreserved,buildAssignment,reviseAssignment,appendMissing};
+})();
+    function teddyNewWorkEventId(){
+      const d=new Date(),p=(n,w=2)=>String(n).padStart(w,"0");
+      return `EV${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}${p(d.getMilliseconds(),3)}-${Math.random().toString(36).slice(2,7)}`;
+    }
+    function teddyTaipeiStampFor(dateStr){
+      const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
+      const g=t=>(parts.find(x=>x.type===t)||{}).value||"";
+      const hm=`${g("hour")==="24"?"00":g("hour")}:${g("minute")}`;
+      const day=dateStr||`${g("year")}-${g("month")}-${g("day")}`;
+      return day.replace(/-/g,"/")+" "+hm;
+    }
+    // 與完全體 window.storage.commitWork 相同的交易：讀到的內容必須和基準一致才寫入，並記錄 operationId 防止重送。
+    async function teddyWorkCommit(changes,operationId){
+      const db=await ghMainFirestore();
+      if(!Array.isArray(changes)||!changes.length||!operationId)throw new Error("沒有可儲存的工作操作。");
+      if(new Set(changes.map(c=>c.key)).size!==changes.length)throw new Error("工作操作重複，已停止寫入。");
+      const uid=(ghMainApp&&ghMainApp.auth().currentUser)?ghMainApp.auth().currentUser.uid:null;
+      const prepared=changes.map(c=>{
+        if(!TEDDY_WDS.isWorkKey(c.key)||!Object.prototype.hasOwnProperty.call(c,"expectedValue"))throw new Error("缺少工作資料的讀取基準，已停止寫入。");
+        const next=TEDDY_WDS.parse(c.next);
+        TEDDY_WDS.checkPreserved(c.expectedValue===null?{}:TEDDY_WDS.parse(c.expectedValue),next);
+        return {...c,next,value:JSON.stringify(next),ref:db.collection("kv").doc(c.key)};
+      });
+      return db.runTransaction(async tx=>{
+        const snaps=[];for(const c of prepared)snaps.push(await tx.get(c.ref));
+        const prior=snaps.map(s=>s.exists?s.data():null);
+        const applied=prior.map(d=>!!(d&&Array.isArray(d.workSafetyOperations)&&d.workSafetyOperations.includes(operationId)));
+        if(applied.every(Boolean))return prior.map((d,i)=>({key:prepared[i].key,value:d.value}));
+        if(applied.some(Boolean))throw new Error("操作紀錄不一致，請重新讀取；未再寫入。");
+        for(let i=0;i<prepared.length;i++){
+          const current=prior[i]?prior[i].value:null;
+          if(current!==prepared[i].expectedValue)throw new Error("資料已由其他畫面更新，已阻擋舊資料覆蓋。請再說一次指派內容，我會重新讀取。");
+          TEDDY_WDS.checkPreserved(current===null?{}:TEDDY_WDS.parse(current),prepared[i].next);
+        }
+        prepared.forEach((c,i)=>tx.set(c.ref,{key:c.key,value:c.value,updatedAt:Date.now(),updatedByUid:uid,
+          workSafetyRevision:Number(prior[i]&&prior[i].workSafetyRevision||0)+1,
+          workSafetyOperations:[...((prior[i]&&prior[i].workSafetyOperations)||[]),operationId].slice(-128)},{merge:true}));
+        return prepared.map(c=>({key:c.key,value:c.value}));
+      });
+    }
+    async function teddyWorkRead(key){
+      const db=await ghMainFirestore();
+      const s=await db.collection("kv").doc(key).get({source:"server"});
+      const value=s.exists?(s.data()||{}).value:null;
+      return {key,value:value==null?null:value,data:value==null?{}:TEDDY_WDS.parse(value)};
+    }
+
+    // ---- 工作6–8 指派：解析 ----
+    const TEDDY68_ITEMS={6:["溝灌","噴灌"],7:["米糠","金旺"],8:["黃豆","水果","硝酸鉀","磷酸一鉀","硫酸鉀","鈣鎂粉","微量元素"]};
+    const TEDDY68_UNIT={溝灌:"噸",噴灌:"分鐘",米糠:"包",金旺:"包"};
+    function teddy68ItemOf(name){for(const id of [6,7,8])if(TEDDY68_ITEMS[id].includes(name))return id;return null;}
+    function teddyHandsDateFromText(q){
+      const now=new Date(),f=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+      const t=typeof ghCnDateToDigits==="function"?ghCnDateToDigits(q):q;
+      if(/後天/.test(t))return f(new Date(now.getFullYear(),now.getMonth(),now.getDate()+2));
+      if(/明天|明日/.test(t))return f(new Date(now.getFullYear(),now.getMonth(),now.getDate()+1));
+      const m=t.match(/(?:(20\d{2})\s*[年\/-]\s*)?(1[0-2]|[1-9])\s*(?:月\s*(3[01]|[12]\d|[1-9])\s*(?:日|號)?|\/\s*(3[01]|[12]\d|[1-9])(?![0-9]))/);
+      if(m)return `${m[1]||now.getFullYear()}-${String(m[2]).padStart(2,"0")}-${String(m[3]||m[4]).padStart(2,"0")}`;
+      return f(now);
+    }
+    function teddyHandsParse68(q){
+      const zone=teddyHandsZoneFromText(q),date=teddyHandsDateFromText(q),ym=date.slice(0,7);
+      const vals={6:{},7:{},8:{}},named=new Set();
+      const all=[...TEDDY68_ITEMS[6],...TEDDY68_ITEMS[7],...TEDDY68_ITEMS[8]];
+      const re=new RegExp(`(${all.join("|")})\\s*[:：]?\\s*(\\d+(?:\\.\\d+)?)?\\s*(噸|分鐘|分|包|kg|公斤|KG)?`,"g");
+      let m;while((m=re.exec(q))){named.add(m[1]);if(m[2]&&Number(m[2])>0)vals[teddy68ItemOf(m[1])][m[1]]=Number(m[2]);}
+      // 只說「補水 5噸／30分鐘」沒講方式：依單位判斷溝灌或噴灌。
+      if(!named.has("溝灌")&&!named.has("噴灌")){
+        const w=q.match(/(?:補水|澆水|灌溉|灌水)\s*(\d+(?:\.\d+)?)\s*(噸|分鐘|分)/);
+        if(w){const k=w[2]==="噸"?"溝灌":"噴灌";named.add(k);vals[6][k]=Number(w[1]);}
+      }
+      const ids=[6,7,8].filter(id=>Object.keys(vals[id]).length);
+      const noQty=[...named].filter(n=>!(n in vals[teddy68ItemOf(n)]));
+      const wantsFert=/施肥|肥料|下肥|上肥/.test(q)&&!ids.some(id=>id===7||id===8)&&!noQty.some(n=>teddy68ItemOf(n)>=7);
+      const wantsWater=/補水|澆水|灌溉|灌水/.test(q)&&!ids.includes(6)&&!noQty.some(n=>teddy68ItemOf(n)===6);
+      const rec=q.match(/(?:指派給|交給|給)\s*([A-Za-z]\d{2})/);
+      return {kind:"assign68",menu:"工作入口→溫室→工作6–8（指派）",zone,date,ym,vals,ids,noQty,wantsFert,wantsWater,
+        recipientId:rec?rec[1].toUpperCase():"",cellId:teddyHandsAreaFromText(q),raw:q};
+    }
+    function teddyHandsMerge68(old,nw,q){
+      const n=nw||teddyHandsParse68(q);
+      const hasDate=/今天|明天|明日|後天|\d+\s*[月\/]|[一二三四五六七八九十]+\s*月/.test(q);
+      const vals={6:{...old.vals[6],...n.vals[6]},7:{...old.vals[7],...n.vals[7]},8:{...old.vals[8],...n.vals[8]}};
+      const ids=[6,7,8].filter(id=>Object.keys(vals[id]).length);
+      const noQty=[...new Set([...old.noQty,...n.noQty])].filter(x=>!(x in vals[teddy68ItemOf(x)]));
+      const date=hasDate?n.date:old.date;
+      return {...old,zone:n.zone||old.zone,date,ym:date.slice(0,7),vals,ids,noQty,
+        wantsFert:(old.wantsFert||n.wantsFert)&&!ids.some(id=>id>=7)&&!noQty.some(x=>teddy68ItemOf(x)>=7),
+        wantsWater:(old.wantsWater||n.wantsWater)&&!ids.includes(6)&&!noQty.some(x=>teddy68ItemOf(x)===6),
+        recipientId:n.recipientId||old.recipientId,cellId:n.cellId||old.cellId,raw:old.raw+"／"+q};
+    }
+    function teddyHandsMissing68(d){
+      const miss=[];
+      if(!d.zone)miss.push("溫室（一期／二期／三期／四北／四南／五期）");
+      if(d.wantsFert)miss.push("施肥要用哪一種：固態（米糠、金旺，單位包）或液態（黃豆、水果、硝酸鉀、磷酸一鉀、硫酸鉀、鈣鎂粉、微量元素，單位 kg），請說品項和數量");
+      if(d.wantsWater)miss.push("補水方式和數量：溝灌幾噸，或噴灌幾分鐘");
+      d.noQty.forEach(n=>miss.push(`「${n}」的數量（${TEDDY68_UNIT[n]||"kg"}）`));
+      if(!d.ids.length&&!d.wantsFert&&!d.wantsWater&&!d.noQty.length)miss.push("要指派的品項和數量");
+      if(d.recipientId&&!d.cellId)miss.push("指定受文對象時，請說平面圖區域（例如「區域 A3」）");
+      return miss;
+    }
+    function teddyHandsPreview68(d){
+      const name={6:"工作6 補水",7:"工作7 施肥（固態）",8:"工作8 其他資材（液態）"};
+      const lines=[`帳號：${teddyHandsSession?.id||"未登入"}`,`溫室：${d.zone?.name||"未指定"}`,`工作日期：${d.date}（寫入 ${d.ym} 月份）`];
+      d.ids.forEach(id=>lines.push(`${name[id]}：`+Object.entries(d.vals[id]).map(([k,v])=>`${k} ${v}${TEDDY68_UNIT[k]||"kg"}`).join("、")));
+      if(d.recipientId)lines.push(`受文對象：${d.recipientId}（平面圖區域 ${d.cellId}）`);
+      lines.push("寫入方式：與完全體相同的安全交易，只新增指派事件，不改動既有歷史。");
+      return lines.join("\n");
+    }
+
+    // ---- 工作6–8 指派：寫入（對應完全體 confirmAssignmentSave 的分區部分）----
+    async function teddyHandsCommit68(d){
+      const zoneKey=`zonework:${d.zone.id}:${d.ym}`;
+      const zone=await teddyWorkRead(zoneKey);
+      const base=zone.data,draft=TEDDY_WDS.copy(base);
+      for(const f of ["checks","extra","pending","timestamps"])draft[f]={...(draft[f]||{})};
+      for(const id of d.ids){
+        const names=Object.keys(d.vals[id]),values=TEDDY_WDS.validateQuantities(names,d.vals[id]);
+        draft.pending[id]=true;
+        if(id===8){draft.multi8Main=[...names];draft.extra8={...values};}
+        else{
+          draft.checks[id]=names.length===1?names[0]:null;
+          draft[id===6?"multi6":"multi7"]=[...names];
+          const ex={};
+          if(id===6){if(values["溝灌"]!==undefined)ex.tons=values["溝灌"];if(values["噴灌"]!==undefined)ex.minutes=values["噴灌"];}
+          else{names.forEach(n=>{ex[n]=values[n];});if(names.length===1)ex.bags=values[names[0]];}
+          draft.extra[id]=ex;
+        }
+      }
+      const stamp=teddyTaipeiStampFor(d.date),eventId=teddyNewWorkEventId();
+      const nextZone=TEDDY_WDS.buildAssignment(base,draft,d.ids,eventId,stamp,false);
+      const changes=[{key:zoneKey,expectedValue:zone.value,next:nextZone}];
+      if(d.recipientId&&d.cellId){
+        const cellKey=`worklog:${d.zone.id}:${d.cellId}:${d.ym}`;
+        const cell=await teddyWorkRead(cellKey);
+        const ids=[d.recipientId];
+        if(Object.values(cell.data.pending||{}).some(Boolean)&&TEDDY_WDS.stable(cell.data.recipientIds||[])!==TEDDY_WDS.stable(ids))throw new Error("這個區域其他工作仍待回報，受文對象不能改；請沿用原對象或先完成原工作。");
+        const nextCell=TEDDY_WDS.copy(cell.data);
+        nextCell.changeSenderId=teddyHandsSession.id;nextCell.changeSenderName=teddyHandsSession.name||teddyHandsSession.id;
+        nextCell.recipientIds=ids;nextCell.recipientNames={[d.recipientId]:d.recipientId};
+        nextCell.linkedZoneEventId=eventId;
+        changes.push({key:cellKey,expectedValue:cell.value,next:nextCell});
+      }
+      await teddyWorkCommit(changes,teddyNewWorkEventId());
+      const chk=await teddyWorkRead(zoneKey);
+      const hist=chk.data.assignmentHistory||[];
+      if(!d.ids.every(id=>(chk.data.pending||{})[id])||!hist.some(h=>h.eventId===eventId))throw new Error("寫入後重新讀取驗證失敗");
+      return `${zoneKey}（事件 ${eventId}）`;
+    }
+
+    // ---- 工作1–5 指派：同樣改走安全交易（對應完全體 buildAssignment 的區域格部分）----
+    async function teddyHandsCommitWorkSafe(d){
+      const key=`worklog:${d.zone.id}:${d.cellId}:${d.ym}`;
+      const cell=await teddyWorkRead(key);
+      const base=cell.data,draft=TEDDY_WDS.copy(base);
+      draft.levels={...(draft.levels||{}),[d.itemId]:d.level};draft.pending={...(draft.pending||{}),[d.itemId]:true};
+      let recip=false;
+      if(d.recipientId){draft.changeSenderId=teddyHandsSession.id;draft.changeSenderName=teddyHandsSession.name||teddyHandsSession.id;draft.recipientIds=[d.recipientId];draft.recipientNames={[d.recipientId]:d.recipientId};recip=true;}
+      const eventId=teddyNewWorkEventId();
+      const next=TEDDY_WDS.buildAssignment(base,draft,[d.itemId],eventId,teddyTaipeiStampFor(null),true,recip);
+      await teddyWorkCommit([{key,expectedValue:cell.value,next}],teddyNewWorkEventId());
+      const chk=await teddyWorkRead(key);
+      if(Number((chk.data.levels||{})[d.itemId])!==Number(d.level)||!(chk.data.pending||{})[d.itemId])throw new Error("寫入後重新讀取驗證失敗");
+      return `${key}（事件 ${eventId}）`;
+    }
+
     async function teddyHandsCommitPending(){
       if(!teddyHandsSession)throw new Error("尚未登入 A01");if(!teddyHandsPending)throw new Error("目前沒有待寫入設定");
       const d=teddyHandsPending,miss=teddyHandsMissing(d);if(miss.length)throw new Error("資料不完整："+miss.join("、"));
-      const key=d.kind==="report"?await teddyHandsCommitReport(d):(d.kind==="work"?await teddyHandsCommitWork(d):await teddyHandsCommitMaterials(d));teddyHandsPending=null;teddyHandsRender();return key;
+      if(d.kind==="report"||d.kind==="materials")throw new Error("這類寫入已停用：回報請在完全體功能表4操作（Teddy 目前只做工作指派）。");
+      const key=d.kind==="assign68"?await teddyHandsCommit68(d):await teddyHandsCommitWorkSafe(d);teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
     async function teddyHandsHandle(text){
@@ -2920,11 +3265,19 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       if(/(?:用|以)?\s*A01\s*(?:帳號)?\s*(?:登入|登錄|驗證)/i.test(q)){const r=await teddyHandsLogin("A01");return {handled:true,reply:r.message};}
       if(teddyHandsSession&&/^(?:工作)?指派(?:工作)?$/.test(q))return {handled:true,reply:teddyHandsSetWorkMode("assign")};
       if(teddyHandsSession&&/^(?:工作)?回報(?:工作)?$/.test(q))return {handled:true,reply:teddyHandsSetWorkMode("report")};
-      if(/^(?:確認|確認寫入|寫入|確定|執行)$/i.test(q)&&teddyHandsPending){if(!teddyHandsSession)return {handled:true,reply:"這筆設定還沒寫入。請先說「用 A01 登入」，我會向你詢問密碼。"};try{const key=await teddyHandsCommitPending();return {handled:true,reply:`✓ 已寫入完全體 V5.1，並重新讀取驗證成功。位置：${key}`};}catch(e){return {handled:true,reply:`寫入失敗，沒有回報成功：${e.message}`};}}
+      if(/^(?:確認|確認寫入|寫入|確定|執行)$/i.test(q)&&teddyHandsPending){if(!teddyHandsSession)return {handled:true,reply:"這筆設定還沒寫入。請先說「用 A01 登入」，我會向你詢問密碼。"};try{const key=await teddyHandsCommitPending();return {handled:true,reply:`✓ 已用完全體同一套安全交易寫入指派，並重新讀取驗證成功。位置：${key}。現場可在完全體功能表4看到並回報。`};}catch(e){teddyHandsPending=null;teddyHandsRender();return {handled:true,reply:`寫入失敗，沒有寫進完全體：${e.message}（這筆草稿已清除，請重新說一次指派內容）`};}}
       if(/^(?:取消|不要寫入|取消寫入)$/i.test(q)&&teddyHandsPending){teddyHandsCancel();return {handled:true,reply:"好，已取消這筆待執行設定，沒有寫入 V5.1。"};}
-      let d=null;
-      if(teddyHandsWorkMode==="report"||/回報/.test(q))d=teddyHandsReportParse(q);
-      else d=teddyHandsParseDraft(q);
+      // 6.6.0：只有明確要「指派」（或已進入工作指派、或正在補問草稿）才當成寫入指令；
+      // 一般提問（多少、幾、嗎、哪…）一律交回查詢，不會被誤當成指派。
+      const isQuestion=/多少|幾|嗎|呢|哪|什麼|怎麼|有沒有|是否|\?|？/.test(q);
+      const assignIntent=teddyHandsWorkMode==="assign"||/指派|指定|安排|派工|交辦/.test(q);
+      if(teddyHandsWorkMode==="report"||/^(?:工作)?回報/.test(q))return {handled:true,reply:"回報目前請在完全體功能表4操作。Teddy 這一版只開放「工作指派」，回報會在移植完全體的回報安全交易後再開放。"};
+      if(!teddyHandsPending&&(!assignIntent||(isQuestion&&teddyHandsWorkMode!=="assign")))return {handled:false};
+      if(teddyHandsPending&&isQuestion&&!assignIntent&&teddyHandsWorkMode!=="assign")return {handled:false};
+      let d=teddyHandsParseDraft(q);
+      // 只有補問時的回答（沒有再說一次「指派」）才併入原草稿；重新說「指派…」就是一筆新的。
+      if(teddyHandsPending&&teddyHandsPending.kind==="assign68"&&(!d||d.kind==="assign68")&&!/指派|指定|安排|派工|交辦/.test(q))d=teddyHandsMerge68(teddyHandsPending,d,q);
+      if(!d)return {handled:false};
       if(d){const miss=teddyHandsMissing(d);teddyHandsPending=d;teddyHandsRender();if(miss.length)return {handled:true,reply:`目前走「${teddyHandsWorkMode==="report"?"工作回報":"工作指派"}」路線，還缺：${miss.join("、")}。${teddyHandsWorkMode==="report"?"路徑是：工作入口 → 功能表4 → 溫室 → 年月 → 回報項目。":"路徑是：工作入口 → 溫室 → 平面圖 → 區域 → 工作1–8。"}`};return {handled:true,reply:`我先復述一次，現在還沒有寫入：\n\n${teddyHandsPreviewText(d)}\n\n如果正確，請說「確認」或按「確認寫入」；要取消就說「取消」。`};}
       return {handled:false};
     }
@@ -5698,7 +6051,7 @@ ${parts}
     }
 
     // ===== Smart Teddy 5.7：功能表7「耗材與報表」十表引擎 =====
-    // 完全對齊完全體 V5.1.C123 的 REPORT_SLOTS 與各表實際讀取邏輯：
+    // 完全對齊完全體 V5.1.C125 的 REPORT_SLOTS 與各表實際讀取邏輯：
     // 功能7 → 年份 → 月份 → 表一～表十。所有加總、排名、比例都由程式依完全體同一算法先算好，
     // 模型只負責專業解讀，不自行計算數字。
     const F7_TABLES={
@@ -6250,7 +6603,7 @@ ${parts}
       return{empty:!rows.length,range:f7RangeLabel(ctx),records:rows.length,summary,data:{logins:rows.slice(0,80).map(({loggedAt,...r})=>r),byPerson,ips}};
     }
 
-        // ===== Smart Teddy 6.4.0：表十一／表十二（對齊完全體 V5.1.C123 ZONEWORK_ITEMS）=====
+        // ===== Smart Teddy 6.6.0：表十一／表十二（對齊完全體 V5.1.C125 ZONEWORK_ITEMS）=====
     // 與完全體同一來源：zonework:{分區}:{年月} 的 confirmHistory（只算已回報確認）。
     const GH_ZW_ITEMS=[
       {key:"溝灌",unit:"噸"},{key:"噴灌",unit:"分鐘"},{key:"米糠",unit:"包"},{key:"金旺",unit:"包"},
@@ -6334,7 +6687,7 @@ ${parts}
       return{empty,range,zones:zones.map(z=>z.yield),records:count,summary:lines.join("\n"),data:{compare}};
     }
 
-    // ===== Smart Teddy 6.4.0：表十三・表十四（對齊完全體 V5.1.C123）=====
+    // ===== Smart Teddy 6.6.0：表十三・表十四（對齊完全體 V5.1.C125）=====
     const T13_TEMP_BINS_T=[
       {label:"< 20°C",lo:-99,hi:20},{label:"20–25°C",lo:20,hi:25},{label:"25–28°C",lo:25,hi:28},
       {label:"28–31°C",lo:28,hi:31},{label:"31–34°C",lo:31,hi:34},{label:"≥ 34°C",lo:34,hi:99}
@@ -6419,7 +6772,7 @@ ${parts}
     }
 
     const F7_READERS={1:f7T1,2:f7T2,3:f7T3,4:f7T4,5:f7T5,6:f7T6,7:f7T7,8:f7T8,9:f7T9,10:f7T10,11:f7T11,12:f7T12,13:f7T13,14:f7T14};
-    const F7_RULES_TEXT=`功能表7「耗材與報表」判讀規則（完全體 V5.1.C123）：
+    const F7_RULES_TEXT=`功能表7「耗材與報表」判讀規則（完全體 V5.1.C125）：
 - 路徑：功能7 → 年份 → 月份 → 表一～表十四。十四張表：${Object.values(F7_TABLES).map(x=>`表${x.no}${x.name}`).join("、")}。
 - payload.f7.summary 與 payload.f7.data 的數字已由程式依完全體同一算法計算完成；只能引用這些數字，不可重算出不同結果、不可補猜。
 - 表一／表三／表八的投入只算 confirmHistory 已回報確認的紀錄；單位：溝灌=噸、噴灌=分鐘、米糠／金旺=包、其他資材=kg。
@@ -6457,14 +6810,14 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 6.4.0：完全體 V5.1.C123 對齊層 =====
+    // ===== Smart Teddy 6.6.0：完全體 V5.1.C125 對齊層 =====
     // 原則：完全體＝唯一真相，Teddy＝嘴巴。
     // 1) 功能表名稱、表格名稱、版本號以完全體發布的 teddy-manifest.json 為準；讀不到才用內建備份。
     // 2) 溫室助理（?app=farm）每次提問前即時讀 person:{ID}，閱覽權限與完全體功能表2同一套規則。
     // 3) 本層只讀不寫；寫入仍走既有「草稿 → 確認 → 寫入」流程。
     const TEDDY_V51_MANIFEST_URL="https://blue-ribbon-v51.vercel.app/teddy-manifest.json";
     const TEDDY_V51_MANIFEST_BUILTIN={
-      sourceVersion:"V5.1.C123",
+      sourceVersion:"V5.1.C125",
       functions:{
         "1":{name:"人員與帳號"},"2":{name:"權限管理"},"3":{name:"產能資料輸入與分析"},
         "4":{name:"分區工項提示內容（工作1–5）"},"5":{name:"工項行事曆／年度計畫"},"6":{name:"照片影像資料庫"},
@@ -6475,7 +6828,7 @@ ${parts}
         "表六":"施肥用量統計","表七":"長週期產能趨勢","表八":"分區資材投入與產能對比","表九":"氣候變遷與產能",
         "表十":"登入 IP 與時間","表十一":"溫室用量側寫","表十二":"細項跨溫室對比","表十三":"氣候與資材投入","表十四":"產能 × 資材 × 雨量"
       },
-      guide:"【完全體 V5.1.C123 系統說明（Teddy 回答「怎麼用／怎麼算／是什麼」的唯一依據）】\n一、整體\n- 完全體是藍帶無花果溫室的管理系統，首頁大標題「好土、好果、好生活」。點選地圖上的分區登入後，從「整體功能表」進入各功能。\n- 主選單共 10 項：1 人員與帳號、2 權限管理、3 產能資料輸入與分析、4 分區工項提示內容、5 工項行事曆／年度計畫、6 照片影像資料庫、7 查看各項報表、8 果樹履歷（樹齡／高度／節間）、9 環境數據、10 上下班打卡；另有「備份與還原」。\n- 分區共六區：一期、二期、三期、四北、四南、五期。\n- 資料庫：主要資料在 Firebase 專案 figapi-d24dc（kv 集合）；產能在另一個專案 figdata-d2737。報表全部只讀取、不寫入。\n二、權限（功能表2）\n- A 開頭帳號（設計師）、B 開頭帳號（老闆）全部功能開放。\n- 其他帳號需為「啟用」狀態；每個功能表可逐項開關「閱覽／修改」，沒設逐項開關時，依權限層級（修改、閱覽、回饋）決定。\n- 表十（登入 IP）只有 A、B 帳號可看。\n三、工作分類\n- 工作1–5（功能表4）：打芽(側)、打芽(地)、除草、剪葉、覆蓋，記錄指派與進度。\n- 工作6 補水＝溝灌（噸）、噴灌（分鐘）；工作7 施肥＝米糠、金旺（包）；工作8 其他資材＝黃豆、水果、硝酸鉀、磷酸一鉀、硫酸鉀、鈣鎂粉、微量元素（kg）。\n- 報表裡的「固態」＝米糠＋金旺；「液態」＝工作8 的 7 種資材。\n四、用量怎麼算（表一、三、六、八、十一～十四共用同一規則）\n- 只算「已回報確認」的紀錄（confirmHistory），指派或未確認的不算。\n- 完全相同的回報（同品項、同數量、同時間、同回報人、同指定事件）只算一次，因為早期資料曾被重複寫入。\n- 只認日期落在該月份的回報（每個分區每月一份文件）。\n- 數量必須大於 0 才計入。\n五、功能表7 報表（路徑：年份 → 月份 → 表格）\n- 表一 耗材匯總表；表二 年度計畫表（與功能表5共用）；表三 分區耗材統計（月曆式，逐日看各區 6–8 用量）；表四 留言板內容。\n- 表五 氣候資料：中央氣象署神岡站逐時觀測；有「月觀測／年觀測」氣候總覽，雨量柱＋最高溫紅線＋最低溫藍線。\n- 表六 施肥用量統計；表七 長週期產能趨勢（2020 至今，每 15 天一筆）；表八 分區資材投入與產能對比；表九 氣候變遷與產能（看年／看月）；表十 登入 IP 與時間。\n- 表十一 溫室用量側寫：固定一個溫室，看 11 項細項的長期組成。\n- 表十二 細項跨溫室對比：固定一個細項，比較各溫室。\n- 表十三 氣候與資材投入：神岡站每日氣候對齊各溫室 6–8 用量；「溫度分級統計」依當日最高溫分六級（<20、20–25、25–28、28–31、31–34、≥34°C），並比較雨天（雨量 ≥1mm）與無雨天。\n- 表十四 產能 × 資材 × 雨量：產能折線（左軸）、資材柱狀（右軸）、雨量雲朵；可看年／月／15 天／週。\n- 表八、十一、十二、十四有「看走勢／看當期」切換：走勢＝整段期間逐期排開；當期＝只看選定一期、各溫室並排。兩者用同一份資料，同一期數字相同。\n- 多品項可選「加總（疊加）」或「並列（各品項一根）」，全系統共用這個設定；點柱子可看逐筆明細。\n- 圖表刻度：溫度固定 0–45°C、雨量固定 0–1000mm，都切 5 格；可開「六區統一刻度」，以六區中的最大值為上限。\n六、氣候\n- 戶外氣候＝神岡站（表五、九、十三、十四）；每日雨量取當日累積雨量最大值。\n- 功能表9 是溫室「內」的人工紀錄（溫度 °C、濕度 %、照度 lux、EC mS/cm、環境異常：乾旱、淹水、悶熱、寒冷、高濕、低照度、其他），與戶外氣候不可混用。\n七、其他功能\n- 功能表6 照片：依分區與月份存放，含拍攝日期、備註、上傳者。\n- 功能表8 果樹履歷：依分區、年月、點位、樹齡、剪枝日記錄每一節的標記日、間距（cm）、有無果、果直徑（mm）、成熟日。\n- 功能表10 上下班打卡：打卡紀錄、休息時段、假別。"
+      guide:"【完全體 V5.1.C125 系統說明（Teddy 回答「怎麼用／怎麼算／是什麼」的唯一依據）】\n一、整體\n- 完全體是藍帶無花果溫室的管理系統，首頁大標題「好土、好果、好生活」。點選地圖上的分區登入後，從「整體功能表」進入各功能。\n- 主選單共 10 項：1 人員與帳號、2 權限管理、3 產能資料輸入與分析、4 分區工項提示內容、5 工項行事曆／年度計畫、6 照片影像資料庫、7 查看各項報表、8 果樹履歷（樹齡／高度／節間）、9 環境數據、10 上下班打卡；另有「備份與還原」。\n- 分區共六區：一期、二期、三期、四北、四南、五期。\n- 資料庫：主要資料在 Firebase 專案 figapi-d24dc（kv 集合）；產能在另一個專案 figdata-d2737。報表全部只讀取、不寫入。\n二、權限（功能表2）\n- A 開頭帳號（設計師）、B 開頭帳號（老闆）全部功能開放。\n- 其他帳號需為「啟用」狀態；每個功能表可逐項開關「閱覽／修改」，沒設逐項開關時，依權限層級（修改、閱覽、回饋）決定。\n- 表十（登入 IP）只有 A、B 帳號可看。\n三、工作分類\n- 工作1–5（功能表4）：打芽(側)、打芽(地)、除草、剪葉、覆蓋，記錄指派與進度。\n- 工作6 補水＝溝灌（噸）、噴灌（分鐘）；工作7 施肥＝米糠、金旺（包）；工作8 其他資材＝黃豆、水果、硝酸鉀、磷酸一鉀、硫酸鉀、鈣鎂粉、微量元素（kg）。\n- 報表裡的「固態」＝米糠＋金旺；「液態」＝工作8 的 7 種資材。\n四、用量怎麼算（表一、三、六、八、十一～十四共用同一規則）\n- 只算「已回報確認」的紀錄（confirmHistory），指派或未確認的不算。\n- 完全相同的回報（同品項、同數量、同時間、同回報人、同指定事件）只算一次，因為早期資料曾被重複寫入。\n- 只認日期落在該月份的回報（每個分區每月一份文件）。\n- 數量必須大於 0 才計入。\n五、功能表7 報表（路徑：年份 → 月份 → 表格）\n- 表一 耗材匯總表；表二 年度計畫表（與功能表5共用）；表三 分區耗材統計（月曆式，逐日看各區 6–8 用量）；表四 留言板內容。\n- 表五 氣候資料：中央氣象署神岡站逐時觀測；有「月觀測／年觀測」氣候總覽，雨量柱＋最高溫紅線＋最低溫藍線。\n- 表六 施肥用量統計；表七 長週期產能趨勢（2020 至今，每 15 天一筆）；表八 分區資材投入與產能對比；表九 氣候變遷與產能（看年／看月）；表十 登入 IP 與時間。\n- 表十一 溫室用量側寫：固定一個溫室，看 11 項細項的長期組成。\n- 表十二 細項跨溫室對比：固定一個細項，比較各溫室。\n- 表十三 氣候與資材投入：神岡站每日氣候對齊各溫室 6–8 用量；「溫度分級統計」依當日最高溫分六級（<20、20–25、25–28、28–31、31–34、≥34°C），並比較雨天（雨量 ≥1mm）與無雨天。\n- 表十四 產能 × 資材 × 雨量：產能折線（左軸）、資材柱狀（右軸）、雨量雲朵；可看年／月／15 天／週。\n- 表八、十一、十二、十四有「看走勢／看當期」切換：走勢＝整段期間逐期排開；當期＝只看選定一期、各溫室並排。兩者用同一份資料，同一期數字相同。\n- 多品項可選「加總（疊加）」或「並列（各品項一根）」，全系統共用這個設定；點柱子可看逐筆明細。\n- 圖表刻度：溫度固定 0–45°C、雨量固定 0–1000mm，都切 5 格；可開「六區統一刻度」，以六區中的最大值為上限。\n六、氣候\n- 戶外氣候＝神岡站（表五、九、十三、十四）；每日雨量取當日累積雨量最大值。\n- 功能表9 是溫室「內」的人工紀錄（溫度 °C、濕度 %、照度 lux、EC mS/cm、環境異常：乾旱、淹水、悶熱、寒冷、高濕、低照度、其他），與戶外氣候不可混用。\n七、其他功能\n- 功能表6 照片：依分區與月份存放，含拍攝日期、備註、上傳者。\n- 功能表8 果樹履歷：依分區、年月、點位、樹齡、剪枝日記錄每一節的標記日、間距（cm）、有無果、果直徑（mm）、成熟日。\n- 功能表10 上下班打卡：打卡紀錄、休息時段、假別。"
     };
     let TEDDY_V51_MANIFEST=TEDDY_V51_MANIFEST_BUILTIN;
     let TEDDY_V51_MANIFEST_FROM="內建備份";
@@ -6497,7 +6850,7 @@ ${parts}
       return TEDDY_V51_MANIFEST;
     }
     window.teddyLoadV51Manifest=teddyLoadV51Manifest;
-    function ghV51Version(){return (TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.sourceVersion)||"V5.1.C123";}
+    function ghV51Version(){return (TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.sourceVersion)||"V5.1.C125";}
     function ghV51Guide(){return String((TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.guide)||TEDDY_V51_MANIFEST_BUILTIN.guide||"");}
     function ghFnName(n){const f=((TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.functions)||{})[String(n)];return f&&f.name?f.name:"";}
     function ghRouteMapText(){
@@ -6553,7 +6906,7 @@ ${parts}
     }
 
 
-    // ===== Smart Teddy 6.4.0：完全體說明（怎麼用／怎麼算／是什麼）=====
+    // ===== Smart Teddy 6.6.0：完全體說明（怎麼用／怎麼算／是什麼）=====
     // 依據只有一份：完全體發布的 teddy-manifest.json 裡的 guide（讀不到才用內建備份）。不讀任何數字資料。
     function ghIsGuideQuestion(q){
       const t=teddyToTrad(String(q||"")).replace(/\s+/g,"");
@@ -6750,11 +7103,11 @@ ${parts}
 
     setTimeout(()=>{teddyLoadV51Manifest().catch(()=>{});},0);
 
-    // ===== Smart Teddy 6.4.0：溫室唯一資料閘門 =====
+    // ===== Smart Teddy 6.6.0：溫室唯一資料閘門 =====
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
-    const GH_ROUTE_MAP_TEXT=`完全體 V5.1.C123 固定路由：
+    const GH_ROUTE_MAP_TEXT=`完全體 V5.1.C125 固定路由：
 產能＝功能表3（產能庫：逐日產能與年度封存，品級 A／B／D／NG）
 工作1–5（打芽側、打芽地、除草、剪葉、覆蓋）＝功能表4
 計畫／產季／節氣＝功能表5
@@ -6792,7 +7145,7 @@ ${parts}
     }
     window.teddyGreenhouseAsk=teddyGreenhouseAsk;
 
-    // ===== Smart Teddy 6.4.0：問句理解層（AI 解析）＋ 答對答錯學習 =====
+    // ===== Smart Teddy 6.6.0：問句理解層（AI 解析）＋ 答對答錯學習 =====
     // 分工：AI 只負責「聽懂問句 → 改寫成明確查詢」；數字一律由程式從完全體讀取計算；AI 再把結果講成人話。
     // 學習：記住「這種問法 → 該查哪裡」，不記數字（數字每次重新從完全體讀）。
     // 儲存：Teddy 自己的記憶（本機＋Teddy Firebase），絕不寫進完全體。
@@ -6849,8 +7202,8 @@ ${parts}
       if(pos&&(!neg||pos.at>=neg.at))return{pos,neg:null};
       return{pos:null,neg};
     }
-    // 6.3.0：內建 175 題已驗證的問法當作 AI 理解時的參考例子（不存進使用者學習紀錄）。
-    const GH_SEED_EXAMPLES=([["四北今天施肥多少", "materials", "四北今天施肥多少"], ["三期今天有澆水嗎", "materials", "三期今天有澆水嗎"], ["二期水有沒有灌", "materials", "二期水有沒有灌"], ["四南肥下了沒", "materials", "四南肥下了沒"], ["一期這個月溝灌幾噸", "materials", "一期這個月溝灌幾噸"], ["五期噴灌多久", "materials", "五期噴灌多久"], ["全場今天用了多少米糠", "materials", "全場今天用了多少米糠"], ["各區金旺用量", "materials", "各區金旺用量"], ["四北昨天補水", "materials", "四北昨天補水"], ["三期前天施肥", "materials", "三期前天施肥"], ["四北9/28施肥", "materials", "四北9/28施肥"], ["四北九月二十八號施肥", "materials", "四北九月二十八號施肥"], ["二期上禮拜補水", "materials", "二期上禮拜補水"], ["三期這禮拜施肥", "materials", "三期這禮拜施肥"], ["哪一區米糠用最多", "materials", "哪一區米糠用最多"], ["四南最近一次施肥是什麼時候", "materials", "四南最近一次施肥是什麼時候"], ["一期硝酸鉀用了多少", "materials", "一期硝酸鉀用了多少"], ["三期其他資材", "materials", "三期其他資材"], ["四北8月施肥哪幾天", "materials", "四北8月施肥哪幾天"], ["今天有哪些區補水", "materials", "今天有哪些區補水"], ["四北產量", "yield", "四北產量"], ["今天收了多少", "yield", "今天收了多少"], ["三期這個月產量", "yield", "三期這個月產量"], ["一期A級多少", "yield", "一期A級多少"], ["NG比例多少", "yield", "NG比例多少"], ["今年產量跟去年比", "yield", "今年產量跟去年比"], ["哪一區產量最高", "yield", "哪一區產量最高"], ["二期上個月收成", "yield", "二期上個月收成"], ["四南B級幾公斤", "yield", "四南B級幾公斤"], ["五期產能", "yield", "五期產能"], ["四南打芽進度", "work", "四南打芽進度"], ["除草誰負責", "work", "除草誰負責"], ["三期剪葉做完了嗎", "work", "三期剪葉做完了嗎"], ["覆蓋還有哪些沒確認", "work", "覆蓋還有哪些沒確認"], ["一期工作進度", "work", "一期工作進度"], ["10月要做什麼", "calendar", "10月要做什麼"], ["三期什麼時候剪枝", "calendar", "三期什麼時候剪枝"], ["四北產季什麼時候", "calendar", "四北產季什麼時候"], ["下個月計畫", "calendar", "下個月計畫"], ["哪些區要度冬", "calendar", "哪些區要度冬"], ["表一", "function7", "表一"], ["耗材匯總", "function7", "表一 耗材匯總"], ["表二年度計畫表", "function7", "表二年度計畫表"], ["表三四北九月", "function7", "表三四北九月"], ["表四留言", "function7", "表四留言"], ["最近有什麼留言", "function7", "表四 最近有什麼留言"], ["表五今天天氣", "function7", "表五今天天氣"], ["神岡站昨天下多少雨", "function7", "表五 神岡站昨天下多少雨"], ["這個月最高溫幾度", "function7", "表五 這個月最高溫幾度"], ["今年雨量", "function7", "表五 今年雨量"], ["表六", "function7", "表六"], ["施肥統計", "function7", "表六 施肥統計"], ["表七", "function7", "表七"], ["產能長期趨勢", "function7", "表七 產能長期趨勢"], ["表八三期", "function7", "表八三期"], ["資材投入跟產能", "function7", "表八 資材投入跟產能"], ["表九", "function7", "表九"], ["氣候跟產能的關係", "function7", "表九 氣候跟產能的關係"], ["表十", "function7", "表十"], ["今天誰登入", "function7", "表十 今天誰登入"], ["表十一三期", "function7", "表十一三期"], ["三期用量側寫", "function7", "表十一 三期用量側寫"], ["表十二米糠", "function7", "表十二米糠"], ["溝灌跨溫室比較", "function7", "表十二 溝灌跨溫室比較"], ["表十三", "function7", "表十三"], ["天氣熱的時候溝灌用多少", "function7", "表十三 天氣熱的時候溝灌用多少"], ["下雨天噴灌有沒有比較少", "function7", "表十三 下雨天噴灌有沒有比較少"], ["表十四", "function7", "表十四"], ["產能資材雨量", "function7", "表十四 產能資材雨量"], ["二期今年產量施肥跟雨量", "function7", "表十四 二期今年產量施肥跟雨量"], ["一期照片", "photos", "一期照片"], ["四南最近的照片", "photos", "四南最近的照片"], ["三期果樹履歷", "trees", "三期果樹履歷"], ["樹齡2年節間多長", "trees", "樹齡2年節間多長"], ["四北有果幾顆", "trees", "四北有果幾顆"], ["四南環境數據", "environment", "四南環境數據"], ["三期溫室溫度", "environment", "三期溫室溫度"], ["二期濕度", "environment", "二期濕度"], ["四北EC", "environment", "四北EC"], ["最近有什麼環境異常", "environment", "最近有什麼環境異常"], ["今天誰請假", "attendance", "今天誰請假"], ["我今天打卡了嗎", "attendance", "我今天打卡了嗎"], ["這個月加班", "attendance", "這個月加班"], ["小明今天有來嗎", "attendance", "小明今天有來嗎"], ["人員名單", "people", "人員名單"], ["誰是品管師", "people", "誰是品管師"], ["有幾位員工", "people", "有幾位員工"], ["表三怎麼算", "guide", "表三怎麼算"], ["用量為什麼跟以前不一樣", "guide", "用量為什麼跟以前不一樣"], ["固態是什麼意思", "guide", "固態是什麼意思"], ["看走勢跟看當期差在哪", "guide", "看走勢跟看當期差在哪"], ["表十誰可以看", "guide", "表十誰可以看"], ["功能表9是什麼", "guide", "功能表9是什麼"], ["加總跟並列有什麼不同", "guide", "加總跟並列有什麼不同"], ["雨量怎麼算", "guide", "雨量怎麼算"], ["刻度為什麼固定", "guide", "刻度為什麼固定"], ["權限怎麼設定", "guide", "權限怎麼設定"], ["表十三是什麼", "guide", "表十三是什麼"], ["重複的回報怎麼處理", "guide", "重複的回報怎麼處理"], ["四北施肥", "materials", "四北施肥"], ["今天三期溝灌多少", "materials", "今天三期溝灌多少"], ["二期這個月米糠用了多少", "materials", "二期這個月米糠用了多少"], ["昨天各區補水", "materials", "昨天各區補水"], ["三期9月產量", "yield", "三期9月產量"], ["今年A級比例", "yield", "今年A級比例"], ["一期產能跟去年比", "yield", "一期產能跟去年比"], ["除草指派給誰", "work", "除草指派給誰"], ["10月計畫", "calendar", "10月計畫"], ["耗材匯總表", "function7", "表一 耗材匯總表"], ["表三 四北 9月", "function7", "表三 四北 9月"], ["表五 今天", "function7", "表五 今天"], ["神岡站昨天雨量", "function7", "表五 神岡站昨天雨量"], ["表六施肥統計", "function7", "表六施肥統計"], ["長週期產能趨勢", "function7", "表七 長週期產能趨勢"], ["氣候變遷跟產能", "function7", "表九 氣候變遷跟產能"], ["誰登入過", "function7", "表十 誰登入過"], ["表十一 三期", "function7", "表十一 三期"], ["表十二 米糠 各溫室比較", "function7", "表十二 米糠 各溫室比較"], ["高溫的時候溝灌用多少", "function7", "表十三 高溫的時候溝灌用多少"], ["下雨天補水比較少嗎", "function7", "表十三 下雨天補水比較少嗎"], ["溫度分級統計", "function7", "表十三 溫度分級統計"], ["今年產能跟施肥還有雨量的關係", "function7", "表十四 今年產能跟施肥還有雨量的關係"], ["四南9月照片", "photos", "四南9月照片"], ["一期果樹履歷", "trees", "一期果樹履歷"], ["樹齡2年的節間", "trees", "樹齡2年的節間"], ["三期EC多少", "environment", "三期EC多少"], ["四北溫度", "environment", "四北溫度"], ["用量怎麼計算", "guide", "用量怎麼計算"], ["看走勢跟看當期有什麼不同", "guide", "看走勢跟看當期有什麼不同"], ["為什麼數字會重複", "guide", "為什麼數字會重複"], ["三期施肥", "materials", "三期施肥"], ["全場溝灌", "materials", "全場溝灌"], ["四北上個月施肥哪幾天", "materials", "四北上個月施肥哪幾天"], ["三期最近一次補水", "materials", "三期最近一次補水"], ["各區其他資材", "materials", "各區其他資材"], ["二期硝酸鉀", "materials", "二期硝酸鉀"], ["表4 留言", "function7", "表4 留言"], ["表2", "function7", "表2"], ["三期每天用了哪些資材", "function7", "表三 三期每天用了哪些資材"], ["表12 溝灌", "function7", "表12 溝灌"], ["表14 二期 今年", "function7", "表14 二期 今年"], ["表13 四北 9月", "function7", "表13 四北 9月"], ["五期照片", "photos", "五期照片"], ["三期環境異常", "environment", "三期環境異常"], ["四南照度", "environment", "四南照度"], ["一期點位3履歷", "trees", "一期點位3履歷"], ["加總跟並列差在哪", "guide", "加總跟並列差在哪"], ["刻度怎麼算", "guide", "刻度怎麼算"], ["液態是什麼", "guide", "液態是什麼"], ["四北產能多少", "yield", "四北產能多少"], ["品級NG多少", "yield", "品級NG多少"], ["覆蓋完成了嗎", "work", "覆蓋完成了嗎"], ["產季什麼時候開始", "calendar", "產季什麼時候開始"], ["請假", "attendance", "請假"]]).map(([raw,entry,canonical])=>({q:ghNormQ(raw),raw,entry,canonical,ok:true,seed:true,at:0}));
+    // 6.6.0：內建 165 題已驗證的問法當作 AI 理解時的參考例子（不存進使用者學習紀錄）。
+    const GH_SEED_EXAMPLES=([["四北今天施肥多少", "materials", "四北今天施肥多少"], ["三期今天有澆水嗎", "materials", "三期今天有澆水嗎"], ["二期水有沒有灌", "materials", "二期水有沒有灌"], ["四南肥下了沒", "materials", "四南肥下了沒"], ["一期這個月溝灌幾噸", "materials", "一期這個月溝灌幾噸"], ["五期噴灌多久", "materials", "五期噴灌多久"], ["全場今天用了多少米糠", "materials", "全場今天用了多少米糠"], ["各區金旺用量", "materials", "各區金旺用量"], ["四北昨天補水", "materials", "四北昨天補水"], ["三期前天施肥", "materials", "三期前天施肥"], ["四北9/28施肥", "materials", "四北9/28施肥"], ["四北九月二十八號施肥", "materials", "四北九月二十八號施肥"], ["二期上禮拜補水", "materials", "二期上禮拜補水"], ["三期這禮拜施肥", "materials", "三期這禮拜施肥"], ["哪一區米糠用最多", "materials", "哪一區米糠用最多"], ["四南最近一次施肥是什麼時候", "materials", "四南最近一次施肥是什麼時候"], ["一期硝酸鉀用了多少", "materials", "一期硝酸鉀用了多少"], ["三期其他資材", "materials", "三期其他資材"], ["四北8月施肥哪幾天", "materials", "四北8月施肥哪幾天"], ["今天有哪些區補水", "materials", "今天有哪些區補水"], ["四北產量", "yield", "四北產量"], ["今天收了多少", "yield", "今天收了多少"], ["三期這個月產量", "yield", "三期這個月產量"], ["一期A級多少", "yield", "一期A級多少"], ["NG比例多少", "yield", "NG比例多少"], ["今年產量跟去年比", "yield", "今年產量跟去年比"], ["哪一區產量最高", "yield", "哪一區產量最高"], ["二期上個月收成", "yield", "二期上個月收成"], ["四南B級幾公斤", "yield", "四南B級幾公斤"], ["五期產能", "yield", "五期產能"], ["四南打芽進度", "work", "四南打芽進度"], ["除草誰負責", "work", "除草誰負責"], ["三期剪葉做完了嗎", "work", "三期剪葉做完了嗎"], ["覆蓋還有哪些沒確認", "work", "覆蓋還有哪些沒確認"], ["一期工作進度", "work", "一期工作進度"], ["10月要做什麼", "calendar", "10月要做什麼"], ["三期什麼時候剪枝", "calendar", "三期什麼時候剪枝"], ["四北產季什麼時候", "calendar", "四北產季什麼時候"], ["下個月計畫", "calendar", "下個月計畫"], ["哪些區要度冬", "calendar", "哪些區要度冬"], ["表一", "function7", "表一"], ["耗材匯總", "function7", "表一 耗材匯總"], ["表二年度計畫表", "function7", "表二年度計畫表"], ["表三四北九月", "function7", "表三四北九月"], ["表四留言", "function7", "表四留言"], ["最近有什麼留言", "function7", "表四 最近有什麼留言"], ["表五今天天氣", "function7", "表五今天天氣"], ["神岡站昨天下多少雨", "function7", "表五 神岡站昨天下多少雨"], ["這個月最高溫幾度", "function7", "表五 這個月最高溫幾度"], ["今年雨量", "function7", "表五 今年雨量"], ["表六", "function7", "表六"], ["施肥統計", "function7", "表六 施肥統計"], ["表七", "function7", "表七"], ["產能長期趨勢", "function7", "表七 產能長期趨勢"], ["表八三期", "function7", "表八三期"], ["資材投入跟產能", "function7", "表八 資材投入跟產能"], ["表九", "function7", "表九"], ["氣候跟產能的關係", "function7", "表九 氣候跟產能的關係"], ["表十", "function7", "表十"], ["今天誰登入", "function7", "表十 今天誰登入"], ["表十一三期", "function7", "表十一三期"], ["三期用量側寫", "function7", "表十一 三期用量側寫"], ["表十二米糠", "function7", "表十二米糠"], ["溝灌跨溫室比較", "function7", "表十二 溝灌跨溫室比較"], ["表十三", "function7", "表十三"], ["天氣熱的時候溝灌用多少", "function7", "表十三 天氣熱的時候溝灌用多少"], ["下雨天噴灌有沒有比較少", "function7", "表十三 下雨天噴灌有沒有比較少"], ["表十四", "function7", "表十四"], ["產能資材雨量", "function7", "表十四 產能資材雨量"], ["二期今年產量施肥跟雨量", "function7", "表十四 二期今年產量施肥跟雨量"], ["一期照片", "photos", "一期照片"], ["四南最近的照片", "photos", "四南最近的照片"], ["三期果樹履歷", "trees", "三期果樹履歷"], ["樹齡2年節間多長", "trees", "樹齡2年節間多長"], ["四北有果幾顆", "trees", "四北有果幾顆"], ["四南環境數據", "environment", "四南環境數據"], ["三期溫室溫度", "environment", "三期溫室溫度"], ["二期濕度", "environment", "二期濕度"], ["四北EC", "environment", "四北EC"], ["最近有什麼環境異常", "environment", "最近有什麼環境異常"], ["今天誰請假", "attendance", "今天誰請假"], ["我今天打卡了嗎", "attendance", "我今天打卡了嗎"], ["這個月加班", "attendance", "這個月加班"], ["小明今天有來嗎", "attendance", "小明今天有來嗎"], ["人員名單", "people", "人員名單"], ["誰是品管師", "people", "誰是品管師"], ["有幾位員工", "people", "有幾位員工"], ["表三怎麼算", "guide", "表三怎麼算"], ["用量為什麼跟以前不一樣", "guide", "用量為什麼跟以前不一樣"], ["固態是什麼意思", "guide", "固態是什麼意思"], ["看走勢跟看當期差在哪", "guide", "看走勢跟看當期差在哪"], ["表十誰可以看", "guide", "表十誰可以看"], ["功能表9是什麼", "guide", "功能表9是什麼"], ["加總跟並列有什麼不同", "guide", "加總跟並列有什麼不同"], ["雨量怎麼算", "guide", "雨量怎麼算"], ["刻度為什麼固定", "guide", "刻度為什麼固定"], ["權限怎麼設定", "guide", "權限怎麼設定"], ["表十三是什麼", "guide", "表十三是什麼"], ["重複的回報怎麼處理", "guide", "重複的回報怎麼處理"], ["三期施肥趨勢分析", "function7", "表十一 三期施肥趨勢分析"], ["米糠各區比較", "function7", "表十二 米糠各區比較"], ["溝灌排名", "function7", "表十二 溝灌排名"], ["四北用量組成", "function7", "表十一 四北用量組成"], ["施肥跟產能的關係", "function7", "表八 施肥跟產能的關係"], ["天氣熱施肥量變化", "function7", "表十三 天氣熱施肥量變化"], ["產能施肥雨量關係", "function7", "表十四 產能施肥雨量關係"], ["四北米糠趨勢", "function7", "表十一 四北米糠趨勢"], ["四北施肥", "materials", "四北施肥"], ["今天施肥", "materials", "今天施肥"], ["二期液態肥", "materials", "二期液態肥"], ["三期固態肥這個月", "materials", "三期固態肥這個月"], ["今天三期溝灌多少", "materials", "今天三期溝灌多少"], ["二期這個月米糠用了多少", "materials", "二期這個月米糠用了多少"], ["昨天各區補水", "materials", "昨天各區補水"], ["三期9月產量", "yield", "三期9月產量"], ["今年A級比例", "yield", "今年A級比例"], ["一期產能跟去年比", "yield", "一期產能跟去年比"], ["除草指派給誰", "work", "除草指派給誰"], ["10月計畫", "calendar", "10月計畫"], ["耗材匯總表", "function7", "表一 耗材匯總表"], ["表三 四北 9月", "function7", "表三 四北 9月"], ["表五 今天", "function7", "表五 今天"], ["神岡站昨天雨量", "function7", "表五 神岡站昨天雨量"], ["表六施肥統計", "function7", "表六施肥統計"], ["長週期產能趨勢", "function7", "表七 長週期產能趨勢"], ["氣候變遷跟產能", "function7", "表九 氣候變遷跟產能"], ["誰登入過", "function7", "表十 誰登入過"], ["表十一 三期", "function7", "表十一 三期"], ["表十二 米糠 各溫室比較", "function7", "表十二 米糠 各溫室比較"], ["高溫的時候溝灌用多少", "function7", "表十三 高溫的時候溝灌用多少"], ["下雨天補水比較少嗎", "function7", "表十三 下雨天補水比較少嗎"], ["溫度分級統計", "function7", "表十三 溫度分級統計"], ["今年產能跟施肥還有雨量的關係", "function7", "表十四 今年產能跟施肥還有雨量的關係"], ["四南9月照片", "photos", "四南9月照片"], ["一期果樹履歷", "trees", "一期果樹履歷"], ["樹齡2年的節間", "trees", "樹齡2年的節間"], ["三期EC多少", "environment", "三期EC多少"], ["四北溫度", "environment", "四北溫度"], ["用量怎麼計算", "guide", "用量怎麼計算"], ["看走勢跟看當期有什麼不同", "guide", "看走勢跟看當期有什麼不同"], ["為什麼數字會重複", "guide", "為什麼數字會重複"], ["三期施肥", "materials", "三期施肥"], ["全場溝灌", "materials", "全場溝灌"], ["四北上個月施肥哪幾天", "materials", "四北上個月施肥哪幾天"], ["三期最近一次補水", "materials", "三期最近一次補水"], ["各區其他資材", "materials", "各區其他資材"], ["二期硝酸鉀", "materials", "二期硝酸鉀"], ["表4 留言", "function7", "表4 留言"], ["表2", "function7", "表2"], ["三期每天用了哪些資材", "function7", "表三 三期每天用了哪些資材"], ["表12 溝灌", "function7", "表12 溝灌"], ["表14 二期 今年", "function7", "表14 二期 今年"], ["表13 四北 9月", "function7", "表13 四北 9月"], ["五期照片", "photos", "五期照片"], ["三期環境異常", "environment", "三期環境異常"], ["四南照度", "environment", "四南照度"], ["一期點位3履歷", "trees", "一期點位3履歷"], ["加總跟並列差在哪", "guide", "加總跟並列差在哪"], ["刻度怎麼算", "guide", "刻度怎麼算"], ["液態是什麼", "guide", "液態是什麼"], ["四北產能多少", "yield", "四北產能多少"], ["品級NG多少", "yield", "品級NG多少"], ["覆蓋完成了嗎", "work", "覆蓋完成了嗎"], ["產季什麼時候開始", "calendar", "產季什麼時候開始"], ["請假", "attendance", "請假"]]).map(([raw,entry,canonical])=>({q:ghNormQ(raw),raw,entry,canonical,ok:true,seed:true,at:0}));
     function ghLearnSimilar(norm,limit=8){
       return [...ghLearn.examples,...GH_SEED_EXAMPLES].map(e=>({e,s:ghSimilar(norm,e.q)})).filter(x=>x.s>=0.35)
         .sort((a,b)=>b.s-a.s).slice(0,limit).map(x=>x.e);
@@ -7005,6 +7358,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
       if(!raw)return{ok:false,entry:null,answer:"請再說一次想查什麼。"};
       if((window.TEDDY_ENTRY_ID||"owner")==="family")return{ok:false,entry:null,answer:"家人版沒有溫室資料。"};
       if(window.TEDDY_ENTRY_ID==="farm"&&!teddyHandsSession)return{ok:false,entry:"login",answer:"請先按上方「🔐 登入」，用你自己的人員編號登入，我才能幫你查溫室資料。"};
+      if(/^(?:登出|取消授權|解除授權)$/.test(raw)){teddyOwnerSessionClear();return{ok:true,entry:null,answer:"已取消這台裝置的授權。之後要寫入時，請再驗證一次 A01。"};}
       const fb=ghFeedbackKind(raw);
       if(fb&&ghLastTurn)return await ghHandleFeedback(fb);
       if(ghIsLearnReportQuestion(raw))return{ok:true,entry:"learn",answer:ghLearnReport()};
@@ -7055,7 +7409,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
 
     function ghRouteV51Question(q,topicHint=null){
       const t=String(q||"");
-      // 5.7：功能表7「耗材與報表」十表先依語意鎖定（對齊完全體 V5.1.C123），避免「登入IP」被誤導到功能表10打卡。
+      // 5.7：功能表7「耗材與報表」十表先依語意鎖定（對齊完全體 V5.1.C125），避免「登入IP」被誤導到功能表10打卡。
       if(ghIsGuideQuestion(t))return {id:"guide",label:"完全體說明"};
       if(ghIsFunction7Question(t))return {id:"function7",label:`功能表7・表${ghFunction7Table(t)||"?"}`};
       // 6.0.0：功能表8／6／9（完全體 C113）
@@ -7486,7 +7840,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
     const ym=`${now.year}-${String(now.month).padStart(2,"0")}`;return `${now.year}年${now.month}月：`+V6_ZONE_ORDER.map(id=>{const r=active.find(x=>x.zone?.id===id&&x.period===ym);return `${V6_ZONE_NAME[id]}：${r?label(r):"無計畫"}`;}).join("；")+"。";
   }
 
-  // ===== Smart Teddy 6.4.0：補水／施肥／其他資材（工作6–8）改為直接讀完全體 =====
+  // ===== Smart Teddy 6.6.0：補水／施肥／其他資材（工作6–8）改為直接讀完全體 =====
   // 與完全體 fetchZoneworkConfirmedByDay 同一套：zonework:{分區}:{年月} 的 confirmHistory，
   // qty 需 >0，日期由 at 換算；分類依完全體：工作6 補水＝溝灌、噴灌；工作7 施肥＝米糠、金旺；工作8 其他資材＝其餘 7 項。
   // 沒講時間＝本月（並在回答中寫明），講「今天／昨天／前天／幾月幾日」就只算那一天。
@@ -7576,7 +7930,8 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
   function v6AttendanceAnswer(rows,q){
     const text=String(q||""),tm=v6Time(text),now=v6Today(),slots=["amIn","amOut","pmIn","pmOut"];
     const people=rows.filter(r=>r.category==="person").map(r=>r.rawData||{}).filter(p=>p&&p.id);
-    const person=people.find(p=>text.includes(String(p.name||""))||text.includes(String(p.id||"")))||null;
+    const myId=/我/.test(text)?ghMyId():null;
+    const person=(myId&&!people.some(p=>p.name&&text.includes(String(p.name)))?people.find(p=>String(p.id).toUpperCase()===myId):null)||people.find(p=>text.includes(String(p.name||""))||text.includes(String(p.id||"")))||null;
     const normalize=(raw,key)=>{
       const d=raw&&typeof raw==="object"?{...raw}:{};
       const empty=()=>({punches:{amIn:null,amOut:null,pmIn:null,pmOut:null},geo:{amIn:null,amOut:null,pmIn:null,pmOut:null}});
@@ -7965,7 +8320,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
       ?`目前在溫室模式${selected?`，使用者已選「${ENTRY_LABEL[selected]}」`:"，尚未選入口"}。溫室問題與後續追問必須使用query_greenhouse；若使用者沒重複主題，沿用已選入口。`
       :"目前在一般模式；禁止自行進入溫室/工作路由。只有使用者明確切換到溫室模式，或明確說『工作／進入工作／溫室模式』後，才可使用溫室工具。";
     return `${typeof teddyPersonaCore==="function"?teddyPersonaCore():"你是 TEDDY，也叫碰氣。"}
-【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。
+【版本與模型（被問到時照實說，不可自己編）】我是 ${typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy"}。${typeof teddyModelRoutingText==="function"?teddyModelRoutingText():""}\n【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。
 ${memory}
 ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
@@ -7983,7 +8338,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 工具回傳的結構化資料與計算結果優先於對話記憶。查不到就直接說不知道。`;
   }
   const greenhouseTool={
-    name:"query_greenhouse",description:"溫室模式唯一的資料工具：所有完全體 V5.1.C123 的資料、統計、趨勢、功能在哪裡的問題都用它，程式會自己走固定路由。功能表7十表：耗材匯總、年度計畫、分區耗材、留言版、氣候資料、施肥用量統計、長週期產能趨勢、資材投入與產能、氣候與產能、登入IP、溫室用量側寫、細項跨溫室對比、氣候與資材投入、產能×資材×雨量，一律 entry=function7；其他：產能=yield、工作1-5=work、計畫=calendar、耗材6-8=materials、打卡=attendance、照片=photos、果樹履歷=trees、溫室內環境數據=environment、人員與帳號=people。question 必須放使用者原句。",
+    name:"query_greenhouse",description:"溫室模式唯一的資料工具：所有完全體 V5.1.C125 的資料、統計、趨勢、功能在哪裡的問題都用它，程式會自己走固定路由。功能表7十表：耗材匯總、年度計畫、分區耗材、留言版、氣候資料、施肥用量統計、長週期產能趨勢、資材投入與產能、氣候與產能、登入IP、溫室用量側寫、細項跨溫室對比、氣候與資材投入、產能×資材×雨量，一律 entry=function7；其他：產能=yield、工作1-5=work、計畫=calendar、耗材6-8=materials、打卡=attendance、照片=photos、果樹履歷=trees、溫室內環境數據=environment、人員與帳號=people。question 必須放使用者原句。",
     parameters:{type:"object",properties:{entry:{type:"string",enum:["function7","yield","work","calendar","materials","attendance","photos","trees","environment","people","guide"]},question:{type:"string"}},required:["question"]}
   };
   const astraThinkTool={
@@ -7995,7 +8350,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     parameters:{type:"object",properties:{account:{type:"string",enum:["A01"]}},required:[]}
   };
   const handsCommandTool={
-    name:"hands_command",description:"處理 V5.1 工作入口操作：登入後的工作指派/工作回報選擇、指派路徑（溫室→平面圖→區域→工作1-8）、回報路徑（功能表4→溫室→年月→回報項目）、確認寫入或取消。必須把使用者原句完整傳入 command。",
+    name:"hands_command",description:"只有使用者明確說要「指派」工作（或回答指派的補問、說確認／取消）時才使用；一般提問一律用 query_greenhouse。處理 V5.1 工作入口操作：登入後的工作指派/工作回報選擇、指派路徑（溫室→平面圖→區域→工作1-8）、回報路徑（功能表4→溫室→年月→回報項目）、確認寫入或取消。必須把使用者原句完整傳入 command。",
     parameters:{type:"object",properties:{command:{type:"string"}},required:["command"]}
   };
   const browseWebTool={
@@ -8012,7 +8367,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   };
   const inspectV51PageTool={
     name:"inspect_v51_page",
-    description:"讀取目前 Teddy 頁面內嵌的完全體 V5.1.C123 溫室介面結構、目前可見文字、按鈕、表格/入口與固定路由。當使用者問『這個網頁有什麼』『現在在哪個功能』『功能表/表格/路線怎麼走』『V5.1.C123內容』時必須先用這個工具，不准憑記憶猜。",
+    description:"讀取目前 Teddy 頁面內嵌的完全體 V5.1.C125 溫室介面結構、目前可見文字、按鈕、表格/入口與固定路由。當使用者問『這個網頁有什麼』『現在在哪個功能』『功能表/表格/路線怎麼走』『V5.1.C125內容』時必須先用這個工具，不准憑記憶猜。",
     parameters:{type:"object",properties:{question:{type:"string"}},required:[]}
   };
   function teddyInspectV51Page(question=""){
@@ -8027,7 +8382,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       if(visible.length>=120)break;
     }
     const routeMap={
-      version:"完全體 V5.1.C123 路由知識層（功能7 十四表）",
+      version:"完全體 V5.1.C125 路由知識層（功能7 十四表）",
       mode:window.TEDDY_APP_MODE||"general",
       main:{
         "產能":"功能表3／產能資料",
@@ -8080,8 +8435,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     if(name==="browse_web"){setLiveTrace("🌐 Teddy 正在瀏覽網頁…","#e8c879");try{const r=await liveBrowseWeb(args?.query||"");setLiveTrace("🌐 網頁資料已取得，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("網頁瀏覽失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
     if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace("🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 思考失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
     if(name==="inspect_v51_page"){
-      setLiveTrace("🔎 Teddy 正在讀取 V5.1.C123 畫面與路由…","#e8c879");
-      try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1.C123 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
+      setLiveTrace("🔎 Teddy 正在讀取 V5.1.C125 畫面與路由…","#e8c879");
+      try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1.C125 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="teddy_reminder"){
       try{
