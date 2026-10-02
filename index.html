@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <script id="teddyEntryBoot">
-/* Smart Teddy 6.6.0：同一份程式，三個入口
+/* Smart Teddy 6.7.0：同一份程式，三個入口
    /               主人版（完整 Teddy）
    /?app=family    家人版（同一隻松鼠的個性；興趣與稱呼由家人自己設定；沒有溫室／工作／Evolution）
    /?app=farm      溫室助理（只有溫室；要用自己的人員編號登入；沒有主人的人格記憶）
@@ -23,7 +23,7 @@ html[data-teddy-entry="family"] #btnGreenhouseMode,
 html[data-teddy-entry="family"] #greenhousePanel,
 html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 </style>
-<title>Smart Teddy 6.6.0 · TEDDY（碰氣）</title>
+<title>Smart Teddy 6.7.0 · TEDDY（碰氣）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -463,7 +463,7 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
 
 </head>
 <body>
-  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 6.6.0 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
+  <div id="deployStamp" style="display:none;">deploy: Smart Teddy 6.7.0 · Flash Live Mouth · Persona/Memory Locked · One Persona · Function7 Ten Tables · Investment Core · Data/Reasoning Separated · Multi-source Fresh Data · Astra/Sol Fallback · Voice/Memory Locked · 2026-09-17</div>
   <div id="teddyV3Badge" style="display:none;">SMART TEDDY 5.1.4 ASTRA</div>
   <!-- TEDDY 動態島 -->
   <div id="teddyIsland" title="拖我移動 · 點我看更多">
@@ -793,12 +793,12 @@ html[data-teddy-entry="farm"] #btnPongchiMode{display:none!important;}
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 6.6.0・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 6.7.0・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 6.6.0；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 6.7.0；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -831,7 +831,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 6.6.0：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 6.7.0：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -1151,7 +1151,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 6.6.0";
+    const TEDDY_VERSION = "Smart Teddy 6.7.0";
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
     const TEDDY_V3_24H = 24 * 60 * 60 * 1000;
@@ -2733,7 +2733,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     let teddyHandsWorkMode=null; // assign / report
     let teddyHandsFlow={};       // 工作入口導引狀態
 
-    // ===== Smart Teddy 6.6.0：主人版＝A01 孫爸（完全體開發者，全部權限）=====
+    // ===== Smart Teddy 6.7.0：主人版＝A01 孫爸（完全體開發者，全部權限）=====
     // 主人版（無 ?app 參數）閱讀全部資料本來就不受限；這裡讓 A 開頭帳號驗證一次後記在「這台裝置」，
     // 重新整理不必再驗證。只存編號、姓名、身分與權限，不存密碼；寫入仍走「草稿 → 復述 → 你確認」。
     // 說「登出」或「取消授權」即清除。溫室助理入口（員工）不受影響，仍是每次登入。
@@ -2952,7 +2952,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       await teddyHandsWriteKv(key,v);return key;
     }
 
-    // ===== Smart Teddy 6.6.0：工作指派走完全體同一套安全交易 =====
+    // ===== Smart Teddy 6.7.0：工作指派走完全體同一套安全交易 =====
     // 以下 TEDDY_WDS 為完全體 V5.1.C125「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
     // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
 const TEDDY_WDS = (() => {
@@ -3147,7 +3147,31 @@ const TEDDY_WDS = (() => {
       if(m)return `${m[1]||now.getFullYear()}-${String(m[2]).padStart(2,"0")}-${String(m[3]||m[4]).padStart(2,"0")}`;
       return f(now);
     }
+    // 6.6.1：語音常把數量說成中文（一公斤、兩分鐘、十五噸、一點五公斤、半包、一包半），先轉成數字。
+    // 只轉「緊接單位」的數字，所以「磷酸一鉀」的「一」不會被誤轉。
+    function teddyCnQtyToDigits(s){
+      const v={零:0,〇:0,一:1,二:2,兩:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+      const int=w=>{
+        if(!w)return null;if(/^\d+$/.test(w))return Number(w);
+        let total=0,cur=0;
+        for(const ch of w){
+          if(v[ch]!=null)cur=v[ch];
+          else if(ch==="十"){total+=(cur||1)*10;cur=0;}
+          else if(ch==="百"){total+=(cur||1)*100;cur=0;}
+          else return null;
+        }
+        return total+cur;
+      };
+      const U="(噸|公噸|分鐘|分|包|公斤|kg|KG|Kg)";
+      let out=String(s||"");
+      out=out.replace(new RegExp(`([零〇一二兩三四五六七八九十百\\d]+)\\s*${U}\\s*半`,"g"),(m,n,u)=>{const x=int(n);return x==null?m:`${x+0.5}${u}`;});
+      out=out.replace(new RegExp(`半\\s*${U}`,"g"),(m,u)=>`0.5${u}`);
+      out=out.replace(new RegExp(`([零〇一二兩三四五六七八九十百]+)(?:點|\\.)([零〇一二三四五六七八九]+)\\s*${U}`,"g"),(m,a,b,u)=>{const x=int(a);if(x==null)return m;const d=[...b].map(c=>v[c]).join("");return `${x}.${d}${u}`;});
+      out=out.replace(new RegExp(`([零〇一二兩三四五六七八九十百]+)\\s*${U}`,"g"),(m,n,u)=>{const x=int(n);return x==null?m:`${x}${u}`;});
+      return out.replace(/公噸/g,"噸");
+    }
     function teddyHandsParse68(q){
+      q=teddyCnQtyToDigits(q);
       const zone=teddyHandsZoneFromText(q),date=teddyHandsDateFromText(q),ym=date.slice(0,7);
       const vals={6:{},7:{},8:{}},named=new Set();
       const all=[...TEDDY68_ITEMS[6],...TEDDY68_ITEMS[7],...TEDDY68_ITEMS[8]];
@@ -3168,6 +3192,16 @@ const TEDDY_WDS = (() => {
     }
     function teddyHandsMerge68(old,nw,q){
       const n=nw||teddyHandsParse68(q);
+      // 補問時只回答數量（例如「一公斤」「都是兩包」）：套用到還缺數量、且單位相符的品項；復述時會逐項列出讓你確認。
+      if(!n.ids.length&&!n.noQty.length){
+        const qq=teddyCnQtyToDigits(q),m=qq.match(/(\d+(?:\.\d+)?)\s*(噸|分鐘|分|包|公斤|kg)/i);
+        if(m){
+          const amt=Number(m[1]),u=m[2].toLowerCase();
+          const fits=name=>{const unit=TEDDY68_UNIT[name]||"kg";return unit==="噸"?u==="噸":unit==="分鐘"?(u==="分鐘"||u==="分"):unit==="包"?u==="包":(u==="公斤"||u==="kg");};
+          old.noQty.filter(fits).forEach(name=>{n.vals[teddy68ItemOf(name)][name]=amt;});
+          if(old.wantsWater&&!old.noQty.some(x=>teddy68ItemOf(x)===6)&&(u==="噸"||u==="分鐘"||u==="分"))n.vals[6][u==="噸"?"溝灌":"噴灌"]=amt;
+        }
+      }
       const hasDate=/今天|明天|明日|後天|\d+\s*[月\/]|[一二三四五六七八九十]+\s*月/.test(q);
       const vals={6:{...old.vals[6],...n.vals[6]},7:{...old.vals[7],...n.vals[7]},8:{...old.vals[8],...n.vals[8]}};
       const ids=[6,7,8].filter(id=>Object.keys(vals[id]).length);
@@ -3260,26 +3294,136 @@ const TEDDY_WDS = (() => {
       const key=d.kind==="assign68"?await teddyHandsCommit68(d):await teddyHandsCommitWorkSafe(d);teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
+    // ===== Smart Teddy 6.7.0：簡化指派——照上次、常用配方、口語確認、一行復述 =====
+    const TEDDY_RECIPE_KEY="teddy_recipes_v1"+(window.TEDDY_KEY_SUFFIX||"");
+    let teddyRecipes={};
+    try{teddyRecipes=JSON.parse(localStorage.getItem(TEDDY_RECIPE_KEY)||"{}")||{};}catch(_){teddyRecipes={};}
+    async function teddyRecipesSave(){
+      try{localStorage.setItem(TEDDY_RECIPE_KEY,JSON.stringify(teddyRecipes));}catch(_){}
+      try{if(typeof teddyEnsureFirebase==="function"&&teddyEnsureFirebase())await firebase.firestore().collection("teddy_memory").doc(teddyGetMemoryDocId()).set({ghRecipes:teddyRecipes,ghRecipesAt:Date.now()},{merge:true});}catch(e){console.warn("配方雲端儲存失敗，已存本機",e.message);}
+    }
+    (async()=>{try{if(typeof teddyEnsureFirebase==="function"&&teddyEnsureFirebase()){const d=await firebase.firestore().collection("teddy_memory").doc(teddyGetMemoryDocId()).get();const c=d.exists?(d.data()||{}).ghRecipes:null;if(c&&typeof c==="object"&&!Object.keys(teddyRecipes).length){teddyRecipes=c;localStorage.setItem(TEDDY_RECIPE_KEY,JSON.stringify(c));}}}catch(_){}})();
+    function teddyRecipeText(vals){
+      return [6,7,8].flatMap(id=>Object.entries(vals[id]||{}).map(([k,v])=>`${k} ${v}${TEDDY68_UNIT[k]||"kg"}`)).join("、");
+    }
+    function teddyRecipeInText(q){
+      const names=Object.keys(teddyRecipes).sort((a,b)=>b.length-a.length);
+      return names.find(n=>String(q).includes(n))||null;
+    }
+    // 存／刪／列配方
+    function teddyRecipeCommand(q){
+      let m=q.match(/^(?:存|儲存|新增|設定)?配方\s*[「『]?([^\s「」『』=＝:：]{1,12})[」』]?\s*[=＝:：]?\s*(.+)$/);
+      if(m&&!/^(?:有哪些|清單|列表)$/.test(m[1])&&/\d|[一二兩三四五六七八九十半]/.test(m[2])){
+        const name=m[1],d=teddyHandsParse68(m[2]);
+        if(!d.ids.length)return {handled:true,reply:`配方「${name}」沒有讀到品項和數量。例如：存配方 液肥A 磷酸一鉀1公斤 硫酸鉀1公斤`};
+        if(d.noQty.length)return {handled:true,reply:`配方「${name}」還缺：${d.noQty.map(x=>`「${x}」的數量`).join("、")}。`};
+        teddyRecipes[name]={vals:d.vals,at:Date.now()};teddyRecipesSave();
+        return {handled:true,reply:`✓ 已存配方「${name}」：${teddyRecipeText(d.vals)}。之後說「指派四北${name}」就好。`};
+      }
+      if(/^(?:配方有哪些|配方清單|我的配方|列出配方)$/.test(q)){
+        const ks=Object.keys(teddyRecipes);
+        return {handled:true,reply:ks.length?ks.map(k=>`・${k}：${teddyRecipeText(teddyRecipes[k].vals)}`).join("\n"):"目前沒有配方。例如說：存配方 液肥A 磷酸一鉀1公斤 硫酸鉀1公斤"};
+      }
+      m=q.match(/^(?:刪除|移除)配方\s*[「『]?([^\s「」『』]{1,12})[」』]?$/);
+      if(m){if(!teddyRecipes[m[1]])return {handled:true,reply:`找不到配方「${m[1]}」。`};delete teddyRecipes[m[1]];teddyRecipesSave();return {handled:true,reply:`已刪除配方「${m[1]}」。`};}
+      return null;
+    }
+    // 照上次：讀完全體該區最近一次 6–8 指派，原樣再排一筆（日期用這次說的，沒說就今天）
+    async function teddyHandsRepeatLast(q){
+      const zone=teddyHandsZoneFromText(q);
+      if(!zone)return {error:"要照哪一區的上次？例如「指派四北照上次」。"};
+      const want=/補水|澆水|灌/.test(q)?[6]:/施肥|肥/.test(q)?[7,8]:[6,7,8];
+      const now=new Date();
+      for(let i=0;i<4;i++){
+        const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+        const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+        const r=await teddyWorkRead(`zonework:${zone.id}:${ym}`);
+        const hist=(r.data.assignmentHistory||[]).filter(h=>(h.itemIds||[]).some(id=>want.includes(Number(id))));
+        if(!hist.length)continue;
+        const last=hist[hist.length-1],vals={6:{},7:{},8:{}};
+        (last.itemIds||[]).map(Number).filter(id=>want.includes(id)).forEach(id=>{
+          TEDDY_WDS.options(r.data,id).forEach(opt=>{const v=TEDDY_WDS.quantity(r.data,id,opt);if(TEDDY_WDS.positive(v))vals[id][opt]=Number(v);});
+        });
+        if(![6,7,8].some(id=>Object.keys(vals[id]).length))continue;
+        return {vals,from:last.assignedAt||ym};
+      }
+      return {error:`${zone.name}最近四個月找不到可照做的${want.length===1?"補水":want.length===2?"施肥":""}指派。`};
+    }
+    function teddyHandsDateLabel(date){
+      const f=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+      const n=new Date();
+      if(date===f(n))return "今天";
+      if(date===f(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)))return "明天";
+      if(date===f(new Date(n.getFullYear(),n.getMonth(),n.getDate()+2)))return "後天";
+      return date.slice(5).replace("-","/");
+    }
+    function teddyHandsOneLine(d){
+      if(d.kind!=="assign68")return teddyHandsPreviewText(d);
+      const src=d.fromLabel?`（${d.fromLabel}）`:"";
+      const rec=d.recipientId?`｜給 ${d.recipientId}（區域 ${d.cellId}）`:"";
+      return `${d.zone?d.zone.name.replace("溫室",""):"?"}・${teddyHandsDateLabel(d.date)}｜${teddyRecipeText(d.vals)}${rec}${src}`;
+    }
+    const TEDDY_CONFIRM_RE=/^(?:確認|確認寫入|寫入|確定|執行|好|好的|好喔|好啊|對|對的|對啊|可以|沒問題|沒錯|是|是的|ok|OK|Ok|嗯|就這樣)[。！!～~]*$/;
+
     async function teddyHandsHandle(text){
       const q=String(text||"").trim();
       if(/(?:用|以)?\s*A01\s*(?:帳號)?\s*(?:登入|登錄|驗證)/i.test(q)){const r=await teddyHandsLogin("A01");return {handled:true,reply:r.message};}
       if(teddyHandsSession&&/^(?:工作)?指派(?:工作)?$/.test(q))return {handled:true,reply:teddyHandsSetWorkMode("assign")};
       if(teddyHandsSession&&/^(?:工作)?回報(?:工作)?$/.test(q))return {handled:true,reply:teddyHandsSetWorkMode("report")};
-      if(/^(?:確認|確認寫入|寫入|確定|執行)$/i.test(q)&&teddyHandsPending){if(!teddyHandsSession)return {handled:true,reply:"這筆設定還沒寫入。請先說「用 A01 登入」，我會向你詢問密碼。"};try{const key=await teddyHandsCommitPending();return {handled:true,reply:`✓ 已用完全體同一套安全交易寫入指派，並重新讀取驗證成功。位置：${key}。現場可在完全體功能表4看到並回報。`};}catch(e){teddyHandsPending=null;teddyHandsRender();return {handled:true,reply:`寫入失敗，沒有寫進完全體：${e.message}（這筆草稿已清除，請重新說一次指派內容）`};}}
-      if(/^(?:取消|不要寫入|取消寫入)$/i.test(q)&&teddyHandsPending){teddyHandsCancel();return {handled:true,reply:"好，已取消這筆待執行設定，沒有寫入 V5.1。"};}
-      // 6.6.0：只有明確要「指派」（或已進入工作指派、或正在補問草稿）才當成寫入指令；
-      // 一般提問（多少、幾、嗎、哪…）一律交回查詢，不會被誤當成指派。
+      const rc=teddyRecipeCommand(q);if(rc)return rc;
+      if(TEDDY_CONFIRM_RE.test(q)&&teddyHandsPending&&teddyHandsMissing(teddyHandsPending).length){
+        return {handled:true,reply:`還不能寫入，草稿保留著。還缺：${teddyHandsMissing(teddyHandsPending).join("、")}。\n目前：${teddyHandsOneLine(teddyHandsPending)}`};
+      }
+      if(TEDDY_CONFIRM_RE.test(q)&&teddyHandsPending){
+        if(!teddyHandsSession)return {handled:true,reply:"這筆還沒寫入。請先說「用 A01 登入」，我會向你詢問密碼。"};
+        const line=teddyHandsOneLine(teddyHandsPending);
+        try{const key=await teddyHandsCommitPending();return {handled:true,reply:`✓ 已寫入：${line}\n（完全體同一套安全交易，已重新讀取驗證；位置 ${key}）`};}
+        catch(e){teddyHandsPending=null;teddyHandsRender();return {handled:true,reply:`寫入失敗，沒有寫進完全體：${e.message}（這筆草稿已清除，請重新說一次指派內容）`};}
+      }
+      if(/^(?:取消|不要|不要寫入|取消寫入|算了|不對)[。！!]*$/i.test(q)&&teddyHandsPending){teddyHandsCancel();return {handled:true,reply:"好，已取消，沒有寫入。"};}
+      // 只有明確要「指派」（或已進入工作指派、或正在補問草稿）才當成寫入指令；一般提問一律交回查詢。
       const isQuestion=/多少|幾|嗎|呢|哪|什麼|怎麼|有沒有|是否|\?|？/.test(q);
-      const assignIntent=teddyHandsWorkMode==="assign"||/指派|指定|安排|派工|交辦/.test(q);
+      const assignVerb=/指派|指定|安排|派工|交辦/.test(q);
+      const assignIntent=teddyHandsWorkMode==="assign"||assignVerb;
       if(teddyHandsWorkMode==="report"||/^(?:工作)?回報/.test(q))return {handled:true,reply:"回報目前請在完全體功能表4操作。Teddy 這一版只開放「工作指派」，回報會在移植完全體的回報安全交易後再開放。"};
       if(!teddyHandsPending&&(!assignIntent||(isQuestion&&teddyHandsWorkMode!=="assign")))return {handled:false};
-      if(teddyHandsPending&&isQuestion&&!assignIntent&&teddyHandsWorkMode!=="assign")return {handled:false};
-      let d=teddyHandsParseDraft(q);
+      if(teddyHandsPending&&isQuestion&&!assignVerb&&teddyHandsWorkMode!=="assign")return {handled:false};
+      let d=null;
+      // 照上次
+      if(/照上次|跟上次一樣|同上次|照舊|照上週|跟上週一樣|照之前/.test(q)){
+        const r=await teddyHandsRepeatLast(q);
+        if(r.error)return {handled:true,reply:r.error};
+        d=teddyHandsParse68(q);d.vals=r.vals;d.ids=[6,7,8].filter(id=>Object.keys(r.vals[id]).length);d.noQty=[];d.wantsFert=false;d.wantsWater=false;
+        d.fromLabel=`照 ${String(r.from).split(" ")[0].slice(5)} 那次`;
+      }
+      // 配方
+      const recipe=!d?teddyRecipeInText(q):null;
+      if(recipe){
+        d=teddyHandsParse68(q.replace(recipe,""));
+        const rv=teddyRecipes[recipe].vals;
+        [6,7,8].forEach(id=>{d.vals[id]={...(rv[id]||{}),...d.vals[id]};});
+        d.ids=[6,7,8].filter(id=>Object.keys(d.vals[id]).length);d.noQty=d.noQty.filter(x=>!(x in d.vals[teddy68ItemOf(x)]));d.wantsFert=false;d.wantsWater=false;
+        d.fromLabel=`配方 ${recipe}`;
+      }
+      if(!d)d=teddyHandsParseDraft(q);
       // 只有補問時的回答（沒有再說一次「指派」）才併入原草稿；重新說「指派…」就是一筆新的。
-      if(teddyHandsPending&&teddyHandsPending.kind==="assign68"&&(!d||d.kind==="assign68")&&!/指派|指定|安排|派工|交辦/.test(q))d=teddyHandsMerge68(teddyHandsPending,d,q);
+      if(teddyHandsPending&&teddyHandsPending.kind==="assign68"&&(!d||d.kind==="assign68")&&!assignVerb)d=teddyHandsMerge68(teddyHandsPending,d,q);
       if(!d)return {handled:false};
-      if(d){const miss=teddyHandsMissing(d);teddyHandsPending=d;teddyHandsRender();if(miss.length)return {handled:true,reply:`目前走「${teddyHandsWorkMode==="report"?"工作回報":"工作指派"}」路線，還缺：${miss.join("、")}。${teddyHandsWorkMode==="report"?"路徑是：工作入口 → 功能表4 → 溫室 → 年月 → 回報項目。":"路徑是：工作入口 → 溫室 → 平面圖 → 區域 → 工作1–8。"}`};return {handled:true,reply:`我先復述一次，現在還沒有寫入：\n\n${teddyHandsPreviewText(d)}\n\n如果正確，請說「確認」或按「確認寫入」；要取消就說「取消」。`};}
-      return {handled:false};
+      const miss=teddyHandsMissing(d);teddyHandsPending=d;teddyHandsRender();
+      if(miss.length)return {handled:true,reply:`還缺：${miss.join("、")}。`};
+      // 先檢查完全體規則：同工項還有未回報的指派就不能再指派，提早說，不等到確認才失敗。
+      if(d.kind==="assign68"){
+        try{
+          const r=await teddyWorkRead(`zonework:${d.zone.id}:${d.ym}`);
+          const busy=d.ids.filter(id=>(r.data.pending||{})[id]);
+          if(busy.length){
+            teddyHandsPending=null;teddyHandsRender();
+            const nm={6:"工作6 補水",7:"工作7 施肥（固態）",8:"工作8 其他資材"};
+            return {handled:true,reply:`${d.zone.name}${d.ym.slice(5)}月的${busy.map(id=>nm[id]).join("、")}還有一筆指派尚未回報完成。完全體規定要先回報（或在完全體修正那筆）才能再指派，所以這筆先不建立。`};
+          }
+        }catch(e){console.warn("指派前檢查失敗，確認時仍會由安全交易把關",e.message);}
+      }
+      return {handled:true,reply:`${teddyHandsOneLine(d)}，對嗎？說「好」就寫入，說「取消」就不寫。`};
     }
 
     async function teddySend() {
@@ -3325,7 +3469,8 @@ const TEDDY_WDS = (() => {
       // 一般模式下的照片、檔案、網頁、一般聊天不得被工作解析器攔截。
       const greenhouseActive = (window.TEDDY_APP_MODE === "greenhouse");
       const explicitHandsCommand = /(?:^|\s)(?:工作|進入工作|工作模式|溫室模式|工作指派|工作回報|用\s*A01\s*登入|A01\s*登入|登入溫室系統|確認寫入|取消寫入)(?:$|[，。！？!?\s])/i.test(text)
-        || (!!teddyHandsPending && /^(?:確認|確認寫入|寫入|確定|執行|取消|不要寫入|取消寫入)$/i.test(text.trim()));
+        || (!!teddyHandsPending && (TEDDY_CONFIRM_RE.test(text.trim())||/^(?:取消|不要|不要寫入|取消寫入|算了|不對)[。！!]*$/i.test(text.trim())))
+        || /配方/.test(text);
       const handsAllowed = (window.TEDDY_ENTRY_ID||"owner") !== "family";
       const handsResult = handsAllowed && (greenhouseActive || explicitHandsCommand) ? await teddyHandsHandle(text) : {handled:false};
       if (handsResult && handsResult.handled) {
@@ -6603,7 +6748,7 @@ ${parts}
       return{empty:!rows.length,range:f7RangeLabel(ctx),records:rows.length,summary,data:{logins:rows.slice(0,80).map(({loggedAt,...r})=>r),byPerson,ips}};
     }
 
-        // ===== Smart Teddy 6.6.0：表十一／表十二（對齊完全體 V5.1.C125 ZONEWORK_ITEMS）=====
+        // ===== Smart Teddy 6.7.0：表十一／表十二（對齊完全體 V5.1.C125 ZONEWORK_ITEMS）=====
     // 與完全體同一來源：zonework:{分區}:{年月} 的 confirmHistory（只算已回報確認）。
     const GH_ZW_ITEMS=[
       {key:"溝灌",unit:"噸"},{key:"噴灌",unit:"分鐘"},{key:"米糠",unit:"包"},{key:"金旺",unit:"包"},
@@ -6687,7 +6832,7 @@ ${parts}
       return{empty,range,zones:zones.map(z=>z.yield),records:count,summary:lines.join("\n"),data:{compare}};
     }
 
-    // ===== Smart Teddy 6.6.0：表十三・表十四（對齊完全體 V5.1.C125）=====
+    // ===== Smart Teddy 6.7.0：表十三・表十四（對齊完全體 V5.1.C125）=====
     const T13_TEMP_BINS_T=[
       {label:"< 20°C",lo:-99,hi:20},{label:"20–25°C",lo:20,hi:25},{label:"25–28°C",lo:25,hi:28},
       {label:"28–31°C",lo:28,hi:31},{label:"31–34°C",lo:31,hi:34},{label:"≥ 34°C",lo:34,hi:99}
@@ -6810,7 +6955,7 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 6.6.0：完全體 V5.1.C125 對齊層 =====
+    // ===== Smart Teddy 6.7.0：完全體 V5.1.C125 對齊層 =====
     // 原則：完全體＝唯一真相，Teddy＝嘴巴。
     // 1) 功能表名稱、表格名稱、版本號以完全體發布的 teddy-manifest.json 為準；讀不到才用內建備份。
     // 2) 溫室助理（?app=farm）每次提問前即時讀 person:{ID}，閱覽權限與完全體功能表2同一套規則。
@@ -6906,7 +7051,7 @@ ${parts}
     }
 
 
-    // ===== Smart Teddy 6.6.0：完全體說明（怎麼用／怎麼算／是什麼）=====
+    // ===== Smart Teddy 6.7.0：完全體說明（怎麼用／怎麼算／是什麼）=====
     // 依據只有一份：完全體發布的 teddy-manifest.json 裡的 guide（讀不到才用內建備份）。不讀任何數字資料。
     function ghIsGuideQuestion(q){
       const t=teddyToTrad(String(q||"")).replace(/\s+/g,"");
@@ -7103,7 +7248,7 @@ ${parts}
 
     setTimeout(()=>{teddyLoadV51Manifest().catch(()=>{});},0);
 
-    // ===== Smart Teddy 6.6.0：溫室唯一資料閘門 =====
+    // ===== Smart Teddy 6.7.0：溫室唯一資料閘門 =====
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
@@ -7145,7 +7290,7 @@ ${parts}
     }
     window.teddyGreenhouseAsk=teddyGreenhouseAsk;
 
-    // ===== Smart Teddy 6.6.0：問句理解層（AI 解析）＋ 答對答錯學習 =====
+    // ===== Smart Teddy 6.7.0：問句理解層（AI 解析）＋ 答對答錯學習 =====
     // 分工：AI 只負責「聽懂問句 → 改寫成明確查詢」；數字一律由程式從完全體讀取計算；AI 再把結果講成人話。
     // 學習：記住「這種問法 → 該查哪裡」，不記數字（數字每次重新從完全體讀）。
     // 儲存：Teddy 自己的記憶（本機＋Teddy Firebase），絕不寫進完全體。
@@ -7840,7 +7985,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
     const ym=`${now.year}-${String(now.month).padStart(2,"0")}`;return `${now.year}年${now.month}月：`+V6_ZONE_ORDER.map(id=>{const r=active.find(x=>x.zone?.id===id&&x.period===ym);return `${V6_ZONE_NAME[id]}：${r?label(r):"無計畫"}`;}).join("；")+"。";
   }
 
-  // ===== Smart Teddy 6.6.0：補水／施肥／其他資材（工作6–8）改為直接讀完全體 =====
+  // ===== Smart Teddy 6.7.0：補水／施肥／其他資材（工作6–8）改為直接讀完全體 =====
   // 與完全體 fetchZoneworkConfirmedByDay 同一套：zonework:{分區}:{年月} 的 confirmHistory，
   // qty 需 >0，日期由 at 換算；分類依完全體：工作6 補水＝溝灌、噴灌；工作7 施肥＝米糠、金旺；工作8 其他資材＝其餘 7 項。
   // 沒講時間＝本月（並在回答中寫明），講「今天／昨天／前天／幾月幾日」就只算那一天。
@@ -8350,7 +8495,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     parameters:{type:"object",properties:{account:{type:"string",enum:["A01"]}},required:[]}
   };
   const handsCommandTool={
-    name:"hands_command",description:"只有使用者明確說要「指派」工作（或回答指派的補問、說確認／取消）時才使用；一般提問一律用 query_greenhouse。處理 V5.1 工作入口操作：登入後的工作指派/工作回報選擇、指派路徑（溫室→平面圖→區域→工作1-8）、回報路徑（功能表4→溫室→年月→回報項目）、確認寫入或取消。必須把使用者原句完整傳入 command。",
+    name:"hands_command",description:"只有使用者明確說要「指派」工作（或回答指派的補問、說確認／取消）時才使用；使用者每一句補充（例如「一公斤」）都要原句再呼叫一次本工具；有草稿等待確認時，使用者說「好、對、可以、沒錯」也要原句交給本工具；「照上次」「配方」相關的話也交給本工具。復述與缺漏一律照工具回傳的文字念，禁止自己補數字或自己說「資訊齊了請確認」；工具說還缺什麼就只問那一項。一般提問一律用 query_greenhouse。處理 V5.1 工作入口操作：登入後的工作指派/工作回報選擇、指派路徑（溫室→平面圖→區域→工作1-8）、回報路徑（功能表4→溫室→年月→回報項目）、確認寫入或取消。必須把使用者原句完整傳入 command。",
     parameters:{type:"object",properties:{command:{type:"string"}},required:["command"]}
   };
   const browseWebTool={
