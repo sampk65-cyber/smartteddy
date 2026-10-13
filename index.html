@@ -2238,7 +2238,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       // GPT-6 Astra: tools must use the Responses API.
       const oaTools = [
         { type: "web_search" },
-        { type:"function", name:"inspect_v51_page", description:"讀取目前網頁內嵌完全體 V5.1.C131 的可見介面、功能入口、表格與固定路由。只在溫室模式可用；回答此頁/功能表/路徑問題時先呼叫。", parameters:{type:"object",properties:{question:{type:"string"}},required:[]}, strict:false },
+        { type:"function", name:"inspect_v51_page", description:"讀取目前網頁內嵌完全體 V5.1.C132 的可見介面、功能入口、表格與固定路由。只在溫室模式可用；回答此頁/功能表/路徑問題時先呼叫。", parameters:{type:"object",properties:{question:{type:"string"}},required:[]}, strict:false },
         ...TEDDY_TOOLS.map((t) => ({
           type: "function",
           name: t.name,
@@ -2254,7 +2254,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       const urlGuard=/https?:\/\//i.test(lastUserText)
         ? "\n\n【本輪網址規則】使用者提供了網頁連結。你必須使用 web_search 嘗試實際讀取/搜尋該網址的頁面內容與可索引資訊後再回答。不可只看網址字串臆測。若頁面需要登入、遭 robots/權限/CORS/付費牆阻擋，請明確指出限制。" : "";
       const v51PageGuard=(window.TEDDY_APP_MODE==="greenhouse")
-        ? "\n\n【V5.1.C131 網頁規則】你正在 Teddy 內嵌的完全體 V5.1.C131 溫室模式。當問題涉及目前頁面、功能表、按鈕、表格、操作路徑或版本內容時，必須先呼叫 inspect_v51_page 取得目前 DOM 與固定路由，再回答；不得憑印象猜。" : "";
+        ? "\n\n【V5.1.C132 網頁規則】你正在 Teddy 內嵌的完全體 V5.1.C132 溫室模式。當問題涉及目前頁面、功能表、按鈕、表格、操作路徑或版本內容時，必須先呼叫 inspect_v51_page 取得目前 DOM 與固定路由，再回答；不得憑印象猜。" : "";
       const input = [
         { role: "developer", content: [{ type: "input_text", text: teddyBuildSystemPrompt() + visualGuard + urlGuard + v51PageGuard }] },
         ...teddyChatHistory().map((h) => {
@@ -2973,7 +2973,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     }
 
     // ===== Smart Teddy 7.0.1：工作指派走完全體同一套安全交易 =====
-    // 以下 TEDDY_WDS 為完全體 V5.1.C131「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
+    // 以下 TEDDY_WDS 為完全體 V5.1.C132「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
     // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
 const TEDDY_WDS = (() => {
   const isWorkKey = key => /^(worklog|zonework):/.test(String(key));
@@ -6230,7 +6230,7 @@ ${parts}
     }
 
     // ===== Smart Teddy 5.7：功能表7「耗材與報表」十表引擎 =====
-    // 完全對齊完全體 V5.1.C131 的 REPORT_SLOTS 與各表實際讀取邏輯：
+    // 完全對齊完全體 V5.1.C132 的 REPORT_SLOTS 與各表實際讀取邏輯：
     // 功能7 → 年份 → 月份 → 表一～表十。所有加總、排名、比例都由程式依完全體同一算法先算好，
     // 模型只負責專業解讀，不自行計算數字。
     const F7_TABLES={
@@ -6782,7 +6782,7 @@ ${parts}
       return{empty:!rows.length,range:f7RangeLabel(ctx),records:rows.length,summary,data:{logins:rows.slice(0,80).map(({loggedAt,...r})=>r),byPerson,ips}};
     }
 
-        // ===== Smart Teddy 7.0.1：表十一／表十二（對齊完全體 V5.1.C131 ZONEWORK_ITEMS）=====
+        // ===== Smart Teddy 7.0.1：表十一／表十二（對齊完全體 V5.1.C132 ZONEWORK_ITEMS）=====
     // 與完全體同一來源：zonework:{分區}:{年月} 的 confirmHistory（只算已回報確認）。
     const GH_ZW_ITEMS=[
       {key:"溝灌",unit:"噸"},{key:"噴灌",unit:"分鐘"},{key:"米糠",unit:"包"},{key:"金旺",unit:"包"},
@@ -6866,7 +6866,7 @@ ${parts}
       return{empty,range,zones:zones.map(z=>z.yield),records:count,summary:lines.join("\n"),data:{compare}};
     }
 
-    // ===== Smart Teddy 7.0.1：表十三・表十四（對齊完全體 V5.1.C131）=====
+    // ===== Smart Teddy 7.0.1：表十三・表十四（對齊完全體 V5.1.C132）=====
     const T13_TEMP_BINS_T=[
       {label:"< 20°C",lo:-99,hi:20},{label:"20–25°C",lo:20,hi:25},{label:"25–28°C",lo:25,hi:28},
       {label:"28–31°C",lo:28,hi:31},{label:"31–34°C",lo:31,hi:34},{label:"≥ 34°C",lo:34,hi:99}
@@ -6951,7 +6951,7 @@ ${parts}
     }
 
     const F7_READERS={1:f7T1,2:f7T2,3:f7T3,4:f7T4,5:f7T5,6:f7T6,7:f7T7,8:f7T8,9:f7T9,10:f7T10,11:f7T11,12:f7T12,13:f7T13,14:f7T14};
-    const F7_RULES_TEXT=`功能表7「耗材與報表」判讀規則（完全體 V5.1.C131）：
+    const F7_RULES_TEXT=`功能表7「耗材與報表」判讀規則（完全體 V5.1.C132）：
 - 路徑：功能7 → 年份 → 月份 → 表一～表十四。十四張表：${Object.values(F7_TABLES).map(x=>`表${x.no}${x.name}`).join("、")}。
 - payload.f7.summary 與 payload.f7.data 的數字已由程式依完全體同一算法計算完成；只能引用這些數字，不可重算出不同結果、不可補猜。
 - 表一／表三／表八的投入只算 confirmHistory 已回報確認的紀錄；單位：溝灌=噸、噴灌=分鐘、米糠／金旺=包、其他資材=kg。
@@ -6989,14 +6989,14 @@ ${parts}
       return `${header}\n${result.summary}\n來源：功能表7・表${meta.no}・${meta.name}`;
     }
 
-    // ===== Smart Teddy 7.0.1：完全體 V5.1.C131 對齊層 =====
+    // ===== Smart Teddy 7.0.1：完全體 V5.1.C132 對齊層 =====
     // 原則：完全體＝唯一真相，Teddy＝嘴巴。
     // 1) 功能表名稱、表格名稱、版本號以完全體發布的 teddy-manifest.json 為準；讀不到才用內建備份。
     // 2) 溫室助理（?app=farm）每次提問前即時讀 person:{ID}，閱覽權限與完全體功能表2同一套規則。
     // 3) 本層只讀不寫；寫入仍走既有「草稿 → 確認 → 寫入」流程。
     const TEDDY_V51_MANIFEST_URL="https://blue-ribbon-v51.vercel.app/teddy-manifest.json";
     const TEDDY_V51_MANIFEST_BUILTIN={
-      sourceVersion:"V5.1.C131",
+      sourceVersion:"V5.1.C132",
       functions:{
         "1":{name:"人員與帳號"},"2":{name:"權限管理"},"3":{name:"產能資料輸入與分析"},
         "4":{name:"分區工項提示內容（工作1–5）"},"5":{name:"工項行事曆／年度計畫"},"6":{name:"照片影像資料庫"},
@@ -7007,7 +7007,7 @@ ${parts}
         "表六":"施肥用量統計","表七":"長週期產能趨勢","表八":"分區資材投入與產能對比","表九":"氣候變遷與產能",
         "表十":"登入 IP 與時間","表十一":"溫室用量側寫","表十二":"細項跨溫室對比","表十三":"氣候與資材投入","表十四":"產能 × 資材 × 雨量"
       },
-      guide:"【完全體 V5.1.C131 系統說明（Teddy 回答「怎麼用／怎麼算／是什麼」的唯一依據）】\n一、整體\n- 完全體是藍帶無花果溫室的管理系統，首頁大標題「好土、好果、好生活」。點選地圖上的分區登入後，從「整體功能表」進入各功能。\n- 主選單共 10 項：1 人員與帳號、2 權限管理、3 產能資料輸入與分析、4 分區工項提示內容、5 工項行事曆／年度計畫、6 照片影像資料庫、7 查看各項報表、8 果樹履歷（樹齡／高度／節間）、9 環境數據、10 上下班打卡；另有「備份與還原」。\n- 分區共六區：一期、二期、三期、四北、四南、五期。\n- 資料庫：主要資料在 Firebase 專案 figapi-d24dc（kv 集合）；產能在另一個專案 figdata-d2737。報表全部只讀取、不寫入。\n二、權限（功能表2）\n- A 開頭帳號（設計師）、B 開頭帳號（老闆）全部功能開放。\n- 其他帳號需為「啟用」狀態；每個功能表可逐項開關「閱覽／修改」，沒設逐項開關時，依權限層級（修改、閱覽、回饋）決定。\n- 表十（登入 IP）只有 A、B 帳號可看。\n三、工作分類\n- 工作1–5（功能表4）：打芽(側)、打芽(地)、除草、剪葉、覆蓋，記錄指派與進度。\n- 工作6 補水＝溝灌（噸）、噴灌（分鐘）；工作7 施肥＝米糠、金旺（包）；工作8 其他資材＝黃豆、水果、硝酸鉀、磷酸一鉀、硫酸鉀、鈣鎂粉、微量元素（kg）。\n- 報表裡的「固態」＝米糠＋金旺；「液態」＝工作8 的 7 種資材。\n四、用量怎麼算（表一、三、六、八、十一～十四共用同一規則）\n- 只算「已回報確認」的紀錄（confirmHistory），指派或未確認的不算。\n- 完全相同的回報（同品項、同數量、同時間、同回報人、同指定事件）只算一次，因為早期資料曾被重複寫入。\n- 只認日期落在該月份的回報（每個分區每月一份文件）。\n- 數量必須大於 0 才計入。\n五、功能表7 報表（路徑：年份 → 月份 → 表格）\n- 表一 耗材匯總表；表二 年度計畫表（與功能表5共用）；表三 分區耗材統計（月曆式，逐日看各區 6–8 用量）；表四 留言板內容。\n- 表五 氣候資料：中央氣象署神岡站逐時觀測；有「月觀測／年觀測」氣候總覽，雨量柱＋最高溫紅線＋最低溫藍線。\n- 表六 施肥用量統計；表七 長週期產能趨勢（2020 至今，每 15 天一筆）；表八 分區資材投入與產能對比；表九 氣候變遷與產能（看年／看月）；表十 登入 IP 與時間。\n- 表十一 溫室用量側寫：固定一個溫室，看 11 項細項的長期組成。\n- 表十二 細項跨溫室對比：固定一個細項，比較各溫室。\n- 表十三 氣候與資材投入：神岡站每日氣候對齊各溫室 6–8 用量；「溫度分級統計」依當日最高溫分六級（<20、20–25、25–28、28–31、31–34、≥34°C），並比較雨天（雨量 ≥1mm）與無雨天。\n- 表十四 產能 × 資材 × 雨量：產能折線（左軸）、資材柱狀（右軸）、雨量雲朵；可看年／月／15 天／週。\n- 表八、十一、十二、十四有「看走勢／看當期」切換：走勢＝整段期間逐期排開；當期＝只看選定一期、各溫室並排。兩者用同一份資料，同一期數字相同。\n- 多品項可選「加總（疊加）」或「並列（各品項一根）」，全系統共用這個設定；點柱子可看逐筆明細。\n- 圖表刻度：溫度固定 0–45°C、雨量固定 0–1000mm，都切 5 格；可開「六區統一刻度」，以六區中的最大值為上限。\n六、氣候\n- 戶外氣候＝神岡站（表五、九、十三、十四）；每日雨量取當日累積雨量最大值。\n- 功能表9 是溫室「內」的人工紀錄（溫度 °C、濕度 %、照度 lux、EC mS/cm、環境異常：乾旱、淹水、悶熱、寒冷、高濕、低照度、其他），與戶外氣候不可混用。\n七、其他功能\n- 功能表6 照片：依分區與月份存放，含拍攝日期、備註、上傳者。\n- 功能表8 果樹履歷：依分區、年月、點位、樹齡、剪枝日記錄每一節的標記日、間距（cm）、有無果、果直徑（mm）、成熟日。\n- 功能表10 上下班打卡：打卡紀錄、休息時段、假別。"
+      guide:"【完全體 V5.1.C132 系統說明（Teddy 回答「怎麼用／怎麼算／是什麼」的唯一依據）】\n一、整體\n- 完全體是藍帶無花果溫室的管理系統，首頁大標題「好土、好果、好生活」。點選地圖上的分區登入後，從「整體功能表」進入各功能。\n- 主選單共 10 項：1 人員與帳號、2 權限管理、3 產能資料輸入與分析、4 分區工項提示內容、5 工項行事曆／年度計畫、6 照片影像資料庫、7 查看各項報表、8 果樹履歷（樹齡／高度／節間）、9 環境數據、10 上下班打卡；另有「備份與還原」。\n- 分區共六區：一期、二期、三期、四北、四南、五期。\n- 資料庫：主要資料在 Firebase 專案 figapi-d24dc（kv 集合）；產能在另一個專案 figdata-d2737。報表全部只讀取、不寫入。\n二、權限（功能表2）\n- A 開頭帳號（設計師）、B 開頭帳號（老闆）全部功能開放。\n- 其他帳號需為「啟用」狀態；每個功能表可逐項開關「閱覽／修改」，沒設逐項開關時，依權限層級（修改、閱覽、回饋）決定。\n- 表十（登入 IP）只有 A、B 帳號可看。\n三、工作分類\n- 工作1–5（功能表4）：打芽(側)、打芽(地)、除草、剪葉、覆蓋，記錄指派與進度。\n- 工作6 補水＝溝灌（噸）、噴灌（分鐘）；工作7 施肥＝米糠、金旺（包）；工作8 其他資材＝黃豆、水果、硝酸鉀、磷酸一鉀、硫酸鉀、鈣鎂粉、微量元素（kg）。\n- 報表裡的「固態」＝米糠＋金旺；「液態」＝工作8 的 7 種資材。\n四、用量怎麼算（表一、三、六、八、十一～十四共用同一規則）\n- 只算「已回報確認」的紀錄（confirmHistory），指派或未確認的不算。\n- 完全相同的回報（同品項、同數量、同時間、同回報人、同指定事件）只算一次，因為早期資料曾被重複寫入。\n- 只認日期落在該月份的回報（每個分區每月一份文件）。\n- 數量必須大於 0 才計入。\n五、功能表7 報表（路徑：年份 → 月份 → 表格）\n- 表一 耗材匯總表；表二 年度計畫表（與功能表5共用）；表三 分區耗材統計（月曆式，逐日看各區 6–8 用量）；表四 留言板內容。\n- 表五 氣候資料：中央氣象署神岡站逐時觀測；有「月觀測／年觀測」氣候總覽，雨量柱＋最高溫紅線＋最低溫藍線。\n- 表六 施肥用量統計；表七 長週期產能趨勢（2020 至今，每 15 天一筆）；表八 分區資材投入與產能對比；表九 氣候變遷與產能（看年／看月）；表十 登入 IP 與時間。\n- 表十一 溫室用量側寫：固定一個溫室，看 11 項細項的長期組成。\n- 表十二 細項跨溫室對比：固定一個細項，比較各溫室。\n- 表十三 氣候與資材投入：神岡站每日氣候對齊各溫室 6–8 用量；「溫度分級統計」依當日最高溫分六級（<20、20–25、25–28、28–31、31–34、≥34°C），並比較雨天（雨量 ≥1mm）與無雨天。\n- 表十四 產能 × 資材 × 雨量：產能折線（左軸）、資材柱狀（右軸）、雨量雲朵；可看年／月／15 天／週。\n- 表八、十一、十二、十四有「看走勢／看當期」切換：走勢＝整段期間逐期排開；當期＝只看選定一期、各溫室並排。兩者用同一份資料，同一期數字相同。\n- 多品項可選「加總（疊加）」或「並列（各品項一根）」，全系統共用這個設定；點柱子可看逐筆明細。\n- 圖表刻度：溫度固定 0–45°C、雨量固定 0–1000mm，都切 5 格；可開「六區統一刻度」，以六區中的最大值為上限。\n六、氣候\n- 戶外氣候＝神岡站（表五、九、十三、十四）；每日雨量取當日累積雨量最大值。\n- 功能表9 是溫室「內」的人工紀錄（溫度 °C、濕度 %、照度 lux、EC mS/cm、環境異常：乾旱、淹水、悶熱、寒冷、高濕、低照度、其他），與戶外氣候不可混用。\n七、其他功能\n- 功能表6 照片：依分區與月份存放，含拍攝日期、備註、上傳者。\n- 功能表8 果樹履歷：依分區、年月、點位、樹齡、剪枝日記錄每一節的標記日、間距（cm）、有無果、果直徑（mm）、成熟日。\n- 功能表10 上下班打卡：打卡紀錄、休息時段、假別。"
     };
     let TEDDY_V51_MANIFEST=TEDDY_V51_MANIFEST_BUILTIN;
     let TEDDY_V51_MANIFEST_FROM="內建備份";
@@ -7029,7 +7029,7 @@ ${parts}
       return TEDDY_V51_MANIFEST;
     }
     window.teddyLoadV51Manifest=teddyLoadV51Manifest;
-    function ghV51Version(){return (TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.sourceVersion)||"V5.1.C131";}
+    function ghV51Version(){return (TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.sourceVersion)||"V5.1.C132";}
     function ghV51Guide(){return String((TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.guide)||TEDDY_V51_MANIFEST_BUILTIN.guide||"");}
     function ghFnName(n){const f=((TEDDY_V51_MANIFEST&&TEDDY_V51_MANIFEST.functions)||{})[String(n)];return f&&f.name?f.name:"";}
     function ghRouteMapText(){
@@ -7402,7 +7402,7 @@ ${parts}
     // 所有溫室問題（語音、溫室輸入框、一般輸入框在溫室模式）都只走這一條：
     // 問句轉繁體 → 固定路由決定入口 → 該入口只讀自己的固定資料位置 → 程式計算 → 回答。
     // 不瀏覽網頁、不掃畫面、不整包掃描資料庫、不交給其他模型自由搜尋。
-    const GH_ROUTE_MAP_TEXT=`完全體 V5.1.C131 固定路由：
+    const GH_ROUTE_MAP_TEXT=`完全體 V5.1.C132 固定路由：
 產能＝功能表3（產能庫：逐日產能與年度封存，品級 A／B／D／NG）
 工作1–5（打芽側、打芽地、除草、剪葉、覆蓋）＝功能表4
 計畫／產季／節氣＝功能表5
@@ -7735,7 +7735,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
 
     function ghRouteV51Question(q,topicHint=null){
       const t=String(q||"");
-      // 5.7：功能表7「耗材與報表」十表先依語意鎖定（對齊完全體 V5.1.C131），避免「登入IP」被誤導到功能表10打卡。
+      // 5.7：功能表7「耗材與報表」十表先依語意鎖定（對齊完全體 V5.1.C132），避免「登入IP」被誤導到功能表10打卡。
       if(ghIsGuideQuestion(t))return {id:"guide",label:"完全體說明"};
       if(ghIsFunction7Question(t))return {id:"function7",label:`功能表7・表${ghFunction7Table(t)||"?"}`};
       if(ghIsActivityQuestion(t))return {id:"activity",label:"工作總覽"};
@@ -8469,7 +8469,7 @@ ${pos?"\n已確認正確的例子（優先參考）：\n"+pos:""}${neg?"\n曾經
         <div>
           <div style="font-weight:800;font-size:16px;color:#d9fff0;">🌱 溫室管理 · V5.1</div>
           <div id="greenhouseStatus" style="font-size:11px;color:#7f968d;margin-top:2px;">V5.1 即時資料 · 支援語音提問與朗讀</div>
-          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">Smart Teddy 7.0.1 · 完全體 V5.1.C131</div>
+          <div style="font-size:10px;color:#4a5f57;margin-top:1px;">Smart Teddy 7.0.1 · 完全體 V5.1.C132</div>
         </div>
         <button type="button" id="btnGreenhouseClose" style="display:inline-flex;align-items:center;justify-content:center;border:1px solid #5eead4;background:#10251f;color:#d9fff0;border-radius:9px;padding:8px 12px;cursor:pointer;font-weight:800;">🐿 回一般模式</button>
       </div>
@@ -8672,7 +8672,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
 工具回傳的結構化資料與計算結果優先於對話記憶。查不到就直接說不知道。`;
   }
   const greenhouseTool={
-    name:"query_greenhouse",description:"溫室模式唯一的資料工具：所有完全體 V5.1.C131 的資料、統計、趨勢、功能在哪裡的問題都用它，程式會自己走固定路由。功能表7十表：耗材匯總、年度計畫、分區耗材、留言版、氣候資料、施肥用量統計、長週期產能趨勢、資材投入與產能、氣候與產能、登入IP、溫室用量側寫、細項跨溫室對比、氣候與資材投入、產能×資材×雨量，一律 entry=function7；其他：產能=yield、工作1-5=work、計畫=calendar、耗材6-8=materials、打卡=attendance、照片=photos、果樹履歷=trees、溫室內環境數據=environment、人員與帳號=people。question 必須放使用者原句。",
+    name:"query_greenhouse",description:"溫室模式唯一的資料工具：所有完全體 V5.1.C132 的資料、統計、趨勢、功能在哪裡的問題都用它，程式會自己走固定路由。功能表7十表：耗材匯總、年度計畫、分區耗材、留言版、氣候資料、施肥用量統計、長週期產能趨勢、資材投入與產能、氣候與產能、登入IP、溫室用量側寫、細項跨溫室對比、氣候與資材投入、產能×資材×雨量，一律 entry=function7；其他：產能=yield、工作1-5=work、計畫=calendar、耗材6-8=materials、打卡=attendance、照片=photos、果樹履歷=trees、溫室內環境數據=environment、人員與帳號=people。question 必須放使用者原句。",
     parameters:{type:"object",properties:{entry:{type:"string",enum:["function7","yield","work","calendar","materials","attendance","photos","trees","environment","people","guide","activity"]},question:{type:"string"}},required:["question"]}
   };
   const astraThinkTool={
@@ -8701,7 +8701,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   };
   const inspectV51PageTool={
     name:"inspect_v51_page",
-    description:"讀取目前 Teddy 頁面內嵌的完全體 V5.1.C131 溫室介面結構、目前可見文字、按鈕、表格/入口與固定路由。當使用者問『這個網頁有什麼』『現在在哪個功能』『功能表/表格/路線怎麼走』『V5.1.C131內容』時必須先用這個工具，不准憑記憶猜。",
+    description:"讀取目前 Teddy 頁面內嵌的完全體 V5.1.C132 溫室介面結構、目前可見文字、按鈕、表格/入口與固定路由。當使用者問『這個網頁有什麼』『現在在哪個功能』『功能表/表格/路線怎麼走』『V5.1.C132內容』時必須先用這個工具，不准憑記憶猜。",
     parameters:{type:"object",properties:{question:{type:"string"}},required:[]}
   };
   function teddyInspectV51Page(question=""){
@@ -8716,7 +8716,7 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
       if(visible.length>=120)break;
     }
     const routeMap={
-      version:"完全體 V5.1.C131 路由知識層（功能7 十四表）",
+      version:"完全體 V5.1.C132 路由知識層（功能7 十四表）",
       mode:window.TEDDY_APP_MODE||"general",
       main:{
         "產能":"功能表3／產能資料",
@@ -8769,8 +8769,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     if(name==="browse_web"){setLiveTrace("🌐 Teddy 正在瀏覽網頁…","#e8c879");try{const r=await liveBrowseWeb(args?.query||"");setLiveTrace("🌐 網頁資料已取得，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("網頁瀏覽失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
     if(name==="think_with_astra"){setLiveTrace("🧠 複雜問題已交給 GPT‑6 Astra 深度思考…","#e8c879");try{const r=await liveAstraThink(args?.question||"");setLiveTrace("🧠 Astra 思考完成，Teddy 正在回答。","#5eead4");return r;}catch(e){setLiveTrace("Astra 思考失敗："+e.message,"#f0a8a8");return{ok:false,error:e.message};}}
     if(name==="inspect_v51_page"){
-      setLiveTrace("🔎 Teddy 正在讀取 V5.1.C131 畫面與路由…","#e8c879");
-      try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1.C131 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
+      setLiveTrace("🔎 Teddy 正在讀取 V5.1.C132 畫面與路由…","#e8c879");
+      try{const r=teddyInspectV51Page(args?.question||"");setLiveTrace("✓ V5.1.C132 畫面結構已讀取。","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="teddy_reminder"){
       try{
