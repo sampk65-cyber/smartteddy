@@ -1,4 +1,4 @@
-// Smart Teddy 7.3.0「澎企理財」資料轉接（Vercel Serverless Function）
+// Smart Teddy 8.0.0「澎企理財」資料轉接（Vercel Serverless Function）
 // 放在 smartteddy 專案的 api/stock.js，網址：/api/stock
 // 只做「讀取」：證交所即時行情（MIS）、FinMind 公開資料、Yahoo 備援。不碰任何帳戶、不下單。
 // 選用：在 Vercel → Settings → Environment Variables 設 FINMIND_TOKEN（免費註冊 FinMind 取得），額度較高。
@@ -12,7 +12,11 @@ const FM_DATASETS = new Set([
   "TaiwanStockPER",
   "TaiwanStockDividend",
   "TaiwanStockMonthRevenue",
-  "TaiwanStockMarginPurchaseShortSale"
+  "TaiwanStockMarginPurchaseShortSale",
+  "TaiwanStockShareholding",
+  "TaiwanStockTotalInstitutionalInvestors",
+  "TaiwanStockTotalMarginPurchaseShortSale",
+  "TaiwanFuturesInstitutionalInvestors"
 ]);
 
 async function getJson(url, headers = {}, ms = 12000) {
@@ -116,7 +120,7 @@ export default async function handler(req, res) {
   const q = req.query || {};
   try {
     if (q.type === "rt") {
-      const ex = String(q.ex || "").split("|").map(s => s.trim()).filter(s => /^(tse|otc)_[0-9A-Z]{4,6}\.tw$/i.test(s)).slice(0, 200);
+      const ex = String(q.ex || "").split("|").map(s => s.trim()).filter(s => /^(tse|otc)_[0-9A-Za-z]{3,6}\.tw$/i.test(s)).slice(0, 200);
       if (!ex.length) return res.status(400).json({ ok: false, error: "沒有代號" });
       let quotes = [], warn = null;
       try { quotes = await misQuotes(ex); } catch (e) { warn = "MIS：" + e.message; }
@@ -124,7 +128,8 @@ export default async function handler(req, res) {
       const missing = ex.map(s => s.split("_")[1].replace(/\.tw$/i, "")).filter(c => !got.has(c));
       if (missing.length) {
         const mk = Object.fromEntries(ex.map(s => [s.split("_")[1].replace(/\.tw$/i, ""), s.startsWith("otc") ? "TWO" : "TW"]));
-        const y = await yahooQuotes([...new Set(missing)].map(c => `${c}.${mk[c]}`));
+        const IDX = { t00: "^TWII", o00: "^TWOII" };
+        const y = (await yahooQuotes([...new Set(missing)].map(c => IDX[c] || `${c}.${mk[c]}`))).map(q => ({ ...q, code: q.code === "^TWII" ? "t00" : q.code === "^TWOII" ? "o00" : q.code }));
         quotes = quotes.filter(x => x.price != null).concat(y);
       }
       res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate=20");
