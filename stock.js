@@ -1,4 +1,4 @@
-// Smart Teddy 8.0.0「澎企理財」資料轉接（Vercel Serverless Function）
+// Smart Teddy 8.0.1「澎企理財」資料轉接（Vercel Serverless Function）
 // 放在 smartteddy 專案的 api/stock.js，網址：/api/stock
 // 只做「讀取」：證交所即時行情（MIS）、FinMind 公開資料、Yahoo 備援。不碰任何帳戶、不下單。
 // 選用：在 Vercel → Settings → Environment Variables 設 FINMIND_TOKEN（免費註冊 FinMind 取得），額度較高。
