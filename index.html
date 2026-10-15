@@ -3575,6 +3575,7 @@ const TEDDY_WDS = (() => {
         return;
       }
       if (freshCheck.required) teddyUpdateLogDiv(thinkingDiv, freshCheck.degraded ? "📡 即時資料層切換備援，正在查證與分析…" : (freshCheck.cached ? "📡 即時來源暫時失敗，使用最近已驗證資料並再次查證…" : "📡 最新資料已驗證，正在分析…"));
+      if (teddyInvestCtx) teddyUpdateLogDiv(thinkingDiv, "💹 已讀到自選股資料，Teddy 分析中（深度分析約 30–90 秒）…");
 
       let lastToolNames = [];
       const onStatus = (msg, toolNames) => {
@@ -9349,7 +9350,7 @@ window.TEDDY_55_POLICY = Object.freeze({
       const ct = r.headers.get("content-type") || "";
       if (r.ok && /json/.test(ct)) { const j = await r.json(); if (j.ok !== false) return j; err = new Error(j.error || j.msg || "資料來源錯誤"); }
       else if (r.status !== 404 && /json/.test(ct)) { const j = await r.json().catch(() => ({})); err = new Error(j.error || ("HTTP " + r.status)); }
-      else err = new Error("還沒部署 /api/stock");
+      else err = new Error("還沒部署 api/stock.js，目前顯示最近收盤價");
     } catch (e) { err = e; }
     if (params.type === "fm") { // 備援：直接連 FinMind
       const p = new URLSearchParams(params); p.delete("type");
@@ -9546,7 +9547,8 @@ window.TEDDY_55_POLICY = Object.freeze({
         <td class="ex">${m.pe == null ? "—" : fmt(m.pe, 1)}</td></tr>`;
     });
     $("piBody").innerHTML = rows.join("");
-    $("piTime").textContent = rtAt ? `${rtSrc ? rtSrc + "・" : ""}${new Date(rtAt).toLocaleTimeString("zh-TW", { hour12: false })}${isMarketTime() ? "・盤中自動更新" : "・已收盤"}` : "";
+    { const anyD = Object.values(cache.daily).map(x => x.rows?.[x.rows.length - 1]?.[0]).filter(Boolean).sort().pop();
+      $("piTime").textContent = rtAt ? `${rtSrc ? rtSrc + "・" : ""}${new Date(rtAt).toLocaleTimeString("zh-TW", { hour12: false })}${isMarketTime() ? "・盤中自動更新" : "・已收盤"}` : (anyD ? `顯示 ${anyD.slice(5).replace("-", "/")} 收盤價` : ""); }
     $("piStatus").textContent = progress || (lastErr ? "⚠ " + lastErr : "💹 澎企理財");
   }
   function detailHtml(it, r) {
@@ -9558,7 +9560,7 @@ window.TEDDY_55_POLICY = Object.freeze({
         <div style="font-size:24px;font-weight:900;color:${c};font-variant-numeric:tabular-nums;">${fmt(m.price)} <span style="font-size:15px;">${m.chg == null ? "" : (m.chg > 0 ? "+" : "") + fmt(m.chg) + "（" + fmt(m.pct) + "%）"}</span></div></div>
         <button type="button" class="pi-btn" id="piSheetClose">✕</button></div>
       ${r.fuzzy ? `<div class="pi-note" style="color:#e8c879;">⚠ 名稱用模糊比對成「${esc(r.fuzzy)}」，不對的話請到 ✎ 改成代號。</div>` : ""}
-      <div class="pi-h">今日行情 ${m.time ? `<span class="pi-note">（${esc(m.time)}）</span>` : ""}</div>
+      <div class="pi-h">${m.live ? `今日即時行情 ${m.time ? `<span class="pi-note">（${esc(m.time)}）</span>` : ""}` : `最近收盤 ${m.vwapDate ? m.vwapDate.slice(5).replace("-", "/") : ""} <span class="pi-note" style="color:#e8c879;">（不是即時價：即時行情還沒接上）</span>`}</div>
       <div class="pi-grid">${cell("開盤", fmt(m.open))}${cell("最高", fmt(m.high))}${cell("最低", fmt(m.low))}${cell("昨收", fmt(m.prev))}${cell("成交量(張)", m.vol == null ? "—" : Math.round(m.vol).toLocaleString())}${cell(`成交均價 ${m.vwapDate ? m.vwapDate.slice(5) : ""}`, fmt(m.vwap))}</div>
       <div class="pi-h">平均價（均線）</div>
       <div class="pi-grid">${cell("5日均 " + pos(m.price, m.ma5), fmt(m.ma5))}${cell("月均(20日) " + pos(m.price, m.ma20), fmt(m.ma20))}${cell("季均(60日) " + pos(m.price, m.ma60), fmt(m.ma60))}</div>
