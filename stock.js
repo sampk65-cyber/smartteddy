@@ -1,4 +1,4 @@
-// Smart Teddy 7.2.0「澎企理財」資料轉接（Vercel Serverless Function）
+// Smart Teddy 7.3.0「澎企理財」資料轉接（Vercel Serverless Function）
 // 放在 smartteddy 專案的 api/stock.js，網址：/api/stock
 // 只做「讀取」：證交所即時行情（MIS）、FinMind 公開資料、Yahoo 備援。不碰任何帳戶、不下單。
 // 選用：在 Vercel → Settings → Environment Variables 設 FINMIND_TOKEN（免費註冊 FinMind 取得），額度較高。
@@ -65,6 +65,50 @@ async function yahooQuotes(symbols) {
   return out;
 }
 
+
+// ---- 三大法人全市場排行：證交所 T86（上市）＋櫃買中心（上櫃）----
+const pickIdx = (fields, re) => (fields || []).findIndex(x => re.test(String(x).replace(/\s/g, "")));
+async function twseT86(ymd) {
+  const d = await getJson(`https://www.twse.com.tw/rwd/zh/fund/T86?date=${ymd}&selectType=ALLBUT0999&response=json`, { Referer: "https://www.twse.com.tw/" }, 15000);
+  if (d.stat !== "OK" || !Array.isArray(d.data) || !d.data.length) return null;
+  const f = d.fields || [];
+  const iF = pickIdx(f, /^外陸資買賣超股數/), iFD = pickIdx(f, /^外資自營商買賣超股數/), iT = pickIdx(f, /^投信買賣超股數/), iD = pickIdx(f, /^自營商買賣超股數$/), iA = pickIdx(f, /三大法人買賣超股數/);
+  if (iF < 0 || iA < 0) return null;
+  return d.data.map(r => ({ code: String(r[0]).trim(), name: String(r[1]).trim(), market: "twse",
+    foreign: (num(r[iF]) || 0) + (iFD >= 0 ? num(r[iFD]) || 0 : 0), trust: iT >= 0 ? num(r[iT]) : null, dealer: iD >= 0 ? num(r[iD]) : null, total: num(r[iA]) }));
+}
+async function tpexInsti(ymd) {
+  const ds = `${ymd.slice(0, 4)}/${ymd.slice(4, 6)}/${ymd.slice(6, 8)}`;
+  const d = await getJson(`https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade?type=Daily&sect=EW&date=${encodeURIComponent(ds)}&id=&response=json`, { Referer: "https://www.tpex.org.tw/" }, 15000);
+  const t = (d.tables || [])[0]; if (!t || !Array.isArray(t.data) || !t.data.length) return null;
+  const f = t.fields || [];
+  const iF = pickIdx(f, /外資及陸資.*不含.*買賣超/), iFD = pickIdx(f, /^外資自營商.*買賣超/), iT = pickIdx(f, /^投信.*買賣超/), iD = pickIdx(f, /^自營商-?買賣超/), iA = pickIdx(f, /三大法人.*買賣超/);
+  if (iF < 0) return null;
+  return t.data.map(r => ({ code: String(r[0]).trim(), name: String(r[1]).trim(), market: "tpex",
+    foreign: (num(r[iF]) || 0) + (iFD >= 0 ? num(r[iFD]) || 0 : 0), trust: iT >= 0 ? num(r[iT]) : null, dealer: iD >= 0 ? num(r[iD]) : null, total: iA >= 0 ? num(r[iA]) : null }));
+}
+async function closesAll() {
+  const m = {};
+  try { for (const r of await getJson("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL", {}, 15000)) { const c = num(r.ClosingPrice); if (c) m[String(r.Code).trim()] = c; } } catch (_) {}
+  try { for (const r of await getJson("https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes", {}, 15000)) { const c = num(r.Close); if (c) m[String(r.SecuritiesCompanyCode).trim()] = c; } } catch (_) {}
+  return m;
+}
+async function instiRank() {
+  const now = new Date(Date.now() + 8 * 3600e3);
+  for (let back = 0; back < 8; back++) {
+    const d = new Date(now.getTime() - back * 864e5);
+    if (d.getUTCDay() === 0 || d.getUTCDay() === 6) continue;
+    const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
+    let tw = null; try { tw = await twseT86(ymd); } catch (_) {}
+    if (!tw) continue;
+    let tp = null, tpErr = null; try { tp = await tpexInsti(ymd); } catch (e) { tpErr = e.message; }
+    const closes = await closesAll();
+    const rows = tw.concat(tp || []).map(r => ({ ...r, close: closes[r.code] ?? null }));
+    return { date: `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`, rows, tpex: !!tp, warn: tp ? null : ("上櫃資料未取得" + (tpErr ? "：" + tpErr : "")) };
+  }
+  throw new Error("近一週都讀不到三大法人資料");
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "x-finmind-token, content-type");
@@ -99,7 +143,12 @@ export default async function handler(req, res) {
       res.setHeader("Cache-Control", long ? "s-maxage=43200, stale-while-revalidate=86400" : "s-maxage=1800, stale-while-revalidate=3600");
       return res.status(200).json({ ok: d.status === 200 || Array.isArray(d.data), msg: d.msg, data: d.data || [] });
     }
-    return res.status(400).json({ ok: false, error: "type 必須是 rt 或 fm" });
+    if (q.type === "rank") {
+      const r = await instiRank();
+      res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=1800");
+      return res.status(200).json({ ok: true, ...r });
+    }
+    return res.status(400).json({ ok: false, error: "type 必須是 rt、fm 或 rank" });
   } catch (e) {
     return res.status(502).json({ ok: false, error: String(e && e.message || e) });
   }
