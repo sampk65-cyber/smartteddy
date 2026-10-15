@@ -1,4 +1,4 @@
-// Smart Teddy 8.1.0「澎企理財」資料轉接（Vercel Serverless Function）
+// Smart Teddy 8.1.1「澎企理財」資料轉接（Vercel Serverless Function）
 // 放在 smartteddy 專案的 api/stock.js，網址：/api/stock
 // 只做「讀取」：證交所即時行情（MIS）、FinMind 公開資料、Yahoo 備援。不碰任何帳戶、不下單。
 // 選用：在 Vercel → Settings → Environment Variables 設 FINMIND_TOKEN（免費註冊 FinMind 取得），額度較高。
@@ -149,12 +149,17 @@ export default async function handler(req, res) {
       const okFm = d.status === 200 || (Array.isArray(d.data) && d.data.length > 0);
       return res.status(200).json({ ok: okFm, error: okFm ? null : `FinMind：${d.msg || "沒有資料"}`, msg: d.msg, data: d.data || [] });
     }
-    if (q.type === "ver") return res.status(200).json({ ok: true, ver: "8.1.0" });
+    if (q.type === "ver") return res.status(200).json({ ok: true, ver: "8.1.1" });
     if (q.type === "yh") {
       const sym = String(q.sym || "").replace(/[^0-9A-Za-z.^]/g, "").slice(0, 12);
       const range = /^(1d|5d|1mo|3mo|6mo|1y|2y|5y)$/.test(q.range) ? q.range : "1d";
       const interval = /^(1m|2m|5m|15m|30m|60m|1d|1wk)$/.test(q.interval) ? q.interval : "5m";
-      const d = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`, {}, 12000);
+      let d = null, lastE = null;
+      for (const host of ["query2", "query1"]) {
+        try { d = await getJson(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`, { Referer: "https://finance.yahoo.com/" }, 10000); break; }
+        catch (e) { lastE = e; }
+      }
+      if (!d) return res.status(200).json({ ok: false, error: /429/.test(String(lastE?.message)) ? "Yahoo 暫時限制讀取次數（429），稍後再試" : "Yahoo：" + (lastE?.message || "讀不到") });
       const r = d?.chart?.result?.[0];
       if (!r) return res.status(200).json({ ok: false, error: "Yahoo 沒有這檔的走勢資料" });
       const c = r.indicators?.quote?.[0]?.close || [];
