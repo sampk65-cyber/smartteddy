@@ -1,4 +1,4 @@
-/* Smart Teddy 8.7.0 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
+/* Smart Teddy 8.7.1 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
 
     const SOURCES = [
@@ -118,12 +118,12 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.7.0・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.7.1・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.7.0；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.7.1；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -132,18 +132,51 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     const TEDDY_FARM_PERSONA=`你是 TEDDY，也叫碰氣（Pongchi），一隻穿藍色衣服、活潑聰明的小松鼠，現在是溫室的工作助理。你服務的是登入的溫室成員，用繁體中文、簡短親切地回答，數字要精準、有來源。你沒有、也不會提到主人的私人記憶或私人事情。`;
     function teddyPersonaCore(){
       const entry=window.TEDDY_ENTRY_ID||"owner";
-      if(entry==="farm")return TEDDY_FARM_PERSONA+"\n\n"+TEDDY_IDENTITY_LAYER;
+      if(entry==="farm")return TEDDY_FARM_PERSONA+"\n\n"+TEDDY_IDENTITY_LAYER+"\n\n"+teddySelfKnowledge();
       if(entry==="family"){
         const p=teddyFamilyProfile()||{};
         const interests=(p.interests||"").trim()||"生活、健康、美食、旅遊";
         const base=TEDDY_SYSTEM_PROMPT.replace(/使用者對「[^」]*」這幾個領域特別有興趣/,`使用者對「${interests}」這幾個領域特別有興趣`);
         const who=(p.name||"").trim();
-        return base+"\n\n"+TEDDY_IDENTITY_LAYER+`\n【家人版】這是家人自己的 TEDDY。${who?`請稱呼使用者「${who}」。`:""}這裡沒有溫室、工作指派與投資持股的資料，不要提到主人的事情。`;
+        return base+"\n\n"+TEDDY_IDENTITY_LAYER+`\n【家人版】這是家人自己的 TEDDY。${who?`請稱呼使用者「${who}」。`:""}這裡沒有溫室、工作指派的資料，不要提到主人的私人事情；澎企理財可以用（看孫爸共用的自選股，只能看不能改，也可以自己建群組）。`+"\n\n"+teddySelfKnowledge();
       }
-      return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER;
+      return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER + "\n\n" + teddySelfKnowledge();
+    }
+    // ===== 8.7.1：Teddy 的「我的本事」——三大功能清單，由程式依入口產生；文字、語音、溫室共用 =====
+    // 以後每加一個功能，只改這裡（和 docs/TEDDY.md），Teddy 就會知道自己會什麼。
+    const TEDDY_RECENT_UPDATES = [
+      "8.7：回饋紀錄（答錯可按 👎 或說「答錯了，應該是…」，可匯出給 Claude 修正）",
+      "8.6：可以安裝成手機 App；AI 觀測站可點卡片全螢幕看各家答案、一鍵總結",
+      "8.5：澎企理財「📅 週檢」：自選股每週評分、轉強轉弱、觀察名單、上週成績單",
+      "8.4：深度思考可選引擎（預設 Claude Sonnet 5.5），只有真正需要時才用"
+    ];
+    function teddySelfKnowledge(){
+      const entry=window.TEDDY_ENTRY_ID||"owner", ver=(typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy");
+      const deep=(()=>{try{return teddyDeepChoice().label;}catch(_){return "深度思考引擎";}})();
+      const general=`【一般模式】聊天與長期記憶（打字和語音共用同一份記憶）；看照片、讀檔案（PDF、Excel、Word）與網址；天氣、計算、計時、提醒（可加到手機行事曆）、新聞與即時搜尋；即時語音（Gemini 3.1 Live，聊天時也能看照片）；遇到需要深想的問題會交給深度思考引擎（目前：${deep}）；AI 觀測站（主畫面，同一題同時問五家 AI 並排比較、可一鍵總結）。`;
+      const invest=`【澎企理財】（一般模式裡的「💹 澎企理財」按鈕）自選股即時行情、漲跌、月均價、外資買賣超、EPS、本益比；點個股看走勢圖（1 日到 5 年）、RSI、KD、MACD、均線、52 週位置、籌碼、月營收與財報；🔔 程式訊號；🌐 大盤總覽（指數、三大法人、期貨外資、融資）；三大法人買賣超排行；📋 盤後報告與明日關鍵價位；📅 週檢（每週評分、轉強轉弱、觀察名單、上週成績單）；持股損益、分析紀錄、雲端同步。所有數字都是程式從證交所和 FinMind 算出來的；只看不下單，不叫人買賣。`;
+      const greenhouse=`【溫室模式】讀取完全體 V5.1 的真實農場資料：產能、工作 1～8、工項行事曆、功能表 7 的十張表（耗材與報表）、補水施肥等資材、打卡出勤、分區與樹況；數字一律由程式從完全體讀，不自己算。要寫入（例如指派工作）時先復述、等確認才寫。會記住「答對／答錯」的問法來改進。`;
+      let parts, intro;
+      if(entry==="family"){ intro="我是家人版的 TEDDY，有兩大功能："; parts=[general, invest.replace("持股損益、分析紀錄、雲端同步。","自選群組由孫爸維護（只能看不能改），也可以自己建群組、記持股。")]; }
+      else if(entry==="farm"){ intro="我是溫室助理版的 TEDDY，只負責溫室："; parts=[greenhouse+"要先用自己的人員編號登入才能查。"]; }
+      else { intro="我有三大功能：一般模式、溫室模式、澎企理財。"; parts=[general, greenhouse, invest]; }
+      return `【我的本事（${ver}，程式自動產生，照實說）】${intro}
+${parts.join("\n")}
+【回饋】回答下面有 👍／👎；使用者說「答錯了，應該是…」我會記下來，可在 ⚙️ 匯出「回饋紀錄」給 Claude 修正。
+【最近更新】${TEDDY_RECENT_UPDATES.join("；")}。
+【怎麼用這份清單】使用者問「你會什麼／有什麼功能／升級了什麼」、提到上面任何功能名稱（例如澎企理財、週檢、溫室模式、即時語音、深度思考、觀測站、回饋紀錄），或傳來 Smart Teddy 自己畫面的截圖（看得到 TEDDY、松鼠頭像、澎企理財、即時語音、溫室模式這些字）時，要認得那就是你自己，直接用第一人稱說明那個功能能做什麼、怎麼用；不要反問使用者那是什麼，也不要說「你幫我升級」。清單上沒有的功能就說目前還沒有，不要自己編。`;
+    }
+    function teddySelfKnowledgeBrief(){
+      const entry=window.TEDDY_ENTRY_ID||"owner";
+      const v=(typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy");
+      const g="🐿 一般模式：聊天記憶、看照片和檔案、天氣計算計時提醒、即時語音（也能看照片）、深度思考、AI 觀測站";
+      const i="💹 澎企理財：自選股行情與均價外資 EPS、走勢圖與技術指標、🔔 訊號、大盤總覽、法人排行、盤後報告、📅 週檢、持股損益";
+      const h="🌱 溫室模式：讀完全體的產能、工作、行事曆、十張報表、資材、打卡；寫入要先確認";
+      const list=entry==="family"?[g,i]:entry==="farm"?[h]:[g,h,i];
+      return `我是 ${v}，我的本事：\n${list.join("\n")}\n📝 答錯時按 👎 或說「答錯了，應該是…」我會記下來。\n最近更新：${TEDDY_RECENT_UPDATES[0]}。`;
     }
     function teddyGreenhouseIdentity(){
-      return TEDDY_IDENTITY_LAYER + "\n現在是溫室模式：你仍然是同一個 TEDDY（碰氣），只是換上工作腦，以專業溫室管理與無花果栽培顧問的角度回答真實農場資料。語氣維持 TEDDY 的親切簡潔，內容要精準、有數字、有來源。\n";
+      return TEDDY_IDENTITY_LAYER + "\n\n" + teddySelfKnowledge() + "\n" + "\n現在是溫室模式：你仍然是同一個 TEDDY（碰氣），只是換上工作腦，以專業溫室管理與無花果栽培顧問的角度回答真實農場資料。語氣維持 TEDDY 的親切簡潔，內容要精準、有數字、有來源。\n";
     }
     // 5.7.2：Flash Live 的語音逐字稿常常是簡體字，溫室的所有關鍵字判斷都是繁體，先轉換再路由。
     const TEDDY_S2T_PHRASES=[["计划","計畫"],["计画","計畫"],["长周期","長週期"],["每周","每週"],["本周","本週"],["这周","這週"],["上周","上週"],["下周","下週"],["周末","週末"],["关系","關係"],["系统","系統"],["里面","裡面"],["哪里","哪裡"],["这里","這裡"],["那里","那裡"],["心里","心裡"],["家里","家裡"],["汇总","匯總"],["登录","登入"],["日历","日曆"],["农历","農曆"],["复杂","複雜"],["重复","重複"],["复制","複製"],["恢复","恢復"],["回复","回覆"],["干什么","幹什麼"],["干嘛","幹嘛"],["干活","幹活"],["头发","頭髮"],["理发","理髮"],["冲水","沖水"],["冲洗","沖洗"],["面条","麵條"],["软件","軟體"],["视频","影片"],["信息","訊息"],["网络","網路"],["打印","列印"],["质量","品質"],["土豆","馬鈴薯"],["出租车","計程車"],["怎么","怎麼"],["什么","什麼"],["为什么","為什麼"],["这么","這麼"],["那么","那麼"],["多么","多麼"]];
@@ -156,7 +189,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 8.7.0：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 8.7.1：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -476,7 +509,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 8.7.0";
+    const TEDDY_VERSION = "Smart Teddy 8.7.1";
     try{document.querySelectorAll(".teddy-ver-badge").forEach(el=>el.textContent=TEDDY_VERSION);}catch(_){}
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
@@ -2047,7 +2080,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
         ["提醒", TEDDY_TOOLS.some(t => t.name === "set_reminder"), "分頁開啟時"],
         ["即時搜尋", s.searchReady, s.searchReady ? "xAI 已設定" : "需要 xAI Key"],
         ["Claude", s.claudeReady, s.claudeReady ? "可用" : "未設定"],
-        ["GPT-6 Astra", s.openaiReady, s.openaiReady ? "可用" : "未設定"],
+        ["OpenAI（GPT-6.1 Sol）", s.openaiReady, s.openaiReady ? "可用" : "未設定"],
         ["語音輸入", s.speechRecognitionReady, s.speechRecognitionReady ? "支援" : "此瀏覽器不支援"],
         ["瀏覽器 TTS", s.browserTtsReady, s.browserTtsReady ? "支援" : "不支援"],
         ["Firebase", s.firebaseReady, s.firebaseReady ? "SDK 已載入" : "未載入"],
@@ -2069,7 +2102,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       const text=v==="auto"?`文字聊天為智慧分工：一般對話先用 Gemini，需要深度推理（分析、規劃、評估、程式等）才交給深度思考引擎「${deepLab}」`:`文字聊天固定使用「${label}」`;
       return `${text}；即時語音由 ${typeof window.teddyGliveVariantLabel==="function"?window.teddyGliveVariantLabel():"Gemini Live"} 說話，遇到複雜問題才呼叫深度思考引擎「${(()=>{try{return teddyDeepChoice().label;}catch(_){return "GPT-6.1 Sol";}})()}」；溫室問題的理解用 Gemini Flash，數字一律由程式從完全體讀取計算。`;
     }
-    // 8.7.0：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
+    // 8.7.1：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
     function teddyDeepJudge(message,o){
       o=o||{};
       const t=String(message||"").trim(), len=t.replace(/\s/g,"").length;
@@ -2126,8 +2159,11 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       }
 
       // Self-awareness/version/capability questions are answered from the real UI/runtime, never guessed by the model.
-      if (/(妳的版本|你的版本|什麼版本|版本多少|版本是什麼|妳會什麼|你會什麼|有什麼能力|自我檢查|能力檢查|系統狀態|回報版本|功能檢查)/i.test(q)) {
-        return teddyV31DiagnosticsText();
+      if (/(妳會什麼|你會什麼|有什麼能力|有什麼功能|有哪些功能|你的本事|妳的本事|你能做什麼|妳能做什麼)/i.test(q)) {
+        return teddySelfKnowledgeBrief();
+      }
+      if (/(妳的版本|你的版本|什麼版本|版本多少|版本是什麼|自我檢查|能力檢查|系統狀態|回報版本|功能檢查)/i.test(q)) {
+        return teddySelfKnowledgeBrief() + "\n\n【系統檢查】\n" + teddyV31DiagnosticsText();
       }
 
       return null;
@@ -2140,7 +2176,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     let teddyHandsWorkMode=null; // assign / report
     let teddyHandsFlow={};       // 工作入口導引狀態
 
-    // ===== Smart Teddy 8.7.0：主人版＝A01 孫爸（完全體開發者，全部權限）=====
+    // ===== Smart Teddy 8.7.1：主人版＝A01 孫爸（完全體開發者，全部權限）=====
     // 主人版（無 ?app 參數）閱讀全部資料本來就不受限；這裡讓 A 開頭帳號驗證一次後記在「這台裝置」，
     // 重新整理不必再驗證。只存編號、姓名、身分與權限，不存密碼；寫入仍走「草稿 → 復述 → 你確認」。
     // 說「登出」或「取消授權」即清除。溫室助理入口（員工）不受影響，仍是每次登入。
@@ -2359,7 +2395,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       await teddyHandsWriteKv(key,v);return key;
     }
 
-    // ===== Smart Teddy 8.7.0：工作指派走完全體同一套安全交易 =====
+    // ===== Smart Teddy 8.7.1：工作指派走完全體同一套安全交易 =====
     // 以下 TEDDY_WDS 為完全體 V5.1.C132「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
     // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
 const TEDDY_WDS = (() => {
@@ -2701,7 +2737,7 @@ const TEDDY_WDS = (() => {
       const key=d.kind==="assign68"?await teddyHandsCommit68(d):await teddyHandsCommitWorkSafe(d);teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
-    // ===== Smart Teddy 8.7.0：簡化指派——照上次、常用配方、口語確認、一行復述 =====
+    // ===== Smart Teddy 8.7.1：簡化指派——照上次、常用配方、口語確認、一行復述 =====
     const TEDDY_RECIPE_KEY="teddy_recipes_v1"+(window.TEDDY_KEY_SUFFIX||"");
     let teddyRecipes={};
     try{teddyRecipes=JSON.parse(localStorage.getItem(TEDDY_RECIPE_KEY)||"{}")||{};}catch(_){teddyRecipes={};}
@@ -2892,7 +2928,7 @@ const TEDDY_WDS = (() => {
         text += `\n\n【網頁連結讀取要求】本輪包含網頁連結：${teddyUrls.join(" 、 ")}。請使用 web_search 實際開啟/搜尋這些網址與其可讀內容，再根據頁面內容回答；不要只根據網址字面猜測。若網站阻擋存取或需要登入，請明確說明哪些內容無法取得。`;
       }
       if (!text) return;
-      // 8.7.0：打字回饋（答對了／答錯了，應該是…／匯出回饋）先處理，不送給 AI
+      // 8.7.1：打字回饋（答對了／答錯了，應該是…／匯出回饋）先處理，不送給 AI
       try{ if(typeof window.teddyFbTyped==="function"){ const fbr=window.teddyFbTyped(text); if(fbr){ input.value=""; teddyAppendLog("user",text); teddyAppendLog("teddy",fbr); return; } } }catch(_){}
       input.value = "";
       teddyActiveSkill = teddyDetectSkill(text);
@@ -3367,7 +3403,7 @@ const TEDDY_WDS = (() => {
     function escapeHtml(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
-    // 8.7.0：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
+    // 8.7.1：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
     function obsMd(t) {
       return escapeHtml(t || "").split("\n").map(line => {
         let l = line;
@@ -3408,7 +3444,7 @@ const TEDDY_WDS = (() => {
         </article>`;
       }).join("");
     }
-    // 8.7.0：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
+    // 8.7.1：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
     function obsReaderOpen(key, fromNav) {
       const list = SOURCES.filter(x => obsLast && obsLast[x.key]);
       const s = SOURCES.find(x => x.key === key), r = obsLast && obsLast[key];
@@ -3595,7 +3631,7 @@ ${parts}
 4. 綜合建議
 5. 一句話總結
 保持客觀簡潔。`;
-      // 8.7.0：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
+      // 8.7.1：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
       let firstErr = "";
       if ((keys.anthropic || keys.openai) && typeof teddyDeepAsk === "function") {
         try {
@@ -3738,11 +3774,11 @@ ${parts}
       document.getElementById("summaryZone").classList.remove("show");
       document.getElementById("summaryCard").classList.remove("show");
       document.getElementById("btnSubmit").disabled = true;
-      // 8.7.0：誰先回來就先顯示誰，不用等最慢的那一家
+      // 8.7.1：誰先回來就先顯示誰，不用等最慢的那一家
       const partial = { __pending: true };
       renderCards(partial);
       const jobs = { openai: callOpenAI(q, keys, imageBase64, imageMime), claude: callClaude(q, keys, imageBase64, imageMime), gemini: callGemini(q, keys, imageBase64, imageMime), deepseek: callDeepSeek(q, keys), grok: callGrok(q, keys, imageBase64, imageMime) };
-      // 8.7.0：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
+      // 8.7.1：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
       const sumBtn = document.getElementById("btnSummary"), SUM_LABEL = "✦ 一鍵整理總結對比";
       await Promise.all(Object.entries(jobs).map(([k, pr]) => pr.then(r => {
         partial[k] = r; const keep = document.getElementById("obsReader")?.classList.contains("show"); if (!keep) renderCards(partial); else obsLast = partial;
