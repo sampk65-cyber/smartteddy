@@ -1,0 +1,6 @@
+3.8 model: models/gemini-3.8-live-extended-thinking thinking: {"thinkingLevel":"medium"} behavior: NON_BLOCKING,NON_BLOCKING,NON_BLOCKING,NON_BLOCKING,NON_BLOCKING,NON_BLOCKING
+3.1 model: models/gemini-3.1-flash-live-preview thinking: {"thinkingLevel":"minimal"} behavior: -,-,-,-,-,-
+IN_PROGRESS 後保險觸發? 0
+IDLE 後保險查詢: [ '四北這個月施肥' ] 念出: [ '四北本月：溝灌10噸' ]
+有呼叫工具時保險觸發? 0
+連線使用: models/gemini-3.1-flash-live-preview ｜目前: 31

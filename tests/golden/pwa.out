@@ -1,0 +1,6 @@
+{"q":"","entry":"owner","manifest":"/manifest.webmanifest","start":"/","name":"Smart Teddy","fns":["teddyDeepJudge:true","ghMainFirestore:true","teddySend:true","teddyInvestOpen:true","teddyInvestWeekly:true","teddyLiveReadAnswer:true","teddyDeepAsk:true"],"sw":true,"controlled":true,"offline":{"title":"Smart Teddy VER · TEDDY（碰氣）","hasCore":true}}
+  errors: []
+{"q":"?app=family","entry":"family","manifest":"/manifest-family.webmanifest","start":"/?app=family","name":"Teddy 家人版","fns":["teddyDeepJudge:true","ghMainFirestore:true","teddySend:true","teddyInvestOpen:true","teddyInvestWeekly:true","teddyLiveReadAnswer:true","teddyDeepAsk:true"],"sw":true,"controlled":true,"offline":{"title":"TEDDY · 家人版","hasCore":true}}
+  errors: []
+{"q":"?app=farm","entry":"farm","manifest":"/manifest-farm.webmanifest","start":"/?app=farm","name":"Teddy 溫室助理","fns":["teddyDeepJudge:true","ghMainFirestore:true","teddySend:true","teddyInvestOpen:true","teddyInvestWeekly:true","teddyLiveReadAnswer:true","teddyDeepAsk:true"],"sw":true,"controlled":true,"offline":{"title":"TEDDY · 溫室助理","hasCore":true}}
+  errors: []

@@ -1,0 +1,7 @@
+{"openai":"x"} auto → GPT-6.1 Sol openai:gpt-6.1-sol
+{"openai":"x","anthropic":"y"} auto → Claude Sonnet 5.5 claude:claude-sonnet-5-TIME96
+{"openai":"x","anthropic":"y"} claude-opus → Claude Opus 5.5 claude:claude-opus-5-TIME96
+{"openai":"x","anthropic":"y"} astra → GPT-6 Astra openai:gpt-6-astra
+{"openai":"x"} claude-sonnet → GPT-6.1 Sol openai:gpt-6.1-sol
+chat deep: claude:claude-sonnet-5-TIME96
+summary: 🧠 深度思考（Claude Sonnet 5.5）｜累計 6 次 · US$0.0770　OpenAI US$0.049・Claude US$0.028

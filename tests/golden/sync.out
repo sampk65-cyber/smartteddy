@@ -1,0 +1,8 @@
+STORE keys: [ 'teddy_invest/shared_watchlist', 'teddy_invest/p_KEY' ]
+shared: {"groups":[{"name":"孫爸AI","items":[{"name":"台積電"},{"name":"穩懋"},{"name":"玉山金"}]}],"updatedAt":TS,"by":"A01"}
+owner priv: {"pos":{"2330":{"cost":1000,"shares":100}},"log":[],"weekly":[],"myGroups":[],"updatedAt":TS,"entry":"owner"}
+family groups: [["孫爸AI",true,"台積電/穩懋/玉山金"]]
+family groups after new: [["孫爸AI",true],["我的群組1",false]]
+shared unchanged by family: yes
+new phone groups: ["孫爸AI"] pos before key: {}
+pos after key: {"2330":{"cost":1000,"shares":100}}

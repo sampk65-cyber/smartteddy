@@ -1,0 +1,8 @@
+1.0s: openai:讀取中 claude:ok grok:讀取中 gemini:ok deepseek:ok
+2.0s: openai:ok claude:ok grok:讀取中 gemini:ok deepseek:ok
+3.5s: openai:ok claude:ok grok:ok gemini:ok deepseek:ok
+Claude 有 temperature? false
+reader open: true
+next -> Claude
+after 返回 visible: false
+after 手機返回鍵 visible: false still on page: http://localhost:8795/
