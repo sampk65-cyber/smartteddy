@@ -1,4 +1,4 @@
-/* Smart Teddy 8.6.1 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
+/* Smart Teddy 8.6.2 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
 
     const SOURCES = [
@@ -118,12 +118,12 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.6.0・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.6.2・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.6.0；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.6.2；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -156,7 +156,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 8.6.0：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 8.6.2：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -476,7 +476,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 8.6.0";
+    const TEDDY_VERSION = "Smart Teddy 8.6.2";
     try{document.querySelectorAll(".teddy-ver-badge").forEach(el=>el.textContent=TEDDY_VERSION);}catch(_){}
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
@@ -2069,7 +2069,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       const text=v==="auto"?`文字聊天為智慧分工：一般對話先用 Gemini，需要深度推理（分析、規劃、評估、程式等）才交給深度思考引擎「${deepLab}」`:`文字聊天固定使用「${label}」`;
       return `${text}；即時語音由 ${typeof window.teddyGliveVariantLabel==="function"?window.teddyGliveVariantLabel():"Gemini Live"} 說話，遇到複雜問題才呼叫深度思考引擎「${(()=>{try{return teddyDeepChoice().label;}catch(_){return "GPT-6.1 Sol";}})()}」；溫室問題的理解用 Gemini Flash，數字一律由程式從完全體讀取計算。`;
     }
-    // 8.6.0：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
+    // 8.6.2：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
     function teddyDeepJudge(message,o){
       o=o||{};
       const t=String(message||"").trim(), len=t.replace(/\s/g,"").length;
@@ -2140,7 +2140,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     let teddyHandsWorkMode=null; // assign / report
     let teddyHandsFlow={};       // 工作入口導引狀態
 
-    // ===== Smart Teddy 8.6.0：主人版＝A01 孫爸（完全體開發者，全部權限）=====
+    // ===== Smart Teddy 8.6.2：主人版＝A01 孫爸（完全體開發者，全部權限）=====
     // 主人版（無 ?app 參數）閱讀全部資料本來就不受限；這裡讓 A 開頭帳號驗證一次後記在「這台裝置」，
     // 重新整理不必再驗證。只存編號、姓名、身分與權限，不存密碼；寫入仍走「草稿 → 復述 → 你確認」。
     // 說「登出」或「取消授權」即清除。溫室助理入口（員工）不受影響，仍是每次登入。
@@ -2359,7 +2359,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       await teddyHandsWriteKv(key,v);return key;
     }
 
-    // ===== Smart Teddy 8.6.0：工作指派走完全體同一套安全交易 =====
+    // ===== Smart Teddy 8.6.2：工作指派走完全體同一套安全交易 =====
     // 以下 TEDDY_WDS 為完全體 V5.1.C132「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
     // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
 const TEDDY_WDS = (() => {
@@ -2701,7 +2701,7 @@ const TEDDY_WDS = (() => {
       const key=d.kind==="assign68"?await teddyHandsCommit68(d):await teddyHandsCommitWorkSafe(d);teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
-    // ===== Smart Teddy 8.6.0：簡化指派——照上次、常用配方、口語確認、一行復述 =====
+    // ===== Smart Teddy 8.6.2：簡化指派——照上次、常用配方、口語確認、一行復述 =====
     const TEDDY_RECIPE_KEY="teddy_recipes_v1"+(window.TEDDY_KEY_SUFFIX||"");
     let teddyRecipes={};
     try{teddyRecipes=JSON.parse(localStorage.getItem(TEDDY_RECIPE_KEY)||"{}")||{};}catch(_){teddyRecipes={};}
@@ -3363,24 +3363,38 @@ const TEDDY_WDS = (() => {
     function escapeHtml(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
+    // 8.6.2：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
+    function obsMd(t) {
+      return escapeHtml(t || "").split("\n").map(line => {
+        let l = line;
+        const h = l.match(/^\s*#{1,6}\s+(.*)$/);
+        if (h) return `<b class="obs-h">${h[1].replace(/\*\*/g, "")}</b>`;
+        l = l.replace(/^(\s*)[-*]\s+/, "$1• ");
+        l = l.replace(/\*\*([^*]+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+        return l;
+      }).join("\n");
+    }
+    let obsLast = null;
     function renderCards(state) {
+      obsLast = state && typeof state === "object" ? state : null;
       document.getElementById("grid").innerHTML = SOURCES.map((s) => {
         let body = `<div class="placeholder">尚未送出問題</div>`;
         let statusText = "待命";
         let pulse = "";
-        if (state === "loading") {
+        const loadingOne = state && typeof state === "object" && state.__pending && !state[s.key];
+        if (state === "loading" || loadingOne) {
           body = `<div class="placeholder">等待回應中…</div>`;
           statusText = "讀取中"; pulse = " pulse";
         } else if (state && state[s.key]) {
           const r = state[s.key];
-          body = `<div class="body-text">${escapeHtml(r.text || "")}</div>`;
+          body = `<div class="body-text">${obsMd(r.text || "")}</div>${r.ok ? '<div class="obs-more">點卡片看全文 ›</div>' : ""}`;
           statusText = r.ok ? `${r.ms}ms` : "失敗";
         }
         const av = s.avatarImg
           ? `<img src="${s.avatarImg}" alt="${s.name}" />`
           : s.emoji;
         const extraClass = s.center ? " grok-center" : "";
-        return `<article class="card${extraClass}" style="--ring:${s.ring};--dot:${s.dot}">
+        return `<article class="card${extraClass}" data-obs="${s.key}" style="--ring:${s.ring};--dot:${s.dot}">
           <div class="avatar">${av}</div>
           <div class="name">${s.name}</div>
           <div class="vendor">${s.vendor}</div>
@@ -3390,6 +3404,33 @@ const TEDDY_WDS = (() => {
         </article>`;
       }).join("");
     }
+    // 8.6.2：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
+    function obsReaderOpen(key, fromNav) {
+      const list = SOURCES.filter(x => obsLast && obsLast[x.key]);
+      const s = SOURCES.find(x => x.key === key), r = obsLast && obsLast[key];
+      if (!s || !r) return;
+      let box = document.getElementById("obsReader");
+      if (!box) { box = document.createElement("div"); box.id = "obsReader"; document.body.appendChild(box); }
+      const i = list.findIndex(x => x.key === key), prev = list[(i - 1 + list.length) % list.length], next = list[(i + 1) % list.length];
+      const av = s.avatarImg ? `<img src="${s.avatarImg}" alt="">` : s.emoji;
+      box.style.setProperty("--ring", s.ring);
+      box.innerHTML = `<div class="obs-top"><button type="button" id="obsBack">‹ 返回</button><div class="obs-who"><span class="obs-av">${av}</span><b>${s.name}</b><small>${r.ok ? r.ms + "ms" : "失敗"}</small></div><button type="button" id="obsCopy">複製</button></div>
+        <div class="obs-q">${escapeHtml(document.getElementById("question").value.trim() || "")}</div>
+        <div class="obs-body">${obsMd(r.text || "")}</div>
+        ${list.length > 1 ? `<div class="obs-nav"><button type="button" data-go="${prev.key}">‹ ${prev.name}</button><button type="button" data-go="${next.key}">${next.name} ›</button></div>` : ""}`;
+      box.classList.add("show"); box.scrollTop = 0; document.body.style.overflow = "hidden";
+      if (!fromNav) { try { history.pushState({ obsReader: 1 }, ""); } catch (_) {} }
+      box.querySelector("#obsBack").onclick = () => { try { if (history.state && history.state.obsReader) history.back(); else obsReaderClose(); } catch (_) { obsReaderClose(); } };
+      box.querySelector("#obsCopy").onclick = async (e) => { try { await navigator.clipboard.writeText(r.text || ""); e.target.textContent = "已複製"; } catch (_) { e.target.textContent = "無法複製"; } setTimeout(() => { e.target.textContent = "複製"; }, 1500); };
+      box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => obsReaderOpen(b.dataset.go, true));
+    }
+    function obsReaderClose() { const box = document.getElementById("obsReader"); if (box) box.classList.remove("show"); document.body.style.overflow = ""; }
+    window.addEventListener("popstate", () => { const box = document.getElementById("obsReader"); if (box && box.classList.contains("show")) obsReaderClose(); });
+    document.getElementById("grid").addEventListener("click", (e) => {
+      const card = e.target.closest("[data-obs]"); if (!card) return;
+      if (window.getSelection && String(window.getSelection()).length > 0) return;   // 正在選字就不打開
+      obsReaderOpen(card.dataset.obs);
+    });
     function showError(msg) {
       const box = document.getElementById("errorBox");
       if (!msg) { box.classList.remove("show"); return; }
@@ -3439,11 +3480,10 @@ const TEDDY_WDS = (() => {
           body: JSON.stringify({
             model: "claude-sonnet-5-5",
             max_tokens: 4096,
-            temperature: 0.7,
             system: getSystemPrompt(),
             messages: [{ role: "user", content }]
           }),
-        }, 30000);
+        }, 90000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         const text = (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
@@ -3467,7 +3507,7 @@ const TEDDY_WDS = (() => {
               generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
             })
           }
-        , 30000);
+        , 90000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "（無內容）";
@@ -3489,7 +3529,7 @@ const TEDDY_WDS = (() => {
               { role: "user", content: q }
             ]
           }),
-        }, 30000);
+        }, 90000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -3513,7 +3553,7 @@ const TEDDY_WDS = (() => {
               { role: "user", content }
             ]
           }),
-        }, 25000);
+        }, 90000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
         return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
@@ -3521,8 +3561,8 @@ const TEDDY_WDS = (() => {
     }
     async function callSummarize(q, answers, keys) {
       const t0 = Date.now();
-      if (!keys.xai) return { ok: false, text: "總結需要 Grok Key", ms: 0 };
-      const names = { openai: "GPT-6 Astra", claude: "Claude", gemini: "Gemini", deepseek: "DeepSeek", grok: "Grok" };
+      if (!keys.xai && !keys.anthropic && !keys.openai) return { ok: false, text: "總結需要 Claude、OpenAI 或 Grok 其中一組 Key", ms: 0 };
+      const names = { openai: "GPT-6.1 Sol", claude: "Claude", gemini: "Gemini", deepseek: "DeepSeek", grok: "Grok" };
       const parts = Object.entries(answers).map(([k, v]) =>
         `### ${names[k] || k}（${v?.ok ? "成功" : "失敗"}，${v?.ms ?? "-"}ms）\n${v?.text || "（無）"}`
       ).join("\n\n");
@@ -3551,16 +3591,26 @@ ${parts}
 4. 綜合建議
 5. 一句話總結
 保持客觀簡潔。`;
+      // 8.6.2：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
+      let firstErr = "";
+      if ((keys.anthropic || keys.openai) && typeof teddyDeepAsk === "function") {
+        try {
+          const out = await teddyDeepAsk("你是客觀的 AI 評測分析師，一律用繁體中文回答。", prompt, "medium");
+          if (out && out.text) return { ok: true, text: out.text, ms: Date.now() - t0, by: out.label };
+          firstErr = "沒有回覆";
+        } catch (e) { firstErr = e.message; }
+      }
+      if (!keys.xai) return { ok: false, text: `總結失敗：${firstErr}`, ms: Date.now() - t0 };
       try {
         const r = await teddyFetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.xai}` },
           body: JSON.stringify({ model: "grok-4.6", messages: [{ role: "user", content: prompt }] }),
-        }, 25000);
+        }, 90000);
         const d = await r.json();
         if (!r.ok) throw new Error(d?.error?.message || `HTTP ${r.status}`);
-        return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0 };
-      } catch (e) { return { ok: false, text: `總結失敗：${e.message}`, ms: Date.now() - t0 }; }
+        return { ok: true, text: d.choices[0].message.content, ms: Date.now() - t0, by: "Grok" };
+      } catch (e) { return { ok: false, text: `總結失敗：${firstErr ? firstErr + "；Grok：" : ""}${e.message}`, ms: Date.now() - t0 }; }
     }
 
     document.getElementById("btnSettings").onclick = () => {
@@ -3684,14 +3734,12 @@ ${parts}
       document.getElementById("summaryZone").classList.remove("show");
       document.getElementById("summaryCard").classList.remove("show");
       document.getElementById("btnSubmit").disabled = true;
-      renderCards("loading");
-      const [openai, claude, gemini, deepseek, grok] = await Promise.all([
-        callOpenAI(q, keys, imageBase64, imageMime),
-        callClaude(q, keys, imageBase64, imageMime),
-        callGemini(q, keys, imageBase64, imageMime),
-        callDeepSeek(q, keys),
-        callGrok(q, keys, imageBase64, imageMime),
-      ]);
+      // 8.6.2：誰先回來就先顯示誰，不用等最慢的那一家
+      const partial = { __pending: true };
+      renderCards(partial);
+      const jobs = { openai: callOpenAI(q, keys, imageBase64, imageMime), claude: callClaude(q, keys, imageBase64, imageMime), gemini: callGemini(q, keys, imageBase64, imageMime), deepseek: callDeepSeek(q, keys), grok: callGrok(q, keys, imageBase64, imageMime) };
+      await Promise.all(Object.entries(jobs).map(([k, pr]) => pr.then(r => { partial[k] = r; const keep = document.getElementById("obsReader")?.classList.contains("show"); if (!keep) renderCards(partial); else obsLast = partial; })));
+      const { openai, claude, gemini, deepseek, grok } = partial;
       results = { openai, claude, gemini, deepseek, grok };
       renderCards(results);
       document.getElementById("btnSubmit").disabled = false;
@@ -3703,8 +3751,8 @@ ${parts}
       const btn = document.getElementById("btnSummary");
       btn.disabled = true; btn.textContent = "整理中…";
       const s = await callSummarize(document.getElementById("question").value.trim(), results, loadKeys());
-      document.getElementById("summaryBody").textContent = s.text;
-      document.getElementById("summaryMs").textContent = s.ok ? `${s.ms}ms · Grok` : "";
+      document.getElementById("summaryBody").innerHTML = obsMd(s.text);
+      document.getElementById("summaryMs").textContent = s.ok ? `${s.ms}ms · ${s.by || "Grok"}` : "";
       document.getElementById("summaryCard").classList.add("show");
       btn.disabled = false; btn.textContent = "✦ 一鍵整理總結對比";
     };
