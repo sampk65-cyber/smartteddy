@@ -1,4 +1,4 @@
-/* Smart Teddy 8.6.0 · js/greenhouse.js：溫室模式（完全體 V5.1 資料閘門、功能表、十表引擎）
+/* Smart Teddy 8.7.0 · js/greenhouse.js：溫室模式（完全體 V5.1 資料閘門、功能表、十表引擎）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
     // ===== Greenhouse V2: ONLY this module is changed. Teddy 3.5 core remains untouched. =====
     const GH_MAIN={apiKey:"AIzaSyDJXF_9jyibl5GsbJHEuPVBIOqQ2Eovjw4",projectId:"figapi-d24dc"};
@@ -3282,6 +3282,8 @@
     function ghLearnRemember(turn,ok,correction=""){
       const lg0=[...ghLearn.log].reverse().find(l=>l.at===turn.at);
       if(lg0)lg0.feedback=ok?"對":"錯";
+      // 8.7.0：同步記進統一的回饋紀錄（給孫爸與 Claude 檢討）
+      try{if(turn&&typeof window.teddyFbRecord==="function")window.teddyFbRecord({id:"gh"+turn.at,at:turn.at,mode:"溫室",q:turn.raw,a:turn.answer||"",ghEntry:turn.entry||"",canonical:turn.canonical||"",provider:turn.source||"",model:"溫室・"+({rule:"內建規則",learned:"已學會",ai:"AI 理解","ai-corrected":"更正後重查"}[turn.source]||turn.source||"")},ok?"對":"錯",correction,"溫室");}catch(_){}
       if(!turn||!turn.entry||!GH_ENTRY_IDS.includes(turn.entry)){ghLearnSave();return false;}
       // 接續上一句的追問（例如「那三期呢」）離開上下文就沒有意義，不單獨記成問法。
       if(ghIsBareFollowup(turn.raw)&&turn.canonical===turn.raw){ghLearnSave();return false;}

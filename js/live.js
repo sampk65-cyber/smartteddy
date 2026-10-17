@@ -1,4 +1,4 @@
-/* Smart Teddy 8.6.0 · js/live.js：即時語音（Gemini Live、工具呼叫）
+/* Smart Teddy 8.7.0 · js/live.js：即時語音（Gemini Live、工具呼叫）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
 
 // ===== Smart Teddy 4.4-2：工作模式 Live 聲線 + 工作記憶 =====
@@ -133,7 +133,7 @@
       ?`目前在溫室模式${selected?`，使用者已選「${ENTRY_LABEL[selected]}」`:"，尚未選入口"}。溫室問題與後續追問必須使用query_greenhouse；若使用者沒重複主題，沿用已選入口。語音和打字查的是同一套資料：你一定查得到，任何溫室問題都立刻呼叫 query_greenhouse，絕對不可以說「語音查不到」或請使用者改用打字。語音辨識可能聽錯字（例如「四旗北」＝四北、「市北」＝四北），照原句交給工具即可。`
       :"目前在一般模式；禁止自行進入溫室/工作路由。只有使用者明確切換到溫室模式，或明確說『工作／進入工作／溫室模式』後，才可使用溫室工具。";
     return `${typeof teddyPersonaCore==="function"?teddyPersonaCore():"你是 TEDDY，也叫碰氣。"}
-【版本與模型（被問到時照實說，不可自己編）】我是 ${typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy"}。${typeof teddyModelRoutingText==="function"?teddyModelRoutingText():""}\n【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。
+【版本與模型（被問到時照實說，不可自己編）】我是 ${typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy"}。${typeof teddyModelRoutingText==="function"?teddyModelRoutingText():""}\n【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。使用者說你剛才答對了或答錯了（答錯了、不對、應該是…），呼叫 teddy_feedback 記下來，再照他的更正重新回答。
 ${memory}
 ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
@@ -173,6 +173,10 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   const reminderTool={
     name:"teddy_reminder",description:"處理所有「提醒」相關的話：新增提醒、查看提醒、完成或取消提醒。把使用者原句完整放進 text。新增有時間的提醒時，畫面上會出現加到行事曆的按鈕。",
     parameters:{type:"object",properties:{text:{type:"string"}},required:["text"]}
+  };
+  const feedbackTool={
+    name:"teddy_feedback",description:"使用者說你剛才答對了或答錯了（例如「答對了」「答錯了」「不對，應該是…」「你說錯了」）時呼叫，記錄回饋給孫爸檢討用。verdict 填「對」或「錯」；correction 放使用者說的正確內容（沒有就空白）。",
+    parameters:{type:"object",properties:{verdict:{type:"string",enum:["對","錯"]},correction:{type:"string"}},required:["verdict"]}
   };
   const recallChatTool={
     name:"recall_recent_chat",description:"讀取文字輸入與即時語音共用的最近對話紀錄（包含使用者打字的內容、附件摘要與 TEDDY 的文字回覆）。使用者提到剛剛打的字、前面說的事、那個檔案，或你不確定上下文時先呼叫。",
@@ -269,6 +273,9 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
         const data=typeof window.teddyInvestQuery==="function"?await window.teddyInvestQuery(q):"";
         return data?{ok:true,data}:{ok:false,error:"這句話對不到澎企理財裡的自選股；可以請使用者說股票名稱，或用 browse_web 查。"};
       }catch(e){return{ok:false,error:e.message};}
+    }
+    if(name==="teddy_feedback"){
+      try{const ok=typeof window.teddyFbVoice==="function"&&window.teddyFbVoice(args?.verdict,args?.correction||"");setLiveTrace(ok?"📝 已記錄回饋":"回饋紀錄無法使用","#5eead4");return ok?{ok:true,answer:args?.verdict==="對"?"記下了，這題答對。":"記下了，這題答錯"+(args?.correction?"，也記下你的更正。":"。哪裡不對可以再告訴我。")}:{ok:false,error:"回饋紀錄無法使用"};}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="recall_recent_chat"){
       const n=Math.max(4,Math.min(30,Number(args?.count)||12));
@@ -428,8 +435,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   function liveToolDeclarations(){
     const greenhouse=(window.TEDDY_APP_MODE==="greenhouse");
     return greenhouse
-      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool,reminderTool]
-      : [myStocksTool,astraThinkTool,browseWebTool,recallChatTool,reminderTool];
+      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool,reminderTool,feedbackTool]
+      : [myStocksTool,astraThinkTool,browseWebTool,recallChatTool,reminderTool,feedbackTool];
   }
   function liveOpenAITools(){return liveToolDeclarations().map(t=>({type:"function",...t}));}
 
