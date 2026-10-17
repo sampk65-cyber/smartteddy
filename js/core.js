@@ -3738,7 +3738,14 @@ ${parts}
       const partial = { __pending: true };
       renderCards(partial);
       const jobs = { openai: callOpenAI(q, keys, imageBase64, imageMime), claude: callClaude(q, keys, imageBase64, imageMime), gemini: callGemini(q, keys, imageBase64, imageMime), deepseek: callDeepSeek(q, keys), grok: callGrok(q, keys, imageBase64, imageMime) };
-      await Promise.all(Object.entries(jobs).map(([k, pr]) => pr.then(r => { partial[k] = r; const keep = document.getElementById("obsReader")?.classList.contains("show"); if (!keep) renderCards(partial); else obsLast = partial; })));
+      // 8.6.2：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
+      const sumBtn = document.getElementById("btnSummary"), SUM_LABEL = "✦ 一鍵整理總結對比";
+      await Promise.all(Object.entries(jobs).map(([k, pr]) => pr.then(r => {
+        partial[k] = r; const keep = document.getElementById("obsReader")?.classList.contains("show"); if (!keep) renderCards(partial); else obsLast = partial;
+        const got = Object.keys(jobs).filter(x => partial[x]), okN = got.filter(x => partial[x].ok).length;
+        results = Object.fromEntries(got.map(x => [x, partial[x]]));
+        if (okN >= 2) { document.getElementById("summaryZone").classList.add("show"); if (!sumBtn.disabled) sumBtn.textContent = got.length < 5 ? `${SUM_LABEL}（已回 ${got.length}/5）` : SUM_LABEL; }
+      })));
       const { openai, claude, gemini, deepseek, grok } = partial;
       results = { openai, claude, gemini, deepseek, grok };
       renderCards(results);
