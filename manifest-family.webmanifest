@@ -1,0 +1,33 @@
+{
+  "id": "/?app=family",
+  "name": "Teddy 家人版",
+  "short_name": "Teddy 家人",
+  "description": "TEDDY（碰氣）— 松鼠助理",
+  "lang": "zh-Hant",
+  "start_url": "/?app=family",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e0d",
+  "theme_color": "#0a0e0d",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
