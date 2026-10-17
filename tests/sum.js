@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');const http=require('http');
+const srv=http.createServer(require('./srvh')).listen(8796);
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:390,height:844}});let claudeCalls=0,grokSum=0;
+ p.on('pageerror',e=>console.log('PAGEERR',e.message));
+ const ok=(r,body)=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
+ await p.route('https://api.openai.com/**',r=>ok(r,{output_text:"Sol 答"}));
+ await p.route('https://api.anthropic.com/**',r=>{claudeCalls++;const sys=JSON.parse(r.request().postData()).system||"";ok(r,{content:[{type:"text",text:/評測分析師/.test(sys)?"## 共通觀點\n**五家都說**區間震盪":"Claude 答"}],usage:{input_tokens:10,output_tokens:10}});});
+ await p.route('https://generativelanguage.googleapis.com/**',r=>ok(r,{candidates:[{content:{parts:[{text:"Gemini 答"}]}}]}));
+ await p.route('https://api.deepseek.com/**',r=>ok(r,{choices:[{message:{content:"DS 答"}}]}));
+ await p.route('https://api.x.ai/**',r=>{if(/總結對比/.test(r.request().postData()))grokSum++;ok(r,{choices:[{message:{content:"Grok 答"}}]});});
+ await p.goto('http://localhost:8796/');await p.evaluate(()=>localStorage.setItem('ai_obs_keys',JSON.stringify({openai:"a",anthropic:"b",google:"c",deepseek:"d",xai:"e"})));await p.reload();await p.waitForTimeout(1200);
+ await p.fill('#question','台股');await p.click('#btnSubmit');await p.waitForTimeout(1500);
+ await p.click('#btnSummary');await p.waitForTimeout(1500);
+ console.log("總結:",await p.innerText('#summaryBody'),"|",await p.innerText('#summaryMs'),"| 用 Grok 總結次數:",grokSum);
+ await b.close();srv.close();})();

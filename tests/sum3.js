@@ -1,0 +1,17 @@
+const {chromium}=require('playwright');const http=require('http');
+const srv=http.createServer(require('./srvh')).listen(8798);
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:390,height:844}});
+ p.on('pageerror',e=>console.log('PAGEERR',e.message));const d=ms=>new Promise(r=>setTimeout(r,ms));
+ const ok=(r,body)=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
+ await p.route('https://api.openai.com/**',async r=>{await d(300);ok(r,{output_text:"Sol 答"});});
+ await p.route('https://api.anthropic.com/**',async r=>{const sys=JSON.parse(r.request().postData()).system||"";if(!/評測/.test(sys))await d(500);ok(r,{content:[{type:"text",text:/評測/.test(sys)?"總結："+(JSON.parse(r.request().postData()).messages[0].content.match(/### /g)||[]).length+" 家":"Claude 答"}]});});
+ await p.route('https://generativelanguage.googleapis.com/**',async r=>{await d(700);ok(r,{candidates:[{content:{parts:[{text:"Gemini 答"}]}}]});});
+ await p.route('https://api.deepseek.com/**',async r=>{await d(6000);ok(r,{choices:[{message:{content:"DS 答"}}]});});
+ await p.route('https://api.x.ai/**',async r=>{await d(8000);ok(r,{choices:[{message:{content:"Grok 答"}}]});});
+ await p.goto('http://localhost:8798/');await p.evaluate(()=>localStorage.setItem('ai_obs_keys',JSON.stringify({openai:"a",anthropic:"b",google:"c",deepseek:"d",xai:"e"})));await p.reload();await p.waitForTimeout(1200);
+ await p.fill('#question','台股');await p.click('#btnSubmit');
+ await p.waitForTimeout(400);console.log("0.4s 按鈕可見:",await p.isVisible('#btnSummary'));
+ await p.waitForTimeout(1000);console.log("1.4s 按鈕:",await p.isVisible('#btnSummary'),await p.innerText('#btnSummary'));
+ await p.click('#btnSummary');await p.waitForTimeout(800);console.log("提早總結:",await p.innerText('#summaryBody'));
+ await p.waitForTimeout(7500);console.log("全部回來後按鈕:",await p.innerText('#btnSummary'));
+ await b.close();srv.close();})();

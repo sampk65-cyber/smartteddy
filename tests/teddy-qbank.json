@@ -1,0 +1,909 @@
+{
+ "name": "完全體題庫（Teddy 驗收用）",
+ "version": "Smart Teddy 6.6.0／完全體 V5.1.C125",
+ "rules": "查詢題：檢查入口與表格；指派題：檢查溫室、日期、品項數量與補問。每次改版都要全部重跑。",
+ "query": [
+  {
+   "q": "四北今天施肥多少",
+   "entry": "materials"
+  },
+  {
+   "q": "三期今天有澆水嗎",
+   "entry": "materials"
+  },
+  {
+   "q": "二期水有沒有灌",
+   "entry": "materials"
+  },
+  {
+   "q": "四南肥下了沒",
+   "entry": "materials"
+  },
+  {
+   "q": "一期這個月溝灌幾噸",
+   "entry": "materials"
+  },
+  {
+   "q": "五期噴灌多久",
+   "entry": "materials"
+  },
+  {
+   "q": "全場今天用了多少米糠",
+   "entry": "materials"
+  },
+  {
+   "q": "各區金旺用量",
+   "entry": "materials"
+  },
+  {
+   "q": "四北昨天補水",
+   "entry": "materials"
+  },
+  {
+   "q": "三期前天施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "四北9/28施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "四北九月二十八號施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "二期上禮拜補水",
+   "entry": "materials"
+  },
+  {
+   "q": "三期這禮拜施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "哪一區米糠用最多",
+   "entry": "materials"
+  },
+  {
+   "q": "四南最近一次施肥是什麼時候",
+   "entry": "materials"
+  },
+  {
+   "q": "一期硝酸鉀用了多少",
+   "entry": "materials"
+  },
+  {
+   "q": "三期其他資材",
+   "entry": "materials"
+  },
+  {
+   "q": "四北8月施肥哪幾天",
+   "entry": "materials"
+  },
+  {
+   "q": "今天有哪些區補水",
+   "entry": "materials"
+  },
+  {
+   "q": "四北產量",
+   "entry": "yield"
+  },
+  {
+   "q": "今天收了多少",
+   "entry": "yield"
+  },
+  {
+   "q": "三期這個月產量",
+   "entry": "yield"
+  },
+  {
+   "q": "一期A級多少",
+   "entry": "yield"
+  },
+  {
+   "q": "NG比例多少",
+   "entry": "yield"
+  },
+  {
+   "q": "今年產量跟去年比",
+   "entry": "yield"
+  },
+  {
+   "q": "哪一區產量最高",
+   "entry": "yield"
+  },
+  {
+   "q": "二期上個月收成",
+   "entry": "yield"
+  },
+  {
+   "q": "四南B級幾公斤",
+   "entry": "yield"
+  },
+  {
+   "q": "五期產能",
+   "entry": "yield"
+  },
+  {
+   "q": "四南打芽進度",
+   "entry": "work"
+  },
+  {
+   "q": "除草誰負責",
+   "entry": "work"
+  },
+  {
+   "q": "三期剪葉做完了嗎",
+   "entry": "work"
+  },
+  {
+   "q": "覆蓋還有哪些沒確認",
+   "entry": "work"
+  },
+  {
+   "q": "一期工作進度",
+   "entry": "work"
+  },
+  {
+   "q": "10月要做什麼",
+   "entry": "calendar"
+  },
+  {
+   "q": "三期什麼時候剪枝",
+   "entry": "calendar"
+  },
+  {
+   "q": "四北產季什麼時候",
+   "entry": "calendar"
+  },
+  {
+   "q": "下個月計畫",
+   "entry": "calendar"
+  },
+  {
+   "q": "哪些區要度冬",
+   "entry": "calendar"
+  },
+  {
+   "q": "表一",
+   "entry": "function7",
+   "table": 1
+  },
+  {
+   "q": "耗材匯總",
+   "entry": "function7",
+   "table": 1
+  },
+  {
+   "q": "表二年度計畫表",
+   "entry": "function7",
+   "table": 2
+  },
+  {
+   "q": "表三四北九月",
+   "entry": "function7",
+   "table": 3
+  },
+  {
+   "q": "表四留言",
+   "entry": "function7",
+   "table": 4
+  },
+  {
+   "q": "最近有什麼留言",
+   "entry": "function7",
+   "table": 4
+  },
+  {
+   "q": "表五今天天氣",
+   "entry": "function7",
+   "table": 5
+  },
+  {
+   "q": "神岡站昨天下多少雨",
+   "entry": "function7",
+   "table": 5
+  },
+  {
+   "q": "這個月最高溫幾度",
+   "entry": "function7",
+   "table": 5
+  },
+  {
+   "q": "今年雨量",
+   "entry": "function7",
+   "table": 5
+  },
+  {
+   "q": "表六",
+   "entry": "function7",
+   "table": 6
+  },
+  {
+   "q": "施肥統計",
+   "entry": "function7",
+   "table": 6
+  },
+  {
+   "q": "表七",
+   "entry": "function7",
+   "table": 7
+  },
+  {
+   "q": "產能長期趨勢",
+   "entry": "function7",
+   "table": 7
+  },
+  {
+   "q": "表八三期",
+   "entry": "function7",
+   "table": 8
+  },
+  {
+   "q": "資材投入跟產能",
+   "entry": "function7",
+   "table": 8
+  },
+  {
+   "q": "表九",
+   "entry": "function7",
+   "table": 9
+  },
+  {
+   "q": "氣候跟產能的關係",
+   "entry": "function7",
+   "table": 9
+  },
+  {
+   "q": "表十",
+   "entry": "function7",
+   "table": 10
+  },
+  {
+   "q": "今天誰登入",
+   "entry": "function7",
+   "table": 10
+  },
+  {
+   "q": "表十一三期",
+   "entry": "function7",
+   "table": 11
+  },
+  {
+   "q": "三期用量側寫",
+   "entry": "function7",
+   "table": 11
+  },
+  {
+   "q": "表十二米糠",
+   "entry": "function7",
+   "table": 12
+  },
+  {
+   "q": "溝灌跨溫室比較",
+   "entry": "function7",
+   "table": 12
+  },
+  {
+   "q": "表十三",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "天氣熱的時候溝灌用多少",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "下雨天噴灌有沒有比較少",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "表十四",
+   "entry": "function7",
+   "table": 14
+  },
+  {
+   "q": "產能資材雨量",
+   "entry": "function7",
+   "table": 14
+  },
+  {
+   "q": "二期今年產量施肥跟雨量",
+   "entry": "function7",
+   "table": 14
+  },
+  {
+   "q": "一期照片",
+   "entry": "photos"
+  },
+  {
+   "q": "四南最近的照片",
+   "entry": "photos"
+  },
+  {
+   "q": "三期果樹履歷",
+   "entry": "trees"
+  },
+  {
+   "q": "樹齡2年節間多長",
+   "entry": "trees"
+  },
+  {
+   "q": "四北有果幾顆",
+   "entry": "trees"
+  },
+  {
+   "q": "四南環境數據",
+   "entry": "environment"
+  },
+  {
+   "q": "三期溫室溫度",
+   "entry": "environment"
+  },
+  {
+   "q": "二期濕度",
+   "entry": "environment"
+  },
+  {
+   "q": "四北EC",
+   "entry": "environment"
+  },
+  {
+   "q": "最近有什麼環境異常",
+   "entry": "environment"
+  },
+  {
+   "q": "今天誰請假",
+   "entry": "attendance"
+  },
+  {
+   "q": "我今天打卡了嗎",
+   "entry": "attendance"
+  },
+  {
+   "q": "這個月加班",
+   "entry": "attendance"
+  },
+  {
+   "q": "小明今天有來嗎",
+   "entry": "attendance"
+  },
+  {
+   "q": "人員名單",
+   "entry": "people"
+  },
+  {
+   "q": "誰是品管師",
+   "entry": "people"
+  },
+  {
+   "q": "有幾位員工",
+   "entry": "people"
+  },
+  {
+   "q": "表三怎麼算",
+   "entry": "guide"
+  },
+  {
+   "q": "用量為什麼跟以前不一樣",
+   "entry": "guide"
+  },
+  {
+   "q": "固態是什麼意思",
+   "entry": "guide"
+  },
+  {
+   "q": "看走勢跟看當期差在哪",
+   "entry": "guide"
+  },
+  {
+   "q": "表十誰可以看",
+   "entry": "guide"
+  },
+  {
+   "q": "功能表9是什麼",
+   "entry": "guide"
+  },
+  {
+   "q": "加總跟並列有什麼不同",
+   "entry": "guide"
+  },
+  {
+   "q": "雨量怎麼算",
+   "entry": "guide"
+  },
+  {
+   "q": "刻度為什麼固定",
+   "entry": "guide"
+  },
+  {
+   "q": "權限怎麼設定",
+   "entry": "guide"
+  },
+  {
+   "q": "表十三是什麼",
+   "entry": "guide"
+  },
+  {
+   "q": "重複的回報怎麼處理",
+   "entry": "guide"
+  },
+  {
+   "q": "功能表有哪些",
+   "entry": "route-map"
+  },
+  {
+   "q": "三期施肥趨勢分析",
+   "entry": "function7",
+   "table": 11
+  },
+  {
+   "q": "米糠各區比較",
+   "entry": "function7",
+   "table": 12
+  },
+  {
+   "q": "溝灌排名",
+   "entry": "function7",
+   "table": 12
+  },
+  {
+   "q": "四北用量組成",
+   "entry": "function7",
+   "table": 11
+  },
+  {
+   "q": "施肥跟產能的關係",
+   "entry": "function7",
+   "table": 8
+  },
+  {
+   "q": "天氣熱施肥量變化",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "產能施肥雨量關係",
+   "entry": "function7",
+   "table": 14
+  },
+  {
+   "q": "四北米糠趨勢",
+   "entry": "function7",
+   "table": 11
+  },
+  {
+   "q": "四北施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "今天施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "二期液態肥",
+   "entry": "materials"
+  },
+  {
+   "q": "三期固態肥這個月",
+   "entry": "materials"
+  },
+  {
+   "q": "今天三期溝灌多少",
+   "entry": "materials"
+  },
+  {
+   "q": "二期這個月米糠用了多少",
+   "entry": "materials"
+  },
+  {
+   "q": "昨天各區補水",
+   "entry": "materials"
+  },
+  {
+   "q": "三期9月產量",
+   "entry": "yield"
+  },
+  {
+   "q": "今年A級比例",
+   "entry": "yield"
+  },
+  {
+   "q": "一期產能跟去年比",
+   "entry": "yield"
+  },
+  {
+   "q": "除草指派給誰",
+   "entry": "work"
+  },
+  {
+   "q": "10月計畫",
+   "entry": "calendar"
+  },
+  {
+   "q": "耗材匯總表",
+   "entry": "function7",
+   "table": 1
+  },
+  {
+   "q": "表三 四北 9月",
+   "entry": "function7",
+   "table": 3
+  },
+  {
+   "q": "表五 今天",
+   "entry": "function7",
+   "table": 5
+  },
+  {
+   "q": "神岡站昨天雨量",
+   "entry": "function7",
+   "table": 5
+  },
+  {
+   "q": "表六施肥統計",
+   "entry": "function7",
+   "table": 6
+  },
+  {
+   "q": "長週期產能趨勢",
+   "entry": "function7",
+   "table": 7
+  },
+  {
+   "q": "氣候變遷跟產能",
+   "entry": "function7",
+   "table": 9
+  },
+  {
+   "q": "誰登入過",
+   "entry": "function7",
+   "table": 10
+  },
+  {
+   "q": "表十一 三期",
+   "entry": "function7",
+   "table": 11
+  },
+  {
+   "q": "表十二 米糠 各溫室比較",
+   "entry": "function7",
+   "table": 12
+  },
+  {
+   "q": "高溫的時候溝灌用多少",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "下雨天補水比較少嗎",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "溫度分級統計",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "今年產能跟施肥還有雨量的關係",
+   "entry": "function7",
+   "table": 14
+  },
+  {
+   "q": "四南9月照片",
+   "entry": "photos"
+  },
+  {
+   "q": "一期果樹履歷",
+   "entry": "trees"
+  },
+  {
+   "q": "樹齡2年的節間",
+   "entry": "trees"
+  },
+  {
+   "q": "三期EC多少",
+   "entry": "environment"
+  },
+  {
+   "q": "四北溫度",
+   "entry": "environment"
+  },
+  {
+   "q": "用量怎麼計算",
+   "entry": "guide"
+  },
+  {
+   "q": "看走勢跟看當期有什麼不同",
+   "entry": "guide"
+  },
+  {
+   "q": "為什麼數字會重複",
+   "entry": "guide"
+  },
+  {
+   "q": "三期施肥",
+   "entry": "materials"
+  },
+  {
+   "q": "全場溝灌",
+   "entry": "materials"
+  },
+  {
+   "q": "四北上個月施肥哪幾天",
+   "entry": "materials"
+  },
+  {
+   "q": "三期最近一次補水",
+   "entry": "materials"
+  },
+  {
+   "q": "各區其他資材",
+   "entry": "materials"
+  },
+  {
+   "q": "二期硝酸鉀",
+   "entry": "materials"
+  },
+  {
+   "q": "表4 留言",
+   "entry": "function7",
+   "table": 4
+  },
+  {
+   "q": "表2",
+   "entry": "function7",
+   "table": 2
+  },
+  {
+   "q": "三期每天用了哪些資材",
+   "entry": "function7",
+   "table": 3
+  },
+  {
+   "q": "表12 溝灌",
+   "entry": "function7",
+   "table": 12
+  },
+  {
+   "q": "表14 二期 今年",
+   "entry": "function7",
+   "table": 14
+  },
+  {
+   "q": "表13 四北 9月",
+   "entry": "function7",
+   "table": 13
+  },
+  {
+   "q": "五期照片",
+   "entry": "photos"
+  },
+  {
+   "q": "三期環境異常",
+   "entry": "environment"
+  },
+  {
+   "q": "四南照度",
+   "entry": "environment"
+  },
+  {
+   "q": "一期點位3履歷",
+   "entry": "trees"
+  },
+  {
+   "q": "加總跟並列差在哪",
+   "entry": "guide"
+  },
+  {
+   "q": "刻度怎麼算",
+   "entry": "guide"
+  },
+  {
+   "q": "液態是什麼",
+   "entry": "guide"
+  },
+  {
+   "q": "四北產能多少",
+   "entry": "yield"
+  },
+  {
+   "q": "品級NG多少",
+   "entry": "yield"
+  },
+  {
+   "q": "覆蓋完成了嗎",
+   "entry": "work"
+  },
+  {
+   "q": "產季什麼時候開始",
+   "entry": "calendar"
+  },
+  {
+   "q": "請假",
+   "entry": "attendance"
+  }
+ ],
+ "assign": [
+  {
+   "q": "指派 四北 明天 米糠 3包",
+   "expect": {
+    "zone": "north4",
+    "vals": {
+     "7": {
+      "米糠": 3
+     }
+    }
+   }
+  },
+  {
+   "q": "指派三期今天溝灌5噸",
+   "expect": {
+    "zone": "zone3",
+    "vals": {
+     "6": {
+      "溝灌": 5
+     }
+    }
+   }
+  },
+  {
+   "q": "幫我指派二期噴灌30分鐘",
+   "expect": {
+    "zone": "p2",
+    "vals": {
+     "6": {
+      "噴灌": 30
+     }
+    }
+   }
+  },
+  {
+   "q": "指派一期補水5噸",
+   "expect": {
+    "zone": "p1",
+    "vals": {
+     "6": {
+      "溝灌": 5
+     }
+    }
+   }
+  },
+  {
+   "q": "指派一期澆水20分鐘",
+   "expect": {
+    "zone": "p1",
+    "vals": {
+     "6": {
+      "噴灌": 20
+     }
+    }
+   }
+  },
+  {
+   "q": "指派四南金旺1包 米糠2包",
+   "expect": {
+    "zone": "south4",
+    "vals": {
+     "7": {
+      "金旺": 1,
+      "米糠": 2
+     }
+    }
+   }
+  },
+  {
+   "q": "指派五期硝酸鉀2公斤",
+   "expect": {
+    "zone": "zone5",
+    "vals": {
+     "8": {
+      "硝酸鉀": 2
+     }
+    }
+   }
+  },
+  {
+   "q": "指派三期 鈣鎂粉 5kg 微量元素 1kg",
+   "expect": {
+    "zone": "zone3",
+    "vals": {
+     "8": {
+      "鈣鎂粉": 5,
+      "微量元素": 1
+     }
+    }
+   }
+  },
+  {
+   "q": "指派二期 10月5號 黃豆 10公斤",
+   "expect": {
+    "zone": "p2",
+    "date": "10-05",
+    "vals": {
+     "8": {
+      "黃豆": 10
+     }
+    }
+   }
+  },
+  {
+   "q": "指派四北 十月八號 溝灌 3噸 米糠 2包",
+   "expect": {
+    "zone": "north4",
+    "date": "10-08",
+    "vals": {
+     "6": {
+      "溝灌": 3
+     },
+     "7": {
+      "米糠": 2
+     }
+    }
+   }
+  },
+  {
+   "q": "安排一期明天施肥 米糠3包 硫酸鉀2公斤",
+   "expect": {
+    "zone": "p1",
+    "vals": {
+     "7": {
+      "米糠": 3
+     },
+     "8": {
+      "硫酸鉀": 2
+     }
+    }
+   }
+  },
+  {
+   "q": "指派三期施肥",
+   "expect": {
+    "zone": "zone3",
+    "missFert": true
+   }
+  },
+  {
+   "q": "指派四南補水",
+   "expect": {
+    "zone": "south4",
+    "missWater": true
+   }
+  },
+  {
+   "q": "指派二期米糠",
+   "expect": {
+    "zone": "p2",
+    "noQty": [
+     "米糠"
+    ]
+   }
+  },
+  {
+   "q": "指派 磷酸一鉀 2公斤",
+   "expect": {
+    "zone": null,
+    "vals": {
+     "8": {
+      "磷酸一鉀": 2
+     }
+    }
+   }
+  },
+  {
+   "q": "指派四北水果3公斤 給E01 區域A3",
+   "expect": {
+    "zone": "north4",
+    "vals": {
+     "8": {
+      "水果": 3
+     }
+    },
+    "rec": "E01",
+    "cell": "A3"
+   }
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "smartteddy-tests",
+  "private": true,
+  "description": "Smart Teddy 回歸測試（只在本機或 AI 工作環境執行，不會部署）",
+  "scripts": { "test": "node run-all.js", "update-golden": "node run-all.js --update" },
+  "devDependencies": { "playwright": "^1.48.0" }
+}
