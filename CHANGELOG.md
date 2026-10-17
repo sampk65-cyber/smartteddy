@@ -2,6 +2,12 @@
 
 格式：版本｜日期｜改了哪些檔案｜內容。更早的版本請看 GitHub 的 commit 紀錄。
 
+## 8.7.1｜2026-10-17
+檔案：`index.html`、`js/core.js`
+- Teddy 認得自己的本事：新增 `teddySelfKnowledge()`，依入口自動產生「一般模式／溫室模式／澎企理財」三大功能清單與最近更新，放進文字、語音、溫室的人格設定。
+- 看到自己畫面的截圖、或被問到功能名稱時，直接用第一人稱說明，不再反問「那是什麼」。
+- 問「你會什麼／有什麼功能」直接列出三大功能；家人版說明修正（家人可以用澎企理財，只能看共用自選）。
+
 ## 8.7.0｜2026-10-17
 檔案：`index.html`、`sw.js`、`js/core.js`、`js/greenhouse.js`、`js/live.js`、新增 `js/feedback.js`、新增 `docs/`、`tests/`、`CHANGELOG.md`、`.vercelignore`
 - 新增**回饋紀錄**：一般聊天 👍／👎、打字「答對了／答錯了，應該是…」、語音 `teddy_feedback` 工具、溫室原有的答對答錯，全部記在同一份紀錄（本機＋Teddy Firebase）。
