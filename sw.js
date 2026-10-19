@@ -1,8 +1,8 @@
-/* Smart Teddy 8.7.0 · Service Worker
+/* Smart Teddy 8.8.0 · Service Worker
    原則：永遠先拿網路上的最新版（network-first）；只有離線或網路失敗時才用手機裡的備份。
    不碰 /api/、不碰其他網站（Firebase、Gemini、OpenAI、Claude、證交所…）、不碰非 GET 請求。 */
-const CACHE = "teddy-shell-v8.7.0";
-const SHELL = ["/", "/js/core.js", "/js/greenhouse.js", "/js/live.js", "/js/invest.js", "/js/feedback.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
+const CACHE = "teddy-shell-v8.8.0";
+const SHELL = ["/", "/js/core.js", "/js/greenhouse.js", "/js/live.js", "/js/invest.js", "/js/feedback.js", "/js/docs.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: "reload" })).catch(() => {})))).then(() => self.skipWaiting()));
 });

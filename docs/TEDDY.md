@@ -1,7 +1,7 @@
 # Smart Teddy 說明書（給孫爸，也給下一個接手的 AI）
 
 > 改 Teddy 之前，請先讀完這份。改完一定要跑 `tests/`，並在 `CHANGELOG.md` 記下改了什麼。
-> 這份說明書描述的是 **8.7.1** 的狀態。
+> 這份說明書描述的是 **8.8.0** 的狀態。
 
 ---
 
@@ -49,6 +49,7 @@ js/greenhouse.js         溫室模式：完全體 V5.1 資料閘門、功能表�
 js/live.js               即時語音（Gemini Live）與語音工具
 js/invest.js             澎企理財：自選股、指標、盤後報告、週檢、雲端同步
 js/feedback.js           回饋紀錄（答對／答錯）與匯出
+js/docs.js               文件記憶：附上的文件全文另外保存，追問時才送出；語音 read_document 讀取
 api/stock.js             Vercel 伺服器函式：證交所、FinMind、Yahoo 資料轉接（只讀）
 sw.js                    Service Worker：永遠先拿網路最新版，離線才用備份；不碰 /api/ 與其他網站
 manifest*.webmanifest    三個入口各自的 App 設定
@@ -57,7 +58,7 @@ docs/                    說明文件（不部署）
 tests/                   回歸測試（不部署）
 ```
 
-**載入順序很重要**：`core → greenhouse → live → invest → feedback`，都是一般 `<script>`，共用同一個全域範圍。
+**載入順序很重要**：`core → greenhouse → live → invest → feedback → docs`，都是一般 `<script>`，共用同一個全域範圍。
 - `core.js` 載入時**不能直接呼叫** `greenhouse.js` 以後的函式；要用的地方都要先檢查 `typeof X === "function"`。
 - 新功能優先放在獨立檔案，透過 `window.teddyXxx` 互相呼叫（像 `invest.js`、`feedback.js`）。
 - 改了哪個 js，就把 `index.html` 裡那個檔案的 `?v=` 版本號一起改，避免手機用到舊暫存。
@@ -131,6 +132,15 @@ match /teddy_invest/{docId} {
 
 ---
 
+## 七之一、文件記憶（8.8.0）
+
+- 附上 PDF／Word／Excel／PowerPoint 時，全文存進 `js/docs.js` 的文件記憶（最近一份、本機、24 小時），**對話紀錄只留一行標記**。
+- 打字：這一輪有附件，或追問提到「這份／簡報／投影片／第幾頁／報告稿／摘要…」時，`teddyChatHistory()` 會把全文接在最後一則使用者訊息後面送出；其他聊天不帶全文。
+- 要整理成報告稿、講稿、逐頁說明時，`teddyDeepJudge()` 會交給深度引擎。
+- 語音：`read_document`（可填 pages，如 "3-7"）讀內容；`think_with_astra` 會自動附上全文；附文件時 `teddyLiveNotifyDoc()` 通知語音。
+- PowerPoint 讀取：段落、表格、SmartArt、圖表（標題與數列數值）、備忘稿；圖片裡的文字讀不到，會標出每頁幾張圖片。
+- 打字「清除文件」清掉文件記憶。
+
 ## 八、怎麼測試
 
 ```bash
@@ -143,7 +153,7 @@ node run-all.js --update  # 確認新行為是對的之後，才更新標準答�
 
 - 測試前會自動用 `js/` 目前的程式產生副本（`gencopies.js`），不會測到舊程式。
 - 測試只用模擬資料，不會連到真正的 AI、證交所或 Firebase。
-- 重要測試：`rbrun`（170 題路由，不能有任何一題被誤當工作指派）、`lt`／`imgt`（語音與照片）、`pit*`（澎企理財）、`sync`（雲端同步）、`wk`（週檢）、`pwa`（三個入口、App、離線）、`obs2`／`sum*`（觀測站）、`fbt`（回饋紀錄）、`self`（Teddy 認得自己三大功能）。
+- 重要測試：`rbrun`（170 題路由，不能有任何一題被誤當工作指派）、`lt`／`imgt`（語音與照片）、`pit*`（澎企理財）、`sync`（雲端同步）、`wk`（週檢）、`pwa`（三個入口、App、離線）、`obs2`／`sum*`（觀測站）、`fbt`（回饋紀錄）、`self`（Teddy 認得自己三大功能）、`doct`（PPT 讀取與文件記憶）、`ldoc`（語音讀文件）、（PPT 讀取與文件記憶）、（語音讀文件）。
 
 ---
 

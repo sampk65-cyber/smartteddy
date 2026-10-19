@@ -1,0 +1,5 @@
+一般模式語音工具含 read_document: true
+語音說明含文件規則: true
+附文件時通知語音: true true
+read_document 回傳: {"ok":true,"name":"deck.pptx","format":"PowerPoint","pages":2,"range":"第 2 頁","text":"【投影片 2】\n要解決的問題\n紙本紀錄容易遺失","note":""}
+深度引擎拿到全文: true

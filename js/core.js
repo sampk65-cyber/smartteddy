@@ -1,4 +1,4 @@
-/* Smart Teddy 8.7.1 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
+/* Smart Teddy 8.8.0 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
 
     const SOURCES = [
@@ -118,12 +118,12 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.7.1・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.8.0・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.7.1；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.8.0；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -142,9 +142,10 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       }
       return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER + "\n\n" + teddySelfKnowledge();
     }
-    // ===== 8.7.1：Teddy 的「我的本事」——三大功能清單，由程式依入口產生；文字、語音、溫室共用 =====
+    // ===== 8.8.0：Teddy 的「我的本事」——三大功能清單，由程式依入口產生；文字、語音、溫室共用 =====
     // 以後每加一個功能，只改這裡（和 docs/TEDDY.md），Teddy 就會知道自己會什麼。
     const TEDDY_RECENT_UPDATES = [
+      "8.8：文件記憶——附上的 PPT／PDF／Word／Excel 可以一直追問、逐頁說明、整理成報告稿，語音也能讀；PPT 會讀備忘稿",
       "8.7：回饋紀錄（答錯可按 👎 或說「答錯了，應該是…」，可匯出給 Claude 修正）",
       "8.6：可以安裝成手機 App；AI 觀測站可點卡片全螢幕看各家答案、一鍵總結",
       "8.5：澎企理財「📅 週檢」：自選股每週評分、轉強轉弱、觀察名單、上週成績單",
@@ -153,7 +154,7 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
     function teddySelfKnowledge(){
       const entry=window.TEDDY_ENTRY_ID||"owner", ver=(typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy");
       const deep=(()=>{try{return teddyDeepChoice().label;}catch(_){return "深度思考引擎";}})();
-      const general=`【一般模式】聊天與長期記憶（打字和語音共用同一份記憶）；看照片、讀檔案（PDF、Excel、Word）與網址；天氣、計算、計時、提醒（可加到手機行事曆）、新聞與即時搜尋；即時語音（Gemini 3.1 Live，聊天時也能看照片）；遇到需要深想的問題會交給深度思考引擎（目前：${deep}）；AI 觀測站（主畫面，同一題同時問五家 AI 並排比較、可一鍵總結）。`;
+      const general=`【一般模式】聊天與長期記憶（打字和語音共用同一份記憶）；看照片、讀檔案（PDF、Excel、Word、PowerPoint 含備忘稿）與網址——附上的文件會存進「文件記憶」24 小時，可以一直追問、請我逐頁說明或整理成報告稿，語音也讀得到；天氣、計算、計時、提醒（可加到手機行事曆）、新聞與即時搜尋；即時語音（Gemini 3.1 Live，聊天時也能看照片）；遇到需要深想的問題會交給深度思考引擎（目前：${deep}）；AI 觀測站（主畫面，同一題同時問五家 AI 並排比較、可一鍵總結）。`;
       const invest=`【澎企理財】（一般模式裡的「💹 澎企理財」按鈕）自選股即時行情、漲跌、月均價、外資買賣超、EPS、本益比；點個股看走勢圖（1 日到 5 年）、RSI、KD、MACD、均線、52 週位置、籌碼、月營收與財報；🔔 程式訊號；🌐 大盤總覽（指數、三大法人、期貨外資、融資）；三大法人買賣超排行；📋 盤後報告與明日關鍵價位；📅 週檢（每週評分、轉強轉弱、觀察名單、上週成績單）；持股損益、分析紀錄、雲端同步。所有數字都是程式從證交所和 FinMind 算出來的；只看不下單，不叫人買賣。`;
       const greenhouse=`【溫室模式】讀取完全體 V5.1 的真實農場資料：產能、工作 1～8、工項行事曆、功能表 7 的十張表（耗材與報表）、補水施肥等資材、打卡出勤、分區與樹況；數字一律由程式從完全體讀，不自己算。要寫入（例如指派工作）時先復述、等確認才寫。會記住「答對／答錯」的問法來改進。`;
       let parts, intro;
@@ -169,7 +170,7 @@ ${parts.join("\n")}
     function teddySelfKnowledgeBrief(){
       const entry=window.TEDDY_ENTRY_ID||"owner";
       const v=(typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy");
-      const g="🐿 一般模式：聊天記憶、看照片和檔案、天氣計算計時提醒、即時語音（也能看照片）、深度思考、AI 觀測站";
+      const g="🐿 一般模式：聊天記憶、看照片、讀 PPT／PDF／Word／Excel 並整理成報告、天氣計算計時提醒、即時語音（也能看照片）、深度思考、AI 觀測站";
       const i="💹 澎企理財：自選股行情與均價外資 EPS、走勢圖與技術指標、🔔 訊號、大盤總覽、法人排行、盤後報告、📅 週檢、持股損益";
       const h="🌱 溫室模式：讀完全體的產能、工作、行事曆、十張報表、資材、打卡；寫入要先確認";
       const list=entry==="family"?[g,i]:entry==="farm"?[h]:[g,h,i];
@@ -189,7 +190,7 @@ ${parts.join("\n")}
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 8.7.1：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 8.8.0：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -509,7 +510,7 @@ ${parts.join("\n")}
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 8.7.1";
+    const TEDDY_VERSION = "Smart Teddy 8.8.0";
     try{document.querySelectorAll(".teddy-ver-badge").forEach(el=>el.textContent=TEDDY_VERSION);}catch(_){}
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
@@ -1543,6 +1544,8 @@ ${parts.join("\n")}
         if(last&&last.role===role)last.text+="\n"+h.text;else out.push({role,text:String(h.text||"")});
       });
       while(out.length&&out[0].role!=="user")out.shift();
+      // 8.8.0：文件全文只在這一輪送出，不存進對話紀錄
+      if(window.__teddyDocForTurn&&out.length&&out[out.length-1].role==="user")out[out.length-1]={...out[out.length-1],text:out[out.length-1].text+"\n\n"+window.__teddyDocForTurn};
       return out;
     }
     async function teddyChatWithClaude(apiKey, onStatus) {
@@ -2102,7 +2105,7 @@ ${parts.join("\n")}
       const text=v==="auto"?`文字聊天為智慧分工：一般對話先用 Gemini，需要深度推理（分析、規劃、評估、程式等）才交給深度思考引擎「${deepLab}」`:`文字聊天固定使用「${label}」`;
       return `${text}；即時語音由 ${typeof window.teddyGliveVariantLabel==="function"?window.teddyGliveVariantLabel():"Gemini Live"} 說話，遇到複雜問題才呼叫深度思考引擎「${(()=>{try{return teddyDeepChoice().label;}catch(_){return "GPT-6.1 Sol";}})()}」；溫室問題的理解用 Gemini Flash，數字一律由程式從完全體讀取計算。`;
     }
-    // 8.7.1：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
+    // 8.8.0：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
     function teddyDeepJudge(message,o){
       o=o||{};
       const t=String(message||"").trim(), len=t.replace(/\s/g,"").length;
@@ -2110,6 +2113,7 @@ ${parts.join("\n")}
       if(/簡單(說|講|回答|回)|一句話|不用(深|想太多|分析|太詳細)|快速回答|隨便聊|閒聊/.test(t))return{deep:false,score:0,reason:"你要簡短回答"};
       if(/深度思考|深想|深入(分析|研究|想|評估)|仔細(想|分析|評估|研究|算)|想清楚|認真(分析|想|評估)|好好(分析|想)|完整分析|詳細分析|專業分析|用\s*(claude|opus|sonnet|sol|astra)/i.test(t))return{deep:true,score:9,reason:"你指定要深度思考"};
       if(/寫.{0,6}(程式|腳本|函式|code)|程式碼|除錯|debug|報錯|錯誤訊息|stack ?trace|syntax ?error|is not defined|undefined/i.test(t))return{deep:true,score:9,reason:"程式／除錯"};
+      if(o.doc&&/報告|講稿|簡報稿|逐頁|每一頁|上台|口頭|改寫|潤稿|整理成/.test(t))return{deep:true,score:9,reason:"文件整理成報告／講稿"};
       if(o.invest&&/週檢|週報|(下週|本週|這週|每週|下禮拜).{0,8}(名單|推薦|觀察|變化|檔|強弱)|盤後報告|報告|明日.{0,4}(計畫|計劃|操作|指南)|大盤.{0,8}(解讀|分析|怎麼看|看法|研判)/.test(t))return{deep:true,score:9,reason:"盤後報告／大盤解讀"};
       let score=0;const why=[];
       const add=(re,n,w)=>{if(re.test(t)){score+=n;why.push(w);}};
@@ -2176,7 +2180,7 @@ ${parts.join("\n")}
     let teddyHandsWorkMode=null; // assign / report
     let teddyHandsFlow={};       // 工作入口導引狀態
 
-    // ===== Smart Teddy 8.7.1：主人版＝A01 孫爸（完全體開發者，全部權限）=====
+    // ===== Smart Teddy 8.8.0：主人版＝A01 孫爸（完全體開發者，全部權限）=====
     // 主人版（無 ?app 參數）閱讀全部資料本來就不受限；這裡讓 A 開頭帳號驗證一次後記在「這台裝置」，
     // 重新整理不必再驗證。只存編號、姓名、身分與權限，不存密碼；寫入仍走「草稿 → 復述 → 你確認」。
     // 說「登出」或「取消授權」即清除。溫室助理入口（員工）不受影響，仍是每次登入。
@@ -2395,7 +2399,7 @@ ${parts.join("\n")}
       await teddyHandsWriteKv(key,v);return key;
     }
 
-    // ===== Smart Teddy 8.7.1：工作指派走完全體同一套安全交易 =====
+    // ===== Smart Teddy 8.8.0：工作指派走完全體同一套安全交易 =====
     // 以下 TEDDY_WDS 為完全體 V5.1.C132「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
     // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
 const TEDDY_WDS = (() => {
@@ -2737,7 +2741,7 @@ const TEDDY_WDS = (() => {
       const key=d.kind==="assign68"?await teddyHandsCommit68(d):await teddyHandsCommitWorkSafe(d);teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
-    // ===== Smart Teddy 8.7.1：簡化指派——照上次、常用配方、口語確認、一行復述 =====
+    // ===== Smart Teddy 8.8.0：簡化指派——照上次、常用配方、口語確認、一行復述 =====
     const TEDDY_RECIPE_KEY="teddy_recipes_v1"+(window.TEDDY_KEY_SUFFIX||"");
     let teddyRecipes={};
     try{teddyRecipes=JSON.parse(localStorage.getItem(TEDDY_RECIPE_KEY)||"{}")||{};}catch(_){teddyRecipes={};}
@@ -2920,7 +2924,7 @@ const TEDDY_WDS = (() => {
       const liveSeqAtStart=window.__teddyLiveUserSeq||0;
       const input = document.getElementById("teddyChatInput");
       let text = input.value.trim();
-      if(teddyAttachment?.kind==="text")text+=(text?"\n\n":"")+`【附件：${teddyAttachment.name}｜${teddyAttachment.format||"文件"}】\n`+teddyAttachment.text;
+      if(teddyAttachment?.kind==="text"){ const _d=typeof window.teddyDocSave==="function"?window.teddyDocSave(teddyAttachment):null; text+=(text?"\n\n":"")+(_d?window.teddyDocMarker(_d):`【附件：${teddyAttachment.name}｜${teddyAttachment.format||"文件"}】\n`+teddyAttachment.text); }
       else if(teddyAttachment?.kind==="image")text+=(text?" ":"")+`【本輪已實際附加圖片：${teddyAttachment.name}】請以「圖片本身」為第一資料來源，直接辨識像素、OCR 文字、介面、圖表、人物/物件與畫面關係後回答。不要把附件誤認成網址，不要只描述檔名，也不要要求重傳；只有 API 明確回報圖片解碼失敗時才能說無法讀圖。`;
       else if(teddyAttachment?.kind==="file")text+=(text?" ":"")+`我附加了檔案「${teddyAttachment.name}」。請先自行判斷檔案類型、可讀內容與適合的分析方式，再依我的問題回答；若格式確實不受支援，請明確說明原因。`;
       const teddyUrls=(text.match(/https?:\/\/[^\s<>"'）)】]+/gi)||[]);
@@ -2928,7 +2932,10 @@ const TEDDY_WDS = (() => {
         text += `\n\n【網頁連結讀取要求】本輪包含網頁連結：${teddyUrls.join(" 、 ")}。請使用 web_search 實際開啟/搜尋這些網址與其可讀內容，再根據頁面內容回答；不要只根據網址字面猜測。若網站阻擋存取或需要登入，請明確說明哪些內容無法取得。`;
       }
       if (!text) return;
-      // 8.7.1：打字回饋（答對了／答錯了，應該是…／匯出回饋）先處理，不送給 AI
+      // 8.8.0：文件記憶——這一輪有附文件，或在追問剛才的文件，就把全文交給 AI（對話紀錄只留標記）
+      try{ const dr=typeof window.teddyDocTyped==="function"?window.teddyDocTyped(text):null; if(dr){ input.value=""; teddyAppendLog("user",text); teddyAppendLog("teddy",dr); return; } }catch(_){}
+      window.__teddyDocForTurn=(()=>{try{ if(typeof window.teddyDocCurrent!=="function")return null; const d=window.teddyDocCurrent(); if(!d)return null; return (teddyAttachment?.kind==="text"||window.teddyDocRefers(text))?window.teddyDocBlock(d):null; }catch(_){return null;}})();
+      // 8.8.0：打字回饋（答對了／答錯了，應該是…／匯出回饋）先處理，不送給 AI
       try{ if(typeof window.teddyFbTyped==="function"){ const fbr=window.teddyFbTyped(text); if(fbr){ input.value=""; teddyAppendLog("user",text); teddyAppendLog("teddy",fbr); return; } } }catch(_){}
       input.value = "";
       teddyActiveSkill = teddyDetectSkill(text);
@@ -3048,7 +3055,7 @@ const TEDDY_WDS = (() => {
       const modelSelect = document.getElementById("teddyModelSelect");
       let pref = modelSelect ? modelSelect.value : "auto";
       // 使用者要求：複雜問題不論目前一般／溫室模式或手動模型選擇，都優先 Astra。
-      const teddyJudge = teddyDeepJudge(text,{invest:!!teddyInvestCtx,attachment:!!teddyAttachment});
+      const teddyJudge = teddyDeepJudge(text,{invest:!!teddyInvestCtx,attachment:!!teddyAttachment||!!window.__teddyDocForTurn,doc:!!window.__teddyDocForTurn});
       if (teddyJudge.deep && (keys.openai||keys.anthropic)) { pref = teddyDeepChoice(keys).p; teddyUpdateLogDiv(thinkingDiv, "🧠 交給深度思考（"+teddyDeepChoice(keys).label+"）："+(teddyJudge.reason||"複雜問題")+"…"); }
       const btn = document.getElementById("teddyChatSend");
       btn.disabled = true;
@@ -3211,21 +3218,58 @@ const TEDDY_WDS = (() => {
       return t.slice(0,180000);
     }
 
+    // 8.8.0：PowerPoint 逐頁讀取：本文、表格、SmartArt、圖表文字、備忘稿；標出每頁圖片數（圖片裡的字讀不到）
     async function teddyExtractPptx(file){
       if(!window.JSZip) throw new Error("PowerPoint 解析器尚未載入，請等 1 秒再試一次。");
       const zip=await window.JSZip.loadAsync(await file.arrayBuffer());
       const names=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/i.test(n)).sort((a,b)=>{
         const na=+(a.match(/slide(\d+)\.xml/i)||[])[1], nb=+(b.match(/slide(\d+)\.xml/i)||[])[1]; return na-nb;
       });
-      const out=[];
-      for(let i=0;i<Math.min(names.length,100);i++){
-        const xml=await zip.file(names[i]).async("text");
-        const doc=new DOMParser().parseFromString(xml,"application/xml");
-        const runs=[...doc.getElementsByTagNameNS("*","t")].map(n=>n.textContent||"").filter(Boolean);
-        if(runs.length)out.push(`【投影片 ${i+1}】\n${runs.join(" ")}`);
+      const parse=xml=>new DOMParser().parseFromString(xml,"application/xml");
+      const textOf=doc=>{
+        // 以段落為單位，同一段的文字接起來
+        const ps=[...doc.getElementsByTagNameNS("*","p")].map(p=>[...p.getElementsByTagNameNS("*","t")].map(n=>n.textContent||"").join("").trim()).filter(Boolean);
+        return ps.length?ps:[...doc.getElementsByTagNameNS("*","t")].map(n=>(n.textContent||"").trim()).filter(Boolean);
+      };
+      const resolve=(base,target)=>{const parts=(base.replace(/[^/]+$/,"")+target).split("/"),out=[];for(const x of parts){if(x==="..")out.pop();else if(x&&x!==".")out.push(x);}return out.join("/");};
+      const out=[];let pics=0;
+      for(let i=0;i<Math.min(names.length,150);i++){
+        const nm=names[i], doc=parse(await zip.file(nm).async("text"));
+        const body=textOf(doc);
+        const extra=[];let imgs=0;
+        const relName=nm.replace(/slides\/(slide\d+\.xml)$/i,"slides/_rels/$1.rels");
+        if(zip.file(relName)){
+          const rels=[...parse(await zip.file(relName).async("text")).getElementsByTagNameNS("*","Relationship")];
+          for(const r of rels){
+            const type=r.getAttribute("Type")||"",tgt=r.getAttribute("Target")||"";if(r.getAttribute("TargetMode")==="External")continue;
+            const path=resolve(nm,tgt);
+            if(/\/image$/.test(type)){imgs++;continue;}
+            const f=zip.file(path);if(!f)continue;
+            if(/diagramData$/.test(type)){const t=textOf(parse(await f.async("text")));if(t.length)extra.push("（SmartArt）"+t.join("／"));}
+            else if(/\/chart$/.test(type)){
+              const cd=parse(await f.async("text")),t=textOf(cd);
+              // 圖表數據：每個數列「名稱：類別=數值」
+              const vals=n=>n?[...n.getElementsByTagNameNS("*","v")].map(v=>(v.textContent||"").trim()):[];
+              const sers=[...cd.getElementsByTagNameNS("*","ser")].slice(0,8).map(sr=>{
+                const kid=tag=>[...sr.children].find(c=>c.localName===tag);
+                const nm=vals(kid("tx"))[0]||"數列",cats=vals(kid("cat")),vs=vals(kid("val")).map(x=>{const n=+x;return isFinite(n)?String(Math.round(n*100)/100):x;});
+                return vs.length?`${nm}：`+vs.slice(0,24).map((v,k)=>cats[k]?`${cats[k]}=${v}`:v).join("、"):"";
+              }).filter(Boolean);
+              if(t.length||sers.length)extra.push("（圖表）"+[t.slice(0,6).join("／"),...sers].filter(Boolean).join("｜"));
+            }
+            else if(/notesSlide$/.test(type)){const t=textOf(parse(await f.async("text"))).filter(x=>!/^\d+$/.test(x));if(t.length)extra.push("（備忘稿）"+t.join(" "));}
+          }
+        }
+        pics+=imgs;
+        const lines=[`【投影片 ${i+1}】`];
+        if(body.length)lines.push(body.join("\n"));
+        lines.push(...extra);
+        if(imgs)lines.push(`（本頁有 ${imgs} 張圖片，圖片裡的文字讀不到）`);
+        if(body.length||extra.length||imgs)out.push(lines.join("\n"));
       }
       if(!out.length)throw new Error("PowerPoint 沒有可讀取的文字。若重點是圖片或圖表，請另外上傳截圖。");
-      return out.join("\n\n").slice(0,180000);
+      const head=`【PowerPoint 共 ${names.length} 頁${pics?`，其中共 ${pics} 張圖片（圖片內容需要另外截圖才看得到）`:""}】`;
+      return (head+"\n\n"+out.join("\n\n")).slice(0,180000);
     }
 
     function teddySetAttachmentProgress(percent, stage){
@@ -3291,6 +3335,10 @@ const TEDDY_WDS = (() => {
         const icon=teddyAttachment.kind==="image"?"🖼 ":(teddyAttachment.kind==="file"?"📦 ":"📄 ");
         nameEl.textContent=icon+file.name+" · 已就緒";
         teddySetAttachmentProgress(100,"已完成，可直接提問");
+        if(teddyAttachment.kind==="text"){
+          try{ const d=typeof window.teddyDocSave==="function"?window.teddyDocSave(teddyAttachment):null;
+            if(d&&typeof window.teddyLiveNotifyDoc==="function"&&window.teddyLiveNotifyDoc(d)){nameEl.textContent="📄 "+file.name+" · 已就緒（語音也讀得到）";teddySetAttachmentProgress(100,"已完成，可打字或直接用說的問");} }catch(_){}
+        }
         if(teddyAttachment.kind==="image"){
           teddyLiveImage=teddyAttachment;
           if(typeof window.teddyLiveSendImage==="function"&&await window.teddyLiveSendImage(teddyAttachment)){
@@ -3403,7 +3451,7 @@ const TEDDY_WDS = (() => {
     function escapeHtml(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
-    // 8.7.1：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
+    // 8.8.0：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
     function obsMd(t) {
       return escapeHtml(t || "").split("\n").map(line => {
         let l = line;
@@ -3444,7 +3492,7 @@ const TEDDY_WDS = (() => {
         </article>`;
       }).join("");
     }
-    // 8.7.1：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
+    // 8.8.0：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
     function obsReaderOpen(key, fromNav) {
       const list = SOURCES.filter(x => obsLast && obsLast[x.key]);
       const s = SOURCES.find(x => x.key === key), r = obsLast && obsLast[key];
@@ -3631,7 +3679,7 @@ ${parts}
 4. 綜合建議
 5. 一句話總結
 保持客觀簡潔。`;
-      // 8.7.1：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
+      // 8.8.0：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
       let firstErr = "";
       if ((keys.anthropic || keys.openai) && typeof teddyDeepAsk === "function") {
         try {
@@ -3774,11 +3822,11 @@ ${parts}
       document.getElementById("summaryZone").classList.remove("show");
       document.getElementById("summaryCard").classList.remove("show");
       document.getElementById("btnSubmit").disabled = true;
-      // 8.7.1：誰先回來就先顯示誰，不用等最慢的那一家
+      // 8.8.0：誰先回來就先顯示誰，不用等最慢的那一家
       const partial = { __pending: true };
       renderCards(partial);
       const jobs = { openai: callOpenAI(q, keys, imageBase64, imageMime), claude: callClaude(q, keys, imageBase64, imageMime), gemini: callGemini(q, keys, imageBase64, imageMime), deepseek: callDeepSeek(q, keys), grok: callGrok(q, keys, imageBase64, imageMime) };
-      // 8.7.1：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
+      // 8.8.0：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
       const sumBtn = document.getElementById("btnSummary"), SUM_LABEL = "✦ 一鍵整理總結對比";
       await Promise.all(Object.entries(jobs).map(([k, pr]) => pr.then(r => {
         partial[k] = r; const keep = document.getElementById("obsReader")?.classList.contains("show"); if (!keep) renderCards(partial); else obsLast = partial;
