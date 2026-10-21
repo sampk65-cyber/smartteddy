@@ -1,0 +1,3 @@
+語音工具: get_weather=true get_current_datetime=true get_exchange_rate=true calculate=false
+語音知道位置: true
+天氣工具執行: ["get_weather",{}] 回傳: {"ok":true,"place":"潭子區","temperature_c":24}

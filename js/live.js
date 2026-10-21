@@ -1,4 +1,4 @@
-/* Smart Teddy 8.8.0 · js/live.js：即時語音（Gemini Live、工具呼叫）
+/* Smart Teddy 8.8.1 · js/live.js：即時語音（Gemini Live、工具呼叫）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
 
 // ===== Smart Teddy 4.4-2：工作模式 Live 聲線 + 工作記憶 =====
@@ -133,7 +133,7 @@
       ?`目前在溫室模式${selected?`，使用者已選「${ENTRY_LABEL[selected]}」`:"，尚未選入口"}。溫室問題與後續追問必須使用query_greenhouse；若使用者沒重複主題，沿用已選入口。語音和打字查的是同一套資料：你一定查得到，任何溫室問題都立刻呼叫 query_greenhouse，絕對不可以說「語音查不到」或請使用者改用打字。語音辨識可能聽錯字（例如「四旗北」＝四北、「市北」＝四北），照原句交給工具即可。`
       :"目前在一般模式；禁止自行進入溫室/工作路由。只有使用者明確切換到溫室模式，或明確說『工作／進入工作／溫室模式』後，才可使用溫室工具。";
     return `${typeof teddyPersonaCore==="function"?teddyPersonaCore():"你是 TEDDY，也叫碰氣。"}
-【版本與模型（被問到時照實說，不可自己編）】我是 ${typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy"}。${typeof teddyModelRoutingText==="function"?teddyModelRoutingText():""}\n【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。使用者說你剛才答對了或答錯了（答錯了、不對、應該是…），呼叫 teddy_feedback 記下來，再照他的更正重新回答。使用者附上文件（PPT、PDF、Word、Excel）後，問到內容就先呼叫 read_document 讀，不要只靠記憶或猜；要整理成報告、講稿、逐頁說明或深入分析時，呼叫 think_with_astra（系統會自動把文件全文一起交給深度引擎），拿到結果再用你的語氣說出來。
+${(()=>{try{const L=typeof teddyLocation!=="undefined"?teddyLocation:null;return L?`【使用者目前位置（手機定位）】大約在${L.label||"（地名查不到）"}（緯度${L.lat.toFixed(2)}、經度${L.lon.toFixed(2)}）。使用者問「我在哪裡」照實說；問天氣沒講地點時，呼叫 get_weather 並把 location 留空，就會用這個位置。\n`:"【使用者位置】目前還沒取得手機定位；問天氣時可以先呼叫 get_weather（location 留空會嘗試定位），失敗再請使用者說地點。\n";}catch(_){return "";}})()}【版本與模型（被問到時照實說，不可自己編）】我是 ${typeof TEDDY_VERSION!=="undefined"?TEDDY_VERSION:"Smart Teddy"}。${typeof teddyModelRoutingText==="function"?teddyModelRoutingText():""}\n【即時語音補充】你現在透過 Flash Live 即時語音跟使用者說話；你是 TEDDY 本人，Flash 只是你的嘴。一般聊天直接回答；工具（query_greenhouse、think_with_astra、browse_web）回傳 answer 時，用你的語氣自然念出，數字、單位、分區、期間照原文，不要自己改算。人格設定裡提到的文字工具（音樂、文章、提醒、計時、天氣、新聞等）如果不在你目前的工具清單裡，就直接說這項要改用文字輸入完成，不要假裝已經做了。使用者提到剛剛打字的內容、附件、或你不確定前面聊了什麼時，先呼叫 recall_recent_chat。使用者說到「提醒」（新增、查看、完成、取消）時，一律呼叫 teddy_reminder，把原句放進 text，照工具回覆簡短說一句就好。使用者說你剛才答對了或答錯了（答錯了、不對、應該是…），呼叫 teddy_feedback 記下來，再照他的更正重新回答。使用者附上文件（PPT、PDF、Word、Excel）後，問到內容就先呼叫 read_document 讀，不要只靠記憶或猜；要整理成報告、講稿、逐頁說明或深入分析時，呼叫 think_with_astra（系統會自動把文件全文一起交給深度引擎），拿到結果再用你的語氣說出來。
 ${memory}
 ${modeLine}
 模式切換是使用者控制的 UI 狀態。一般模式下，除非使用者明確說「工作」、「進入工作」、「工作模式」、「溫室模式」、「工作指派」、「工作回報」或要求 A01 登入，否則不得啟動任何 Hands/工作流程。照片、檔案、網頁、一般聊天，即使內容出現「工作」兩字，也不得自行跳工作路由。只有使用者明確切換或下工作指令時才處理工作。
@@ -174,6 +174,9 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
     name:"teddy_reminder",description:"處理所有「提醒」相關的話：新增提醒、查看提醒、完成或取消提醒。把使用者原句完整放進 text。新增有時間的提醒時，畫面上會出現加到行事曆的按鈕。",
     parameters:{type:"object",properties:{text:{type:"string"}},required:["text"]}
   };
+  // 8.8.1：把文字聊天的天氣、時間、匯率工具也給語音用（天氣沒指定地點就用手機定位）
+  const LIVE_CORE_TOOLS=["get_weather","get_current_datetime","get_exchange_rate"];
+  const coreBridgeTools=(typeof TEDDY_TOOLS!=="undefined"?TEDDY_TOOLS:[]).filter(t=>LIVE_CORE_TOOLS.includes(t.name)).map(t=>({name:t.name,description:t.description,parameters:t.input_schema||{type:"object",properties:{}}}));
   const docTool={
     name:"read_document",description:"讀取使用者附上的文件（PowerPoint、PDF、Word、Excel 等）的內容。使用者問到剛才附的檔案、簡報、投影片、第幾頁、文件內容時先呼叫。pages 可填頁數範圍，例如 \"3\" 或 \"5-9\"；不填就讀全部（太長會只回前段）。",
     parameters:{type:"object",properties:{pages:{type:"string"}},required:[]}
@@ -279,6 +282,10 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
         const data=typeof window.teddyInvestQuery==="function"?await window.teddyInvestQuery(q):"";
         return data?{ok:true,data}:{ok:false,error:"這句話對不到澎企理財裡的自選股；可以請使用者說股票名稱，或用 browse_web 查。"};
       }catch(e){return{ok:false,error:e.message};}
+    }
+    if(LIVE_CORE_TOOLS.includes(name)){
+      setLiveTrace({get_weather:"🌦 查天氣中…",get_current_datetime:"🕒 讀取時間…",get_exchange_rate:"💱 查匯率中…"}[name]||"🔧 查詢中…","#e8c879");
+      try{if(name==="get_weather"&&!args?.location&&typeof teddyRequestLocation==="function")await teddyRequestLocation();const r=await teddyRunTool(name,args||{});setLiveTrace(r&&r.ok!==false?"✓ 查好了":"查詢失敗："+(r&&r.error||""),r&&r.ok!==false?"#5eead4":"#f0a8a8");return r;}catch(e){return{ok:false,error:e.message};}
     }
     if(name==="read_document"){
       try{const r=typeof window.teddyDocRead==="function"?window.teddyDocRead(args?.pages||""):{ok:false,error:"文件記憶未載入"};setLiveTrace(r.ok?`📄 讀取文件：${r.name}（${r.range}）`:"沒有可讀的文件","#5eead4");return r;}catch(e){return{ok:false,error:e.message};}
@@ -444,8 +451,8 @@ A01登入成功後，先問使用者要「工作指派」還是「工作回報�
   function liveToolDeclarations(){
     const greenhouse=(window.TEDDY_APP_MODE==="greenhouse");
     return greenhouse
-      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool,reminderTool,feedbackTool]
-      : [myStocksTool,astraThinkTool,browseWebTool,recallChatTool,reminderTool,feedbackTool,docTool];
+      ? [greenhouseTool,handsLoginTool,handsCommandTool,recallChatTool,reminderTool,feedbackTool,...coreBridgeTools]
+      : [myStocksTool,astraThinkTool,browseWebTool,recallChatTool,reminderTool,feedbackTool,docTool,...coreBridgeTools];
   }
   function liveOpenAITools(){return liveToolDeclarations().map(t=>({type:"function",...t}));}
 

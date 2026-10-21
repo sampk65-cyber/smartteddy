@@ -3,7 +3,7 @@
 //                          node run-all.js wk fbt     只跑指定的
 //                          node run-all.js --update   把目前輸出存成新的標準答案（確認新行為正確後才用）
 const { spawnSync } = require('child_process'), fs = require('fs'), path = require('path');
-const ALL = ['rbrun', 'lt', 'imgt', 'deep', 'pit', 'pit2', 'pit3', 'pit4', 'pit5', 'pit6', 'pit8', 'pit9', 'pit10', 'pit11', 'pit12', 'pit13', 'sync', 'wk', 'pwa', 'inst', 'chip', 'obs2', 'sum', 'sum2', 'sum3', 'fbt', 'self', 'doct', 'ldoc'];
+const ALL = ['rbrun', 'lt', 'imgt', 'deep', 'pit', 'pit2', 'pit3', 'pit4', 'pit5', 'pit6', 'pit8', 'pit9', 'pit10', 'pit11', 'pit12', 'pit13', 'sync', 'wk', 'pwa', 'inst', 'chip', 'obs2', 'sum', 'sum2', 'sum3', 'fbt', 'self', 'doct', 'ldoc', 'lgeo'];
 const args = process.argv.slice(2), update = args.includes('--update'), pick = args.filter(a => !a.startsWith('--'));
 const tests = pick.length ? pick : ALL;
 // 把每次都會變的東西（時間、毫秒、隨機碼、版本號）換成固定字，才能比對
