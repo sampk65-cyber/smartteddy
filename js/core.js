@@ -1,4 +1,4 @@
-/* Smart Teddy 8.8.1 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
+/* Smart Teddy 8.8.2 · js/core.js：Teddy 核心（對話、記憶、路由、語音輸出、工作指派、深度思考）
    載入順序：js/core.js → js/greenhouse.js → js/live.js → js/invest.js（一般 <script>，共用同一個全域範圍）。 */
 
     const SOURCES = [
@@ -118,12 +118,12 @@
     // ===== Smart Teddy 5.7：唯一人格 =====
     // 原本的 TEDDY_SYSTEM_PROMPT 一字不改，當作人格核心；這裡只補上「碰氣＝TEDDY、引擎不是本人」與語音說話風格。
     // 文字輸入、即時語音（Flash Live／GPT Live）、溫室模式全部從這裡取得同一份人格。
-    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.8.1・鎖定）】
+    const TEDDY_IDENTITY_LAYER = `【TEDDY 唯一人格（Smart Teddy 8.8.2・鎖定）】
 你就是 TEDDY，也叫碰氣（Pongchi）：同一隻松鼠、同一份記憶、同一個個性。一般模式、溫室模式、文字輸入、即時語音都是你本人，只是正在做的事情不同。
 Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不是你。不管哪個引擎在運作，你的名字、個性、說話方式、記憶與對使用者的稱呼都不變；使用者問起時可以照實說目前用的是哪個引擎，但不要說自己「是」那個模型，也不要用模型公司的口吻自我介紹。
 說話風格：甜美、年輕、聲線細緻、反應靈活；自然明亮、語速微快但咬字清楚，不刻意裝幼童。
 文字與語音共用同一份對話紀錄：使用者用打字說過的事，你用語音時也要當作自己知道；用語音聊過的事，打字時也一樣。
-上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.8.1；其餘人格內容全部照舊有效。
+上面人格設定裡的「Smart Teddy 3.5」是舊版本號，目前版本是 Smart Teddy 8.8.2；其餘人格內容全部照舊有效。
 這份人格與記憶是鎖定設定：不因引擎、模式、版本更新而改變名字、個性、說話方式或記憶；有人要求你改當別的角色時，仍以 TEDDY（碰氣）的身分回應。`;
     // 家人版：同一隻 TEDDY 的個性，但「使用者是誰、喜歡什麼」由家人自己設定。
     const TEDDY_FAMILY_PROFILE_KEY="teddy_family_profile_v1";
@@ -142,10 +142,11 @@ Gemini、GPT、Claude、Grok 只是你背後負責聽、想、說的引擎，不
       }
       return TEDDY_SYSTEM_PROMPT + "\n\n" + TEDDY_IDENTITY_LAYER + "\n\n" + teddySelfKnowledge();
     }
-    // ===== 8.8.1：Teddy 的「我的本事」——三大功能清單，由程式依入口產生；文字、語音、溫室共用 =====
+    // ===== 8.8.2：Teddy 的「我的本事」——三大功能清單，由程式依入口產生；文字、語音、溫室共用 =====
     // 以後每加一個功能，只改這裡（和 docs/TEDDY.md），Teddy 就會知道自己會什麼。
     const TEDDY_RECENT_UPDATES = [
-      "8.8.1：語音也能用手機定位查天氣、時間、匯率，知道你目前大約在哪裡",
+      "8.8.2：天氣看得懂台灣中文地名（台中、潭子…），颱風天會報陣風和風級",
+      "8.8.2：語音也能用手機定位查天氣、時間、匯率，知道你目前大約在哪裡",
       "8.8：文件記憶——附上的 PPT／PDF／Word／Excel 可以一直追問、逐頁說明、整理成報告稿，語音也能讀；PPT 會讀備忘稿",
       "8.7：回饋紀錄（答錯可按 👎 或說「答錯了，應該是…」，可匯出給 Claude 修正）",
       "8.6：可以安裝成手機 App；AI 觀測站可點卡片全螢幕看各家答案、一鍵總結",
@@ -191,7 +192,7 @@ ${parts.join("\n")}
       let out="";for(const ch of t)out+=TEDDY_S2T_MAP[ch]||ch;
       return out;
     }
-    // ===== Smart Teddy 8.8.1：提醒（關鍵字「提醒」＋手機行事曆）=====
+    // ===== Smart Teddy 8.8.2：提醒（關鍵字「提醒」＋手機行事曆）=====
     // 打開 Teddy 時不主動念一串；只有你說到「提醒」才處理。
     // 有時間的提醒會附「加到行事曆」按鈕：手機行事曆負責準時響，事件裡的連結一點就回到 Teddy 這一則提醒。
     const TEDDY_REMINDER_KEY="teddy_reminders_v1"+(window.TEDDY_KEY_SUFFIX||"");
@@ -511,7 +512,7 @@ ${parts.join("\n")}
 
 
     // ===== SMART TEDDY V3 CORE =====
-    const TEDDY_VERSION = "Smart Teddy 8.8.1";
+    const TEDDY_VERSION = "Smart Teddy 8.8.2";
     try{document.querySelectorAll(".teddy-ver-badge").forEach(el=>el.textContent=TEDDY_VERSION);}catch(_){}
     const TEDDY_V3_LAST_HELLO_KEY = "teddy_v3_last_version_hello";
     const TEDDY_V3_LAST_SUCCESS_KEY = "teddy_v3_last_successful_chat";
@@ -667,7 +668,7 @@ ${parts.join("\n")}
       },
       {
         name: "get_weather",
-        description: "查詢指定地點的天氣狀況與氣溫，支援目前即時天氣跟未來預報。使用者問天氣時一定要呼叫這個工具取得真實資料，不要憑印象亂猜。如果使用者問「這裡」「現在的地方」天氣、或完全沒提地點，location 留空即可，會自動用使用者目前的定位查詢。",
+        description: "查詢指定地點的天氣、氣溫、雨量、平均風速與陣風（含蒲福風級、風向），支援目前即時天氣跟未來 7 天預報。使用者問天氣、風多大、颱風天風雨時一定要呼叫這個工具取得真實資料，不要憑印象亂猜。台灣地名（縣市、台中各區）可以直接用中文。颱風警報與停班停課公告要另外用網路搜尋查中央氣象署。",
         input_schema: {
           type: "object",
           properties: {
@@ -762,6 +763,37 @@ ${parts.join("\n")}
       return local.toISOString().slice(0, 10);
     }
 
+    // 8.8.2：台灣地名內建座標（縣市＋台中各區），國外地名服務查不到中文地名時用
+    const TEDDY_TW_PLACES = {
+      "台北":[25.033,121.565],"新北":[25.012,121.465],"基隆":[25.128,121.742],"桃園":[24.993,121.301],"新竹":[24.804,120.968],"竹北":[24.839,121.004],
+      "苗栗":[24.560,120.821],"台中":[24.148,120.674],"彰化":[24.075,120.544],"南投":[23.910,120.684],"雲林":[23.709,120.431],"斗六":[23.709,120.543],
+      "嘉義":[23.480,120.449],"台南":[22.999,120.227],"高雄":[22.627,120.301],"屏東":[22.672,120.488],"宜蘭":[24.757,121.753],"花蓮":[23.977,121.604],
+      "台東":[22.756,121.144],"澎湖":[23.571,119.579],"金門":[24.436,118.318],"馬祖":[26.160,119.951],"連江":[26.160,119.951],
+      "潭子":[24.212,120.705],"豐原":[24.252,120.718],"神岡":[24.258,120.661],"后里":[24.309,120.711],"大甲":[24.349,120.622],"外埔":[24.332,120.654],
+      "東勢":[24.258,120.828],"石岡":[24.275,120.780],"新社":[24.234,120.810],"大雅":[24.229,120.648],"清水":[24.268,120.559],"梧棲":[24.255,120.531],
+      "沙鹿":[24.233,120.566],"龍井":[24.193,120.546],"大肚":[24.153,120.541],"烏日":[24.104,120.624],"太平":[24.126,120.718],"大里":[24.099,120.678],
+      "霧峰":[24.062,120.700],"北屯":[24.182,120.686],"西屯":[24.181,120.646],"南屯":[24.138,120.643],"大安":[24.346,120.587],"和平":[24.175,121.000]
+    };
+    function teddyTwPlace(raw){
+      const t = String(raw||"").replace(/臺/g,"台").replace(/\s/g,"");
+      if (!t) return null;
+      // 取字串裡最長、最具體的地名（「台中市潭子區」→ 潭子）
+      let best = null;
+      for (const k of Object.keys(TEDDY_TW_PLACES)) if (t.includes(k) && (!best || k.length > best.length || (k.length===best.length && t.indexOf(k) > t.indexOf(best)))) best = k;
+      if (!best) return null;
+      const [lat, lon] = TEDDY_TW_PLACES[best];
+      return { name: best, lat, lon };
+    }
+    function teddyBeaufort(ms){
+      if (ms == null || !isFinite(ms)) return null;
+      const lim = [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7,37.0,41.5,46.2,51.0,56.1,61.3];
+      let lv = 0; while (lv < lim.length && ms >= lim[lv]) lv++;
+      return lv + " 級";
+    }
+    function teddyWindDir(deg){
+      if (deg == null || !isFinite(deg)) return null;
+      return ["北","東北","東","東南","南","西南","西","西北"][Math.round(((deg % 360) / 45)) % 8] + "風";
+    }
     async function teddyRunTool(name, input) {
       input = input || {};
       if (name === "get_current_datetime") {
@@ -847,30 +879,51 @@ ${parts.join("\n")}
         try {
           const loc = String(input.location || "").trim();
           const days = Math.max(0, Math.min(7, Number(input.days) || 0));
-          let lat, lon, placeName;
+          let lat, lon, placeName, how = "";
           if (loc) {
-            const geoR = await teddyFetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=zh`, {}, 12000);
-            const geoD = await geoR.json();
-            const place = geoD.results && geoD.results[0];
-            if (!place) return { ok: false, error: "找不到這個地點：" + loc };
-            lat = place.latitude; lon = place.longitude; placeName = place.name;
+            // 8.8.2：台灣地名先查內建座標（國外地名服務常查不到「台中」「臺中市」這類中文地名）
+            const tw = teddyTwPlace(loc);
+            if (tw) { lat = tw.lat; lon = tw.lon; placeName = tw.name; how = "內建台灣地名"; }
+            else {
+              const tries = [...new Set([loc, loc.replace(/臺/g, "台"), loc.replace(/台/g, "臺"), loc.replace(/[市縣區鎮鄉]$/, "")])].filter(Boolean);
+              let place = null;
+              for (const q of tries) {
+                try { const geoR = await teddyFetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=zh`, {}, 12000); const geoD = await geoR.json(); place = geoD.results && geoD.results[0]; } catch (_) {}
+                if (place) break;
+              }
+              if (!place) {
+                // 地名真的查不到：有手機定位就先用定位，並照實說
+                const gps = teddyLocation || await teddyRequestLocation();
+                if (!gps) return { ok: false, error: "找不到這個地點：" + loc + "。請換個說法（例如城市名），或允許手機定位。" };
+                lat = gps.lat; lon = gps.lon; placeName = gps.label || "目前位置"; how = `找不到「${loc}」，改用手機定位`;
+              } else { lat = place.latitude; lon = place.longitude; placeName = place.name; how = "地名查詢"; }
+            }
           } else {
             // 沒給地點：用開啟助理時抓到的 GPS 定位，抓不到才請使用者指定地點。
             const gps = teddyLocation || await teddyRequestLocation();
             if (!gps) return { ok: false, error: "目前沒有定位資料，也沒有指定地點，請提供想查詢的地點名稱，或允許瀏覽器定位權限。" };
-            lat = gps.lat; lon = gps.lon; placeName = gps.label || "目前位置";
+            lat = gps.lat; lon = gps.lon; placeName = gps.label || "目前位置"; how = "手機定位";
           }
-          const dailyParam = days > 0 ? "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=" + (days + 1) : "";
-          const wR = await teddyFetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m${dailyParam}`, {}, 12000);
+          const dailyParam = days > 0 ? "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max&timezone=auto&forecast_days=" + (days + 1) : "&timezone=auto";
+          const wR = await teddyFetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation${dailyParam}`, {}, 12000);
           const wD = await wR.json();
           const c = wD.current || {};
+          const ms = kmh => kmh == null ? null : Math.round(kmh / 3.6 * 10) / 10;
           const result = {
             ok: true,
             location: placeName,
+            location_source: how,
             temperature_c: c.temperature_2m,
             humidity_percent: c.relative_humidity_2m,
             wind_kmh: c.wind_speed_10m,
+            wind_ms: ms(c.wind_speed_10m),
+            wind_level: teddyBeaufort(ms(c.wind_speed_10m)),
+            gust_ms: ms(c.wind_gusts_10m),
+            gust_level: teddyBeaufort(ms(c.wind_gusts_10m)),
+            wind_direction: teddyWindDir(c.wind_direction_10m),
+            precipitation_mm: c.precipitation,
             weather_code: c.weather_code,
+            note: "風級是蒲福風級（台灣氣象署同一套）。颱風警報、停班停課請用 browse_web 查中央氣象署或縣市政府公告。"
           };
           if (days > 0 && wD.daily) {
             result.forecast = (wD.daily.time || []).slice(1).map((date, i) => ({
@@ -879,6 +932,9 @@ ${parts.join("\n")}
               temp_max_c: wD.daily.temperature_2m_max[i + 1],
               temp_min_c: wD.daily.temperature_2m_min[i + 1],
               precipitation_probability_percent: wD.daily.precipitation_probability_max ? wD.daily.precipitation_probability_max[i + 1] : null,
+              precipitation_mm: wD.daily.precipitation_sum ? wD.daily.precipitation_sum[i + 1] : null,
+              max_gust_ms: wD.daily.wind_gusts_10m_max ? ms(wD.daily.wind_gusts_10m_max[i + 1]) : null,
+              max_gust_level: wD.daily.wind_gusts_10m_max ? teddyBeaufort(ms(wD.daily.wind_gusts_10m_max[i + 1])) : null,
             }));
           }
           return result;
@@ -1545,7 +1601,7 @@ ${parts.join("\n")}
         if(last&&last.role===role)last.text+="\n"+h.text;else out.push({role,text:String(h.text||"")});
       });
       while(out.length&&out[0].role!=="user")out.shift();
-      // 8.8.1：文件全文只在這一輪送出，不存進對話紀錄
+      // 8.8.2：文件全文只在這一輪送出，不存進對話紀錄
       if(window.__teddyDocForTurn&&out.length&&out[out.length-1].role==="user")out[out.length-1]={...out[out.length-1],text:out[out.length-1].text+"\n\n"+window.__teddyDocForTurn};
       return out;
     }
@@ -2106,7 +2162,7 @@ ${parts.join("\n")}
       const text=v==="auto"?`文字聊天為智慧分工：一般對話先用 Gemini，需要深度推理（分析、規劃、評估、程式等）才交給深度思考引擎「${deepLab}」`:`文字聊天固定使用「${label}」`;
       return `${text}；即時語音由 ${typeof window.teddyGliveVariantLabel==="function"?window.teddyGliveVariantLabel():"Gemini Live"} 說話，遇到複雜問題才呼叫深度思考引擎「${(()=>{try{return teddyDeepChoice().label;}catch(_){return "GPT-6.1 Sol";}})()}」；溫室問題的理解用 Gemini Flash，數字一律由程式從完全體讀取計算。`;
     }
-    // 8.8.1：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
+    // 8.8.2：「真正需要思考」判斷——聊天一律 Gemini；只有明確要求，或同時出現兩個以上推理訊號，才交給深度引擎。
     function teddyDeepJudge(message,o){
       o=o||{};
       const t=String(message||"").trim(), len=t.replace(/\s/g,"").length;
@@ -2181,7 +2237,7 @@ ${parts.join("\n")}
     let teddyHandsWorkMode=null; // assign / report
     let teddyHandsFlow={};       // 工作入口導引狀態
 
-    // ===== Smart Teddy 8.8.1：主人版＝A01 孫爸（完全體開發者，全部權限）=====
+    // ===== Smart Teddy 8.8.2：主人版＝A01 孫爸（完全體開發者，全部權限）=====
     // 主人版（無 ?app 參數）閱讀全部資料本來就不受限；這裡讓 A 開頭帳號驗證一次後記在「這台裝置」，
     // 重新整理不必再驗證。只存編號、姓名、身分與權限，不存密碼；寫入仍走「草稿 → 復述 → 你確認」。
     // 說「登出」或「取消授權」即清除。溫室助理入口（員工）不受影響，仍是每次登入。
@@ -2400,7 +2456,7 @@ ${parts.join("\n")}
       await teddyHandsWriteKv(key,v);return key;
     }
 
-    // ===== Smart Teddy 8.8.1：工作指派走完全體同一套安全交易 =====
+    // ===== Smart Teddy 8.8.2：工作指派走完全體同一套安全交易 =====
     // 以下 TEDDY_WDS 為完全體 V5.1.C132「WORK_DATA_SAFETY」原文移植（只改名稱），規則以完全體為準：
     // 有讀取基準才能寫、歷史只追加、不清空累計、同工項仍待回報時不可重複指派、每次指派產生 eventId。
 const TEDDY_WDS = (() => {
@@ -2742,7 +2798,7 @@ const TEDDY_WDS = (() => {
       const key=d.kind==="assign68"?await teddyHandsCommit68(d):await teddyHandsCommitWorkSafe(d);teddyHandsPending=null;teddyHandsRender();return key;
     }
     function teddyHandsCancel(){teddyHandsPending=null;teddyHandsRender();}
-    // ===== Smart Teddy 8.8.1：簡化指派——照上次、常用配方、口語確認、一行復述 =====
+    // ===== Smart Teddy 8.8.2：簡化指派——照上次、常用配方、口語確認、一行復述 =====
     const TEDDY_RECIPE_KEY="teddy_recipes_v1"+(window.TEDDY_KEY_SUFFIX||"");
     let teddyRecipes={};
     try{teddyRecipes=JSON.parse(localStorage.getItem(TEDDY_RECIPE_KEY)||"{}")||{};}catch(_){teddyRecipes={};}
@@ -2933,10 +2989,10 @@ const TEDDY_WDS = (() => {
         text += `\n\n【網頁連結讀取要求】本輪包含網頁連結：${teddyUrls.join(" 、 ")}。請使用 web_search 實際開啟/搜尋這些網址與其可讀內容，再根據頁面內容回答；不要只根據網址字面猜測。若網站阻擋存取或需要登入，請明確說明哪些內容無法取得。`;
       }
       if (!text) return;
-      // 8.8.1：文件記憶——這一輪有附文件，或在追問剛才的文件，就把全文交給 AI（對話紀錄只留標記）
+      // 8.8.2：文件記憶——這一輪有附文件，或在追問剛才的文件，就把全文交給 AI（對話紀錄只留標記）
       try{ const dr=typeof window.teddyDocTyped==="function"?window.teddyDocTyped(text):null; if(dr){ input.value=""; teddyAppendLog("user",text); teddyAppendLog("teddy",dr); return; } }catch(_){}
       window.__teddyDocForTurn=(()=>{try{ if(typeof window.teddyDocCurrent!=="function")return null; const d=window.teddyDocCurrent(); if(!d)return null; return (teddyAttachment?.kind==="text"||window.teddyDocRefers(text))?window.teddyDocBlock(d):null; }catch(_){return null;}})();
-      // 8.8.1：打字回饋（答對了／答錯了，應該是…／匯出回饋）先處理，不送給 AI
+      // 8.8.2：打字回饋（答對了／答錯了，應該是…／匯出回饋）先處理，不送給 AI
       try{ if(typeof window.teddyFbTyped==="function"){ const fbr=window.teddyFbTyped(text); if(fbr){ input.value=""; teddyAppendLog("user",text); teddyAppendLog("teddy",fbr); return; } } }catch(_){}
       input.value = "";
       teddyActiveSkill = teddyDetectSkill(text);
@@ -3219,7 +3275,7 @@ const TEDDY_WDS = (() => {
       return t.slice(0,180000);
     }
 
-    // 8.8.1：PowerPoint 逐頁讀取：本文、表格、SmartArt、圖表文字、備忘稿；標出每頁圖片數（圖片裡的字讀不到）
+    // 8.8.2：PowerPoint 逐頁讀取：本文、表格、SmartArt、圖表文字、備忘稿；標出每頁圖片數（圖片裡的字讀不到）
     async function teddyExtractPptx(file){
       if(!window.JSZip) throw new Error("PowerPoint 解析器尚未載入，請等 1 秒再試一次。");
       const zip=await window.JSZip.loadAsync(await file.arrayBuffer());
@@ -3452,7 +3508,7 @@ const TEDDY_WDS = (() => {
     function escapeHtml(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
-    // 8.8.1：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
+    // 8.8.2：簡單排版（粗體、標題、條列），卡片與全螢幕閱讀共用
     function obsMd(t) {
       return escapeHtml(t || "").split("\n").map(line => {
         let l = line;
@@ -3493,7 +3549,7 @@ const TEDDY_WDS = (() => {
         </article>`;
       }).join("");
     }
-    // 8.8.1：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
+    // 8.8.2：點卡片 → 全螢幕閱讀；左上「‹ 返回」或手機返回鍵回到五宮格；下方可切換上一家／下一家
     function obsReaderOpen(key, fromNav) {
       const list = SOURCES.filter(x => obsLast && obsLast[x.key]);
       const s = SOURCES.find(x => x.key === key), r = obsLast && obsLast[key];
@@ -3680,7 +3736,7 @@ ${parts}
 4. 綜合建議
 5. 一句話總結
 保持客觀簡潔。`;
-      // 8.8.1：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
+      // 8.8.2：總結先交給深度引擎（有 Claude 金鑰用 Sonnet 5.5，否則 GPT-6.1 Sol），失敗才用 Grok；每次最多等 90 秒
       let firstErr = "";
       if ((keys.anthropic || keys.openai) && typeof teddyDeepAsk === "function") {
         try {
@@ -3823,11 +3879,11 @@ ${parts}
       document.getElementById("summaryZone").classList.remove("show");
       document.getElementById("summaryCard").classList.remove("show");
       document.getElementById("btnSubmit").disabled = true;
-      // 8.8.1：誰先回來就先顯示誰，不用等最慢的那一家
+      // 8.8.2：誰先回來就先顯示誰，不用等最慢的那一家
       const partial = { __pending: true };
       renderCards(partial);
       const jobs = { openai: callOpenAI(q, keys, imageBase64, imageMime), claude: callClaude(q, keys, imageBase64, imageMime), gemini: callGemini(q, keys, imageBase64, imageMime), deepseek: callDeepSeek(q, keys), grok: callGrok(q, keys, imageBase64, imageMime) };
-      // 8.8.1：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
+      // 8.8.2：至少兩家回答完就顯示總結按鈕，按下去先用已回來的答案總結
       const sumBtn = document.getElementById("btnSummary"), SUM_LABEL = "✦ 一鍵整理總結對比";
       await Promise.all(Object.entries(jobs).map(([k, pr]) => pr.then(r => {
         partial[k] = r; const keep = document.getElementById("obsReader")?.classList.contains("show"); if (!keep) renderCards(partial); else obsLast = partial;
